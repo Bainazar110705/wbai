@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBai — AI помощник для продавцов Wildberries</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --purple: #7b2ff7;
+    --purple-dark: #5a1fc7;
+    --bg: #0a0a0f;
+    --card: #13131a;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --muted: #888;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(10px); z-index: 100; }
+  .logo { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #7b2ff7, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .nav-btns { display: flex; gap: 12px; }
+  .btn { padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+  .btn-primary { background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: #fff; }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-lg { padding: 14px 32px; font-size: 16px; border-radius: 10px; }
+
+  /* HERO */
+  .hero { text-align: center; padding: 100px 20px 80px; max-width: 800px; margin: 0 auto; }
+  .badge { display: inline-block; background: rgba(123,47,247,0.15); border: 1px solid rgba(123,47,247,0.3); color: #a855f7; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 24px; }
+  .hero h1 { font-size: 56px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+  .hero h1 span { background: linear-gradient(135deg, #7b2ff7, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 20px; color: var(--muted); margin-bottom: 40px; line-height: 1.6; }
+  .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+  /* FEATURES */
+  .section { padding: 80px 40px; max-width: 1100px; margin: 0 auto; }
+  .section-title { text-align: center; font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+  .section-sub { text-align: center; color: var(--muted); font-size: 18px; margin-bottom: 60px; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: border-color 0.2s; }
+  .feature-card:hover { border-color: var(--purple); }
+  .feature-icon { font-size: 36px; margin-bottom: 16px; }
+  .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .feature-card p { color: var(--muted); line-height: 1.6; font-size: 15px; }
+
+  /* PRICING */
+  .pricing { text-align: center; }
+  .price-card { background: var(--card); border: 2px solid var(--purple); border-radius: 20px; padding: 48px; max-width: 400px; margin: 0 auto; position: relative; }
+  .price-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: #fff; padding: 6px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .price-amount { font-size: 52px; font-weight: 800; margin: 20px 0 8px; }
+  .price-period { color: var(--muted); font-size: 16px; margin-bottom: 32px; }
+  .price-features { list-style: none; text-align: left; margin-bottom: 36px; }
+  .price-features li { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .price-features li:last-child { border-bottom: none; }
+  .check { color: #4ade80; font-size: 18px; }
+
+  /* HOW */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .step { text-align: center; padding: 24px; }
+  .step-num { width: 48px; height: 48px; background: linear-gradient(135deg, var(--purple), var(--purple-dark)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; margin: 0 auto 16px; }
+  .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .step p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+  /* CTA */
+  .cta { text-align: center; padding: 100px 20px; background: linear-gradient(135deg, rgba(123,47,247,0.1), rgba(168,85,247,0.05)); border-top: 1px solid var(--border); }
+  .cta h2 { font-size: 40px; font-weight: 800; margin-bottom: 16px; }
+  .cta p { color: var(--muted); font-size: 18px; margin-bottom: 40px; }
+
+  /* FOOTER */
+  footer { padding: 32px 40px; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 36px; width: 420px; max-width: 95vw; }
+  .modal h2 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+  .modal-tabs { display: flex; gap: 0; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .modal-tab { flex: 1; padding: 10px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal-tab.active { background: var(--purple); color: #fff; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .form-group input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); outline: none; }
+  .form-group input:focus { border-color: var(--purple); }
+  .modal-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .modal-success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; margin-top: -8px; }
+
+  /* DASHBOARD */
+  #dashboard { display: none; }
+  .dash-header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .dash-content { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+  .sub-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
+  .sub-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  .sub-status { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .status-dot.active { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+  .status-dot.inactive { background: #f87171; }
+  .download-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: #fff; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; text-decoration: none; }
+  .kaspi-info { background: rgba(123,47,247,0.08); border: 1px solid rgba(123,47,247,0.2); border-radius: 12px; padding: 20px; }
+  .kaspi-info h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #a855f7; }
+  .kaspi-info p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .kaspi-info strong { color: var(--text); }
+
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    .hero h1 { font-size: 36px; }
+    .section { padding: 60px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <nav>
+    <div class="logo">WBai</div>
+    <div class="nav-btns">
+      <button class="btn btn-outline" onclick="openModal('login')">Войти</button>
+      <button class="btn btn-primary" onclick="openModal('register')">Попробовать</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="badge">✨ AI помощник для продавцов WB</div>
+    <h1>Продавай больше с <span>искусственным интеллектом</span></h1>
+    <p>Заполняй карточки, отвечай на отзывы и вопросы автоматически. Экономь часы работы каждый день.</p>
+    <div class="hero-btns">
+      <button class="btn btn-primary btn-lg" onclick="openModal('register')">Начать бесплатно →</button>
+      <a href="#features" class="btn btn-outline btn-lg">Узнать больше</a>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="section-title">Всё что нужно продавцу</div>
+    <div class="section-sub">Один инструмент вместо нескольких сервисов</div>
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <h3>AI заполнение карточек</h3>
+        <p>Вставьте характеристики товара — AI автоматически заполнит все поля карточки, напишет SEO-описание и сгенерирует баркод.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Ответы на отзывы</h3>
+        <p>AI пишет дерзкие мемные ответы которые нравятся покупателям. Выберите стиль — с юмором или официально.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">❓</div>
+        <h3>Ответы на вопросы</h3>
+        <p>AI отвечает на вопросы покупателей используя характеристики вашего товара из сохранённых шаблонов.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>Шаблоны товаров</h3>
+        <p>Сохраняйте данные товаров и загружайте одним кликом. Шаблоны привязаны к категории — не запутаетесь.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>SEO-оптимизация</h3>
+        <p>Описание написано под алгоритмы Wildberries — с высокочастотными запросами для продвижения в поиске.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✏️</div>
+        <h3>Генерация названий</h3>
+        <p>AI создаёт SEO-названия товаров до 60 символов с ключевыми словами которые покупатели вводят в поиск.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="section-title">Как это работает</div>
+    <div class="section-sub">4 простых шага</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Регистрация</h3>
+        <p>Создайте аккаунт за 30 секунд</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Оплата</h3>
+        <p>Оплатите подписку через Kaspi или карту</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Установка</h3>
+        <p>Скачайте расширение для Chrome и установите</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Работайте</h3>
+        <p>Открываете WB — инструмент уже работает</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing">
+    <div class="section-title">Тарифы</div>
+    <div class="section-sub">Один тариф — всё включено</div>
+    <div class="pricing">
+      <div class="price-card">
+        <div class="price-badge">🔥 Самый популярный</div>
+        <div class="price-amount">5 000 ₸</div>
+        <div class="price-period">в месяц</div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> AI заполнение карточек</li>
+          <li><span class="check">✓</span> Ответы на отзывы</li>
+          <li><span class="check">✓</span> Ответы на вопросы</li>
+          <li><span class="check">✓</span> SEO-описания и названия</li>
+          <li><span class="check">✓</span> Шаблоны товаров</li>
+          <li><span class="check">✓</span> Неограниченное использование</li>
+          <li><span class="check">✓</span> Обновления включены</li>
+        </ul>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="openModal('register')">Купить подписку</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <h2>Готовы экономить время?</h2>
+    <p>Присоединяйтесь к продавцам которые уже используют WBai</p>
+    <button class="btn btn-primary btn-lg" onclick="openModal('register')">Начать прямо сейчас →</button>
+  </div>
+
+  <footer>
+    <p>© 2024 WBai — AI помощник для продавцов Wildberries</p>
+  </footer>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div class="logo">WBai</div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="dash-email" style="color:var(--muted);font-size:14px;"></span>
+      <button class="btn btn-outline" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+  <div class="dash-content">
+    <div class="sub-card">
+      <h3>Статус подписки</h3>
+      <div class="sub-status">
+        <div class="status-dot" id="sub-dot"></div>
+        <span id="sub-text"></span>
+      </div>
+      <div id="sub-active-block" style="display:none;">
+        <a class="download-btn" href="/extension/wbai-extension.zip" download>
+          ⬇️ Скачать расширение
+        </a>
+        <p style="color:var(--muted);font-size:13px;margin-top:12px;">После скачивания: Chrome → Расширения → Режим разработчика → Загрузить распакованное</p>
+      </div>
+      <div id="sub-inactive-block" style="display:none;">
+        <div class="kaspi-info">
+          <h4>Как оплатить подписку</h4>
+          <p>
+            Переведите <strong>5 000 ₸</strong> на Kaspi:<br><br>
+            <strong>+7 XXX XXX XX XX</strong> (Altay F.)<br><br>
+            В комментарии укажите ваш email: <strong id="payment-email"></strong><br><br>
+            После оплаты подписка активируется в течение 1-2 часов.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-card">
+      <h3>Как установить расширение</h3>
+      <ol style="color:var(--muted);line-height:2;padding-left:20px;font-size:15px;">
+        <li>Скачайте расширение выше</li>
+        <li>Откройте Chrome → адресная строка → <strong style="color:var(--text)">chrome://extensions</strong></li>
+        <li>Включите <strong style="color:var(--text)">Режим разработчика</strong> (правый верхний угол)</li>
+        <li>Нажмите <strong style="color:var(--text)">Загрузить распакованное расширение</strong></li>
+        <li>Выберите папку с расширением</li>
+        <li>Войдите в расширение используя ваш email и пароль от WBai</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2 id="modal-title">Войти</h2>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-login" onclick="switchTab('login')">Войти</button>
+      <button class="modal-tab" id="tab-register" onclick="switchTab('register')">Регистрация</button>
+    </div>
+    <div id="modal-error" class="modal-error"></div>
+    <div id="modal-success" class="modal-success"></div>
+
+    <div id="form-login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="doLogin()">Войти</button>
+    </div>
+
+    <div id="form-register" style="display:none;">
+      <div class="form-group">
+        <label>Имя</label>
+        <input type="text" id="reg-name" placeholder="Ваше имя">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="reg-password" placeholder="Минимум 6 символов" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="doRegister()">Создать аккаунт</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+function openModal(tab) {
+  document.getElementById('modal').classList.add('active');
+  switchTab(tab);
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  clearModalMessages();
+}
+function switchTab(tab) {
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('modal-title').textContent = tab === 'login' ? 'Войти в аккаунт' : 'Создать аккаунт';
+  clearModalMessages();
+}
+function showError(msg) {
+  const el = document.getElementById('modal-error');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('modal-success').style.display = 'none';
+}
+function showSuccess(msg) {
+  const el = document.getElementById('modal-success');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('modal-error').style.display = 'none';
+}
+function clearModalMessages() {
+  document.getElementById('modal-error').style.display = 'none';
+  document.getElementById('modal-success').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return showError('Заполните все поля');
+  try {
+    const r = await fetch(API + '/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+    const data = await r.json();
+    if (!r.ok) return showError(data.error || 'Ошибка входа');
+    localStorage.setItem('wbai_token', data.token);
+    localStorage.setItem('wbai_user', JSON.stringify(data.user));
+    closeModal();
+    showDashboard(data.user, data.subscription);
+  } catch(e) { showError('Ошибка соединения'); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  if (!email || !password) return showError('Заполните email и пароль');
+  if (password.length < 6) return showError('Пароль минимум 6 символов');
+  try {
+    const r = await fetch(API + '/api/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password, name}) });
+    const data = await r.json();
+    if (!r.ok) return showError(data.error || 'Ошибка регистрации');
+    showSuccess('Аккаунт создан! Теперь войдите.');
+    setTimeout(() => switchTab('login'), 1500);
+    document.getElementById('login-email').value = email;
+  } catch(e) { showError('Ошибка соединения'); }
+}
+
+function showDashboard(user, subscription) {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('dash-email').textContent = user.email;
+  document.getElementById('payment-email').textContent = user.email;
+
+  const isActive = subscription?.active;
+  const dot = document.getElementById('sub-dot');
+  const text = document.getElementById('sub-text');
+  dot.className = 'status-dot ' + (isActive ? 'active' : 'inactive');
+
+  if (isActive) {
+    const end = new Date(subscription.end);
+    text.textContent = 'Активна до ' + end.toLocaleDateString('ru-RU');
+    document.getElementById('sub-active-block').style.display = 'block';
+    document.getElementById('sub-inactive-block').style.display = 'none';
+  } else {
+    text.textContent = 'Подписка не активна';
+    document.getElementById('sub-active-block').style.display = 'none';
+    document.getElementById('sub-inactive-block').style.display = 'block';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('wbai_token');
+  localStorage.removeItem('wbai_user');
+  document.getElementById('landing').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+// Автологин
+async function autoLogin() {
+  const token = localStorage.getItem('wbai_token');
+  if (!token) return;
+  try {
+    const r = await fetch(API + '/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!r.ok) { localStorage.removeItem('wbai_token'); return; }
+    const data = await r.json();
+    showDashboard(data.user, data.subscription);
+  } catch(e) {}
+}
+
+autoLogin();
+</script>
+</body>
+</html>
