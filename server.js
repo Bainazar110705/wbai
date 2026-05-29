@@ -338,14 +338,24 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
   const styleBlock = (hasStyleRef || styleAnalysis)
-    ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic.
-Copy its design EXACTLY:
-- Same background layout and color scheme
-- Same badge shapes, sizes and positioning
-- Same text hierarchy and font style
-- Same overall composition and mood
-Adapt only: replace the product with the one from image 1, update the text with the specs provided below.`
-    : `BACKGROUND: Professional Wildberries infographic style. Dark or split background, bold text, colored spec badges.`;
+    ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic from a competitor.
+
+WHAT TO COPY from the last image:
+- Background colors, diagonal split, gradient style
+- Badge shapes, rounded corners, colors
+- Text hierarchy (large number + small label below)
+- Composition layout (where title is, where specs are)
+- Shield/guarantee icon style if present
+- Overall mood and energy
+
+WHAT TO KEEP FROM IMAGE 1 (the product photo):
+- The EXACT product object — every detail, color, brand marking
+- Do NOT copy the product shape/color/brand from the reference image
+- The reference product is just for layout inspiration, NOT for copying the actual tool
+- Image 1 product must appear UNCHANGED in the output
+
+Think of it as: "take the design template from the last image, but place Image 1's product inside it"`
+    : `BACKGROUND: Professional Wildberries infographic style. Yellow diagonal split, bold text, colored spec badges.`;
 
   const textLines = [];
   if (title) textLines.push(`"${title}"`);
