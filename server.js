@@ -338,44 +338,66 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
   const styleBlock = styleAnalysis
-    ? `STYLE TO COPY FROM REFERENCE IMAGE:\n${styleAnalysis}`
-    : `STYLE: Yellow and black split background (diagonal). Left side yellow, right side dark grey/black.`;
+    ? `REFERENCE DESIGN STYLE:\n${styleAnalysis}\nCopy the colors, background style, badge shapes and text layout from this reference exactly.`
+    : `BACKGROUND: Diagonal split — top-left white/light grey, bottom-right bright yellow. Clean geometric separation.`;
 
   const textLines = [];
-  if (title) textLines.push(`TITLE (top, very large bold white text): "${title}"`);
-  if (primarySpec) textLines.push(`MAIN BADGE (large, red background, white text): "${primarySpec}"`);
-  specs.forEach(s => textLines.push(`SPEC BADGE (red background, white text): "${s}"`));
+  if (title) textLines.push(`"${title}"`);
+  if (primarySpec) textLines.push(`"${primarySpec}"`);
+  specs.forEach(s => textLines.push(`"${s}"`));
 
-  const textBlock = textLines.length > 0
-    ? textLines.map((t, i) => `${i+1}. ${t}`).join('\n')
-    : 'No text specified.';
+  const textBlock = textLines.join('\n');
 
-  return `You are editing the provided product photo into a Wildberries marketplace infographic card (portrait 3:4 format).
+  return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
 
-RULE 1 — PRODUCT (ABSOLUTE):
-This is an IMAGE EDITING task, NOT image generation.
-The product in the INPUT PHOTO must appear in the output EXACTLY as shown.
-- Do NOT replace the product with a different brand (not ЗУБР, not Makita, not RYOBI, not Морлер, not any other)
-- Copy the exact shape, color, brand markings from the input photo
-- Place the product as the main hero, occupying 60-70% of the frame
-- Add white rim light on edges and drop shadow below
+=== IMAGES PROVIDED ===
+You receive multiple photos:
+- FIRST IMAGE: the main product (bolgarki/grinder ARIKO) — this is the HERO of the infographic, place it large in center
+- ADDITIONAL IMAGES (if provided): accessories like case, discs, battery — place them SMALLER around the main product as supporting elements
+Do NOT replace any object. Use exactly what is shown in each photo. This is image EDITING not generation.
 
-RULE 2 — FORMAT:
-Output must be portrait orientation, taller than wide (3:4 ratio, like a phone screen).
-Width must be LESS than height.
+=== OUTPUT FORMAT ===
+Portrait orientation 3:4 ratio (taller than wide, like 768x1024px).
 
-RULE 3 — BACKGROUND:
-${styleBlock}
+=== PROFESSIONAL DESIGN LAYOUT ===
+Create a visually stunning, conversion-optimized infographic like a top Wildberries seller would use:
 
-RULE 4 — TEXT (copy letter by letter, no changes):
+1. BACKGROUND: ${styleBlock}
+
+2. PRODUCT PLACEMENT:
+   - MAIN PRODUCT (first image): center or center-right, large (60-65% of frame height)
+   - Keep exact angle from the input photo — do NOT rotate or tilt
+   - Strong cinematic lighting, bright rim light on edges, drop shadow
+   - ACCESSORIES (additional images): place smaller (15-25% size each) around main product:
+     * Case: bottom-left corner
+     * Battery/АКБ: bottom-right or left side
+     * Discs/насадки: small row at bottom center
+   - All accessories clearly visible but clearly secondary to main product
+
+3. TITLE BLOCK (top area):
+   - Bold rounded rectangle badge (red or matching reference color)
+   - Large white bold text inside: ${title ? `"${title}"` : 'product name'}
+   - This is the MOST prominent text element
+
+4. SPEC BADGES (left or right column, stacked vertically):
+   Create professional rounded rectangle badges for each spec:
+${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
+   - Each badge: dark/colored background, white bold text, large readable numbers
+   - Numbers should be VERY large, labels smaller below
+
+5. OVERALL FEEL:
+   - Premium, professional, high-converting marketplace card
+   - High contrast, vibrant colors
+   - Clean spacing, not cluttered
+   - Looks like it was designed in Adobe Illustrator by a pro
+
+=== TEXT RULES ===
+Write ONLY these exact texts, letter by letter:
 ${textBlock}
-- Write ONLY the texts listed above, nothing else
-- Do NOT invent new words or product names
-- Large, bold, readable font
-- Place text in empty areas, not over the product
+DO NOT add: "гайковёрт", "дрель", watermarks, barcodes, or any text not listed above.
 
 ${accessoriesBlock}
-${extraText ? `RULE 5 — EXTRA: ${extraText}` : ''}`;
+${extraText ? `EXTRA: ${extraText}` : ''}`;
 }
 
 
@@ -452,21 +474,30 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock
     });
 
-    // Шаг 4: Подготавливаем фото (передаём base64 напрямую)
+    // Шаг 4: Подготавливаем все фото
     let imageUrl = null;
+    let allImageUrls = [];
     if (model.supportsImageInput) {
       console.log('[WBai] Подготавливаем фото для fal.ai...');
       imageUrl = prepareImageForFal(imageBase64);
+      allImageUrls = [imageUrl];
+      // Добавляем доп. фото (кейс, диски, АКБ и т.д.)
+      if (extraImages && Array.isArray(extraImages)) {
+        extraImages.slice(0, 9).forEach(img => {
+          if (img) allImageUrls.push(prepareImageForFal(img));
+        });
+      }
+      console.log(`[WBai] Всего фото: ${allImageUrls.length}`);
     }
 
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
     if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
-      // Nano Banana Edit — Google Gemini, редактирует фото сохраняя товар
+      // Nano Banana Edit — все фото передаём в массив
       falBody = {
         prompt: finalPrompt,
-        image_urls: [imageUrl],   // массив — сохраняет объект с фото
-        aspect_ratio: '3:4',      // всегда portrait 3:4
+        image_urls: allImageUrls,  // главное фото + кейс + диски + АКБ
+        aspect_ratio: '3:4',
         num_images: 1,
         safety_tolerance: '5',
       };
