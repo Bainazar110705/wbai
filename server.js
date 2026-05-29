@@ -337,32 +337,88 @@ app.get('/api/models', authMiddleware, (req, res) => {
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef }) {
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
+  const styleBlock = (hasStyleRef || styleAnalysis)
+    ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic from a competitor.
+
+CRITICAL INSTRUCTION — TWO SEPARATE TASKS:
+
+TASK A — DESIGN TEMPLATE (from the LAST image):
+Copy these elements PIXEL-PERFECTLY from the reference:
+- Background: exact same colors, exact same split/diagonal/gradient
+- Badge style: exact same shape, exact same colors, exact same rounded corners
+- Text style: exact same font weight, exact same hierarchy (big number + small label)
+- Layout: exact same positions — title top, specs left/right, product center
+- Icons: copy guarantee shield, feature icons exactly as shown
+- DO NOT change colors to match the product — keep reference colors exactly
+
+TASK B — PRODUCT (from IMAGE 1 only):
+- Place the exact product from Image 1 into the design template
+- Keep every detail: same brand ARIKO, same blue-black color, same shape
+- Do NOT use the product from the reference image at all
+- Only the product object changes between reference and output — everything else stays identical
+
+Final result = reference design template + Image 1 product inserted into it`
+    : `BACKGROUND: Professional Wildberries infographic style. Yellow diagonal split, bold text, colored spec badges.`;
+
   const textLines = [];
-  if (title) textLines.push(`TITLE: "${title}"`);
-  if (primarySpec) textLines.push(`MAIN SPEC: "${primarySpec}"`);
-  specs.forEach(s => textLines.push(`SPEC: "${s}"`));
+  if (title) textLines.push(`"${title}"`);
+  if (primarySpec) textLines.push(`"${primarySpec}"`);
+  specs.forEach(s => textLines.push(`"${s}"`));
+
   const textBlock = textLines.join('\n');
 
-  const hasRef = hasStyleRef || styleAnalysis;
+  return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
 
-  return `You are creating a professional Wildberries product infographic card.
+=== IMAGES PROVIDED ===
+You receive multiple photos:
+- FIRST IMAGE: the main product (bolgarki/grinder ARIKO) — this is the HERO of the infographic, place it large in center
+- ADDITIONAL IMAGES (if provided): accessories like case, discs, battery — place them SMALLER around the main product as supporting elements
+Do NOT replace any object. Use exactly what is shown in each photo. This is image EDITING not generation.
 
-${hasRef ? `DESIGN REFERENCE (last image provided):
-TASK 1 — BACKGROUND: Copy the background EXACTLY from the reference. Same colors, same layout, same style. Do NOT adapt colors to the product.
-TASK 2 — BADGE STYLE: Copy the exact badge/block style from reference (shape, colors, border, font weight). Use these same badges for MY texts.
-TASK 3 — TEXTS: The reference has its own texts — IGNORE ALL OF THEM. Use ONLY my texts below in the reference badge style.
-TASK 4 — PRODUCT: Use ONLY the product from Image 1. Do NOT use the reference product.` : `DESIGN: Professional Wildberries style. White or split background, bold colored spec badges, clear hierarchy.`}
+=== OUTPUT FORMAT ===
+Portrait orientation 3:4 ratio (taller than wide, like 768x1024px).
 
-MY PRODUCT TEXTS (use these ONLY, letter by letter):
+=== PROFESSIONAL DESIGN LAYOUT ===
+Create a visually stunning, conversion-optimized infographic like a top Wildberries seller would use:
+
+1. BACKGROUND: ${styleBlock}
+
+2. PRODUCT PLACEMENT:
+   - MAIN PRODUCT (first image): center or center-right, large (60-65% of frame height)
+   - Keep exact angle from the input photo — do NOT rotate or tilt
+   - Strong cinematic lighting, bright rim light on edges, drop shadow
+   - ACCESSORIES (additional images): place smaller (15-25% size each) around main product:
+     * Case: bottom-left corner
+     * Battery/АКБ: bottom-right or left side
+     * Discs/насадки: small row at bottom center
+   - All accessories clearly visible but clearly secondary to main product
+
+3. TITLE BLOCK (top area):
+   - Copy the title block style EXACTLY from the reference image (shape, position, font size)
+   - Use the same background color as title block in reference, but adapted to product color
+   - Large white bold text inside: ${title ? `"${title}"` : 'product name'}
+   - This is the MOST prominent text element
+
+4. SPEC BADGES (left or right column, stacked vertically):
+   Create professional rounded rectangle badges for each spec:
+${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
+   - Each badge: same style as spec badges in reference image (copy shape, color, font)
+   - Adapt badge color to match product — if product is blue, use blue/dark-blue badges
+   - Numbers should be VERY large, labels smaller below
+
+5. OVERALL FEEL:
+   - Premium, professional, high-converting marketplace card
+   - High contrast, vibrant colors
+   - Clean spacing, not cluttered
+   - Looks like it was designed in Adobe Illustrator by a pro
+
+=== TEXT RULES ===
+Write ONLY these exact texts, letter by letter:
 ${textBlock}
-
-PRODUCT RULES:
-- Keep the exact product from Image 1 unchanged — same brand, color, shape
-- Add rim light on edges and drop shadow
+DO NOT add: "гайковёрт", "дрель", watermarks, barcodes, or any text not listed above.
 
 ${accessoriesBlock}
-${extraText ? `EXTRA: ${extraText}` : ''}
-FORBIDDEN: reference texts, watermarks, barcodes, invented specs.`;
+${extraText ? `EXTRA: ${extraText}` : ''}`;
 }
 
 
