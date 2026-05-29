@@ -294,33 +294,35 @@ function buildAccessoriesInstructions(productName, specs) {
 // КОНФИГУРАЦИЯ МОДЕЛЕЙ FAL.AI
 // ============================================================
 const AI_MODELS = {
-  'gpt-image-2': {
-    name: 'GPT Image 2',
-    description: 'Лучший текст на кириллице, инфографика',
+  'flux-dev-i2i': {
+    name: 'FLUX.1 Dev',
+    description: 'Сохраняет товар, копирует стиль',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/gpt-image-2',
+    endpoint: 'fal-ai/flux/dev/image-to-image',
     supportsImageInput: true,
+    strength: 0.75,
   },
-  'flux-kontext-pro': {
-    name: 'FLUX Kontext Pro',
-    description: 'Точная передача товара, реализм',
+  'flux-kontext': {
+    name: 'FLUX Kontext',
+    description: 'Точная передача товара',
     badge: null,
     endpoint: 'fal-ai/flux-pro/v1/kontext',
     supportsImageInput: true,
   },
-  'seedream-5': {
-    name: 'Seedream 5.0',
-    description: 'Яркий стиль, кинематограф',
+  'seedream': {
+    name: 'Seedream 3',
+    description: 'Яркий кинематограф',
     badge: null,
     endpoint: 'fal-ai/bytedance/seedream-3',
     supportsImageInput: true,
   },
-  'nano-banana-pro': {
-    name: 'Nano Banana Pro',
+  'flux-schnell': {
+    name: 'FLUX Schnell',
     description: 'Максимальная скорость',
     badge: 'Быстро',
-    endpoint: 'fal-ai/fast-lightning-sdxl',
-    supportsImageInput: false,
+    endpoint: 'fal-ai/flux/schnell/image-to-image',
+    supportsImageInput: true,
+    strength: 0.8,
   },
 };
 
@@ -335,67 +337,39 @@ app.get('/api/models', authMiddleware, (req, res) => {
 // Построитель промптов под каждую модель
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock }) {
   const styleBlock = styleAnalysis
-    ? `VISUAL STYLE (apply exactly):\n${styleAnalysis}\n`
-    : `VISUAL STYLE: Dark background (#0A0A1A), strong diagonal color accent (deep yellow or red), dramatic contrast lighting, cinematic atmosphere.`;
-  const specsFormatted = secondarySpecs.map(s => `"${s.trim()}"`).join(' | ') || 'none';
+    ? `REFERENCE STYLE (copy this visual style exactly):\n${styleAnalysis}\n`
+    : `STYLE: Dark cinematic background, dramatic side lighting, deep shadows, product hero shot.`;
+  const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  if (modelId === 'gpt-image-2') {
-    return `Create a professional Wildberries marketplace product infographic card.
-PRODUCT PHOTO: Use the provided product image exactly — same model, color, details. Do not substitute.
-LAYOUT:
-- Dark cinematic background (near-black with color accent)
-- Product dominates 70% of canvas, tilted 15-20°, dramatic lighting
-- Cinematic rim light cutting product against background
+  return `Professional Wildberries product infographic card.
+
+CRITICAL — PRODUCT PRESERVATION:
+- Keep the EXACT product from the input photo
+- Same brand, model, color, shape — do NOT change or replace it
+- Product should dominate 65-70% of the frame, slightly tilted for dynamism
+
+${styleBlock}
 ${accessoriesBlock}
-TEXT TO RENDER (EXACT — render every word verbatim, zero typos):
-- TITLE (top, large bold): EXACT TEXT: "${title}"
-- PRIMARY SPEC (huge, high-contrast badge): EXACT TEXT: "${primarySpec}"
-- SECONDARY SPECS (rounded dark badges, bottom area): ${specsFormatted}
-TYPOGRAPHY RULES:
-- All text in Russian Cyrillic — render exactly as written
-- Title: bold, white or bright, top area
-- Primary spec number: ENORMOUS, 2-3x bigger than secondary
-- Each secondary spec: dark rounded rectangle badge, white text, number large + small label below
-- NO extra text, NO watermarks, NO invented words
-${styleBlock}
-${extraText ? 'ADDITIONAL NOTES: ' + extraText : ''}
-QUALITY: High-contrast, cinematic, marketplace-ready. Stop a scrolling buyer in 0.3 seconds.`;
-  }
 
-  if (modelId === 'flux-kontext-pro') {
-    return `Transform this product photo into a professional Wildberries infographic card.
-Keep the EXACT product from the photo — same model, color, every detail preserved.
-SCENE: Dark industrial background, cinematic directional lighting. Product tilted 20°, filling 70% of frame.
-${accessoriesBlock}
-TEXT ELEMENTS:
-Title at top: "${title}"
-Large spec badge: "${primarySpec}"
-Secondary badges: ${secondarySpecs.map(s => `"${s.trim()}"`).join(', ')}
-${styleBlock}
-${extraText ? 'Notes: ' + extraText : ''}`;
-  }
+COMPOSITION:
+- Dark dramatic background matching the reference style
+- Cinematic rim lighting on the product edges
+- Atmospheric depth and smoke/glow effects
+- Portrait orientation optimized for WB marketplace
 
-  if (modelId === 'seedream-5') {
-    return `WILDBERRIES PRODUCT INFOGRAPHIC — CINEMATIC STYLE
-Product: place EXACTLY as shown in photo, same model and color.
-Composition: tilted 20-25°, dominates 75% of canvas, cinematic close-up.
-Background: dark industrial, atmospheric smoke, dramatic rim lighting.
-${accessoriesBlock}
-TEXT OVERLAY (Russian Cyrillic):
-- Title: "${title}" — bold, top area, large
-- Main spec: "${primarySpec}" — MASSIVE badge, high contrast yellow/red on dark
-- Secondary: ${secondarySpecs.map(s => `"${s.trim()}"`).join(' | ')} — dark rounded badges bottom
-${styleBlock}
-${extraText ? 'Client notes: ' + extraText : ''}
-NO watermarks. Aggressive visual energy. Conversion-focused.`;
-  }
+TEXT OVERLAY (Russian Cyrillic, render EXACTLY):
+${title ? `- Product title (top, large bold): "${title}"` : ''}
+${primarySpec ? `- Main specification (huge badge, high contrast): "${primarySpec}"` : ''}
+${specs.length > 0 ? `- Secondary specs (dark rounded badges, bottom): ${specs.map(s => `"${s}"`).join(' | ')}` : ''}
 
-  return `Professional Wildberries product infographic for: "${title}".
-Dark cinematic background, dramatic lighting.
-TEXT (Russian Cyrillic): Title: "${title}", Main spec: "${primarySpec}", Details: ${secondarySpecs.map(s => `"${s.trim()}"`).join(', ')}
-${styleBlock}
-${extraText ? 'Notes: ' + extraText : ''}`;
+RULES:
+- Render ALL text exactly as specified, no typos
+- Text in Cyrillic must be readable and correct
+- NO invented text, NO watermarks, NO logos unless in original photo
+- High contrast, conversion-optimized for mobile shoppers
+${extraText ? `\nADDITIONAL INSTRUCTIONS: ${extraText}` : ''}`;
 }
+
 
 // Загрузка изображения в fal.ai storage
 // Конвертируем base64 в data URL для передачи напрямую в fal.ai
@@ -476,16 +450,47 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       imageUrl = prepareImageForFal(imageBase64);
     }
 
-    // Шаг 5: Формируем тело запроса
+    // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
-    if (selectedModelId === 'gpt-image-2') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'portrait_4_3', quality: 'high', num_images: 1 };
-    } else if (selectedModelId === 'flux-kontext-pro') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, guidance_scale: 3.5, num_inference_steps: 28, image_size: 'portrait_4_3', num_images: 1 };
-    } else if (selectedModelId === 'seedream-5') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'portrait_4_3', num_images: 1 };
+    if (selectedModelId === 'flux-dev-i2i' || selectedModelId === 'flux-schnell') {
+      // FLUX image-to-image — передаём фото напрямую
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        strength: model.strength || 0.75,
+        num_inference_steps: selectedModelId === 'flux-schnell' ? 4 : 28,
+        guidance_scale: 3.5,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+        enable_safety_checker: false,
+      };
+    } else if (selectedModelId === 'flux-kontext') {
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        guidance_scale: 3.5,
+        num_inference_steps: 28,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+      };
+    } else if (selectedModelId === 'seedream') {
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+      };
     } else {
-      falBody = { prompt: finalPrompt, image_size: 'portrait_4_3', num_inference_steps: 4, num_images: 1 };
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        strength: 0.75,
+        num_inference_steps: 28,
+        guidance_scale: 3.5,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+        enable_safety_checker: false,
+      };
     }
 
     // Шаг 6: Вызываем fal.ai
