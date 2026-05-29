@@ -412,10 +412,19 @@ ${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
    - Clean spacing, not cluttered
    - Looks like it was designed in Adobe Illustrator by a pro
 
-=== TEXT RULES ===
-Write ONLY these exact texts, letter by letter:
+=== TEXT RULES (CRITICAL) ===
+The reference image has its own texts — COMPLETELY IGNORE THEM ALL.
+Do NOT copy any text from the reference: not "3 года гарантии", not "48V", not titles, nothing.
+
+Write ONLY these texts (my product specs), letter by letter:
 ${textBlock}
-DO NOT add: "гайковёрт", "дрель", watermarks, barcodes, or any text not listed above.
+
+HOW to style each text — use reference badge STYLE but my TEXT:
+- Each spec badge: same shape/color/size as badges in reference, but write MY spec text inside
+- Title block: same style as reference title block, but write MY title text inside
+- Copy the visual design of text blocks from reference, replace only the words
+
+FORBIDDEN: any text from reference image, watermarks, barcodes, invented specs.
 
 ${accessoriesBlock}
 ${extraText ? `EXTRA: ${extraText}` : ''}`;
