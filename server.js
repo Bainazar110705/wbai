@@ -300,7 +300,7 @@ const AI_MODELS = {
     badge: 'Рекомендуем',
     endpoint: 'fal-ai/flux/dev/image-to-image',
     supportsImageInput: true,
-    strength: 0.75,
+    strength: 0.55,
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -322,7 +322,7 @@ const AI_MODELS = {
     badge: 'Быстро',
     endpoint: 'fal-ai/flux/schnell/image-to-image',
     supportsImageInput: true,
-    strength: 0.8,
+    strength: 0.6,
   },
 };
 
@@ -341,7 +341,11 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
     : `STYLE: Dark cinematic background, dramatic side lighting, deep shadows, product hero shot.`;
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  return `Professional Wildberries product infographic card.
+  return `Transform this product photo into a Wildberries marketplace infographic.
+
+ABSOLUTE RULE: DO NOT change, replace or modify the product. Keep it 100% identical — same brand markings, same color, same shape, same model. Only change the background and lighting.
+
+Professional Wildberries product infographic card.
 
 CRITICAL — PRODUCT PRESERVATION:
 - Keep the EXACT product from the input photo
@@ -458,8 +462,8 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        strength: model.strength || 0.75,
-        num_inference_steps: selectedModelId === 'flux-schnell' ? 4 : 28,
+        strength: model.strength || 0.55,
+        num_inference_steps: selectedModelId === 'flux-schnell' ? 4 : 35,
         guidance_scale: 3.5,
         image_size: 'portrait_4_3',
         num_images: 1,
@@ -485,7 +489,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        strength: 0.75,
+        strength: 0.55,
         num_inference_steps: 28,
         guidance_scale: 3.5,
         image_size: 'portrait_4_3',
