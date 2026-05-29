@@ -340,21 +340,24 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
   const styleBlock = (hasStyleRef || styleAnalysis)
     ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic from a competitor.
 
-WHAT TO COPY from the last image:
-- Background colors, diagonal split, gradient style
-- Badge shapes, rounded corners, colors
-- Text hierarchy (large number + small label below)
-- Composition layout (where title is, where specs are)
-- Shield/guarantee icon style if present
-- Overall mood and energy
+CRITICAL INSTRUCTION — TWO SEPARATE TASKS:
 
-WHAT TO KEEP FROM IMAGE 1 (the product photo):
-- The EXACT product object — every detail, color, brand marking
-- Do NOT copy the product shape/color/brand from the reference image
-- The reference product is just for layout inspiration, NOT for copying the actual tool
-- Image 1 product must appear UNCHANGED in the output
+TASK A — DESIGN TEMPLATE (from the LAST image):
+Copy these elements PIXEL-PERFECTLY from the reference:
+- Background: exact same colors, exact same split/diagonal/gradient
+- Badge style: exact same shape, exact same colors, exact same rounded corners
+- Text style: exact same font weight, exact same hierarchy (big number + small label)
+- Layout: exact same positions — title top, specs left/right, product center
+- Icons: copy guarantee shield, feature icons exactly as shown
+- DO NOT change colors to match the product — keep reference colors exactly
 
-Think of it as: "take the design template from the last image, but place Image 1's product inside it"`
+TASK B — PRODUCT (from IMAGE 1 only):
+- Place the exact product from Image 1 into the design template
+- Keep every detail: same brand ARIKO, same blue-black color, same shape
+- Do NOT use the product from the reference image at all
+- Only the product object changes between reference and output — everything else stays identical
+
+Final result = reference design template + Image 1 product inserted into it`
     : `BACKGROUND: Professional Wildberries infographic style. Yellow diagonal split, bold text, colored spec badges.`;
 
   const textLines = [];
