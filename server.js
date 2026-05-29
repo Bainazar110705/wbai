@@ -413,9 +413,16 @@ ${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
    - Looks like it was designed in Adobe Illustrator by a pro
 
 === TEXT RULES ===
-Write ONLY these exact texts, letter by letter:
+The reference image has its own texts — IGNORE ALL OF THEM completely.
+Do NOT copy any text from the reference image (not titles, not specs, not labels).
+
+Use ONLY my texts below, written letter by letter exactly:
 ${textBlock}
-DO NOT add: "гайковёрт", "дрель", watermarks, barcodes, or any text not listed above.
+
+HOW to style each text:
+- Use the EXACT same badge/block style as in the reference (same shape, color, font weight, border)
+- Just replace the words inside with MY texts above
+- Same hierarchy: big number + small label below (copy from reference badge style)
 
 ${accessoriesBlock}
 ${extraText ? `EXTRA: ${extraText}` : ''}`;
