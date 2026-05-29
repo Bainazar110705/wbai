@@ -423,9 +423,9 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     });
   }
 
-  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'nano-banana-2';
-  const model = AI_MODELS[selectedModelId];
-  console.log('[WBai] selectedModelId:', selectedModelId, 'model found:', !!model);
+  const selectedModelId = (modelId && AI_MODELS[modelId]) ? modelId : 'nano-banana-2';
+  const model = AI_MODELS[selectedModelId] || AI_MODELS['nano-banana-2'];
+  console.log('[WBai] modelId received:', modelId, '→ using:', selectedModelId);
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
   try {
