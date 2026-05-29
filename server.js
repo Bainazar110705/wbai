@@ -306,7 +306,7 @@ const AI_MODELS = {
     name: 'FLUX Kontext',
     description: 'Точная передача товара',
     badge: null,
-    endpoint: 'fal-ai/flux-pro/v1/kontext',
+    endpoint: 'fal-ai/flux-pro/kontext',
     supportsImageInput: true,
   },
   'seedream': {
