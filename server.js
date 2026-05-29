@@ -399,6 +399,7 @@ ${extraText ? 'Notes: ' + extraText : ''}`;
 
 // Загрузка изображения в fal.ai storage
 async function uploadImageToFal(base64DataUrl) {
+  console.log('[WBai] uploadImageToFal start, FAL_KEY length:', FAL_KEY.length);
   const base64 = base64DataUrl.replace(/^data:image\/[a-z+]+;base64,/, '');
   const mimeType = base64DataUrl.includes('data:image/png') ? 'image/png' : 'image/jpeg';
   const buffer = Buffer.from(base64, 'base64');
@@ -407,7 +408,11 @@ async function uploadImageToFal(base64DataUrl) {
     headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ content_type: mimeType, file_name: 'product.jpg' }),
   });
-  if (!uploadResp.ok) throw new Error('Ошибка инициализации загрузки в fal.ai');
+  if (!uploadResp.ok) {
+    const errText = await uploadResp.text().catch(() => 'no body');
+    console.error('[WBai] upload initiate failed:', uploadResp.status, errText);
+    throw new Error('Ошибка инициализации загрузки в fal.ai: ' + uploadResp.status);
+  }
   const { upload_url, file_url } = await uploadResp.json();
   const putResp = await fetch(upload_url, {
     method: 'PUT',
@@ -531,7 +536,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     res.json({ imageBase64: imgBase64Out, credits_left: remaining?.photo_credits || 0, modelUsed: selectedModelId });
 
   } catch(e) {
-    console.error('[WBai] generate-image error:', e.message);
+    console.error('[WBai] generate-image error:', e.message, e.cause || '');
     res.status(500).json({ error: 'Ошибка генерации: ' + e.message });
   }
 });
