@@ -334,10 +334,10 @@ app.get('/api/models', authMiddleware, (req, res) => {
 });
 
 // Построитель промптов под каждую модель
-function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock }) {
+function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef }) {
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  const styleBlock = styleImageBase64
+  const styleBlock = (hasStyleRef || styleAnalysis)
     ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic.
 Copy its design EXACTLY:
 - Same background layout and color scheme
@@ -480,7 +480,8 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
 
     // Шаг 3: Промпт под модель
     const finalPrompt = buildPrompt(selectedModelId, {
-      title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock
+      title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock,
+      hasStyleRef: !!styleImageBase64
     });
 
     // Шаг 4: Подготавливаем все фото
