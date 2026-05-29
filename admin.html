@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBai — Админ панель</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --purple: #7b2ff7; --bg: #0a0a0f; --card: #13131a; --border: #2a2a3a; --text: #e8e8f0; --muted: #888; --green: #4caf50; --red: #f44336; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* LOGIN */
+#loginScreen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
+.login-logo { font-size: 24px; font-weight: 800; color: var(--purple); margin-bottom: 8px; }
+.login-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 6px; }
+.field input { width: 100%; background: #0f0f16; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 10px 12px; }
+.field input:focus { outline: none; border-color: var(--purple); }
+.login-btn { width: 100%; padding: 12px; border-radius: 8px; background: linear-gradient(135deg, #7b2ff7, #5a1fc7); border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+.login-btn:hover { opacity: 0.9; }
+.login-err { background: #2a1a1a; border: 1px solid #7f3333; border-radius: 8px; padding: 10px 12px; color: #ff8888; font-size: 13px; margin-top: 12px; display: none; }
+
+/* MAIN */
+#mainScreen { display: none; }
+header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.header-logo { font-size: 18px; font-weight: 800; color: var(--purple); }
+.header-sub { font-size: 12px; color: var(--muted); }
+.logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+.content { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 8px; }
+.stat-value { font-size: 32px; font-weight: 800; color: var(--text); }
+.stat-value.green { color: var(--green); }
+.stat-value.purple { color: var(--purple); }
+
+/* TABLE */
+.table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.table-title { font-size: 18px; font-weight: 700; }
+.refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.refresh-btn:hover { border-color: var(--purple); color: var(--purple); }
+.search-input { background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 8px 12px; width: 260px; }
+.search-input:focus { outline: none; border-color: var(--purple); }
+
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #0f0f16; padding: 12px 16px; text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; border-bottom: 1px solid var(--border); }
+td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #1a1a25; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(123,47,247,0.04); }
+
+.badge-active { background: #1a2d1a; border: 1px solid var(--green); color: #7ed47e; font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+.badge-expired { background: #2a1a1a; border: 1px solid #7f3333; color: #ff8888; font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+.badge-none { background: #1a1a25; border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+
+.activate-wrap { display: flex; gap: 6px; align-items: center; }
+.months-select { background: #0f0f16; border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+.activate-btn { background: linear-gradient(135deg, #7b2ff7, #5a1fc7); border: none; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.activate-btn:hover { opacity: 0.85; }
+.activate-btn:disabled { background: #2a2a3a; cursor: not-allowed; opacity: 0.5; }
+.tab-btn { padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--muted); transition: all .2s; }
+.tab-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.kw-tag { display: inline-block; background: rgba(123,47,247,0.15); border: 1px solid rgba(123,47,247,0.3); color: #c49aff; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin: 2px; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1a2d1a; border: 1px solid var(--green); color: #7ed47e; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; display: none; z-index: 999; }
+.toast.err { background: #2a1a1a; border-color: #7f3333; color: #ff8888; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">WBai</div>
+    <div class="login-sub">Панель администратора</div>
+    <div class="field">
+      <label>Админ ключ</label>
+      <input type="password" id="adminKeyInput" placeholder="Введите ключ..." />
+    </div>
+    <button class="login-btn" id="loginBtn">Войти</button>
+    <div class="login-err" id="loginErr">Неверный ключ</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainScreen">
+  <header>
+    <div>
+      <div class="header-logo">WBai Admin</div>
+      <div class="header-sub">Панель управления пользователями</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">Выйти</button>
+  </header>
+  <div class="content">
+    <div class="stats" id="statsBlock">
+      <div class="stat-card"><div class="stat-label">Всего пользователей</div><div class="stat-value purple" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-label">Активных подписок</div><div class="stat-value green" id="statActive">—</div></div>
+      <div class="stat-card"><div class="stat-label">Истекших</div><div class="stat-value" id="statExpired">—</div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:24px">
+      <button class="tab-btn active" onclick="switchTab('users')">👥 Пользователи</button>
+      <button class="tab-btn" onclick="switchTab('templates')">📦 Шаблоны клиентов</button>
+    </div>
+
+    <div class="tab-content active" id="tab-users">
+    <div class="table-header">
+      <div class="table-title">Пользователи</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <button class="refresh-btn" id="refreshBtn">↻ Обновить</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Имя</th>
+            <th>Регистрация</th>
+            <th>Статус</th>
+            <th>Подписка до</th>
+            <th>Тариф</th><th>Кредиты</th><th>Активировать</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+    </div>
+    </div>
+
+    <div class="tab-content" id="tab-templates">
+      <div class="table-header">
+        <div class="table-title">📦 Шаблоны всех клиентов</div>
+        <button class="refresh-btn" onclick="loadTemplates()">↻ Обновить</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Email клиента</th>
+              <th>Название шаблона</th>
+              <th>Категория</th>
+              <th>Цена</th>
+              <th>Ключевые слова</th>
+              <th>Создан</th>
+            </tr>
+          </thead>
+          <tbody id="templatesBody"></tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminKey = '';
+let allUsers = [];
+
+document.getElementById('adminKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const key = document.getElementById('adminKeyInput').value.trim();
+  if (!key) return;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '⏳ Проверяем...';
+  
+  const resp = await fetch('/api/admin/users', {
+    headers: { 'x-admin-key': key }
+  });
+  
+  btn.disabled = false; btn.textContent = 'Войти';
+  
+  if (!resp.ok) {
+    document.getElementById('loginErr').style.display = 'block';
+    return;
+  }
+  
+  adminKey = key;
+  localStorage.setItem('wbai_admin_key', key);
+  const data = await resp.json();
+  showMain(data.users);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  adminKey = '';
+  localStorage.removeItem('wbai_admin_key');
+  document.getElementById('mainScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('adminKeyInput').value = '';
+});
+
+document.getElementById('refreshBtn').addEventListener('click', loadUsers);
+document.getElementById('searchInput').addEventListener('input', filterUsers);
+
+async function loadUsers() {
+  const resp = await fetch('/api/admin/users', { headers: { 'x-admin-key': adminKey } });
+  if (!resp.ok) { showToast('Ошибка загрузки', true); return; }
+  const data = await resp.json();
+  allUsers = data.users;
+  renderUsers(allUsers);
+  updateStats(allUsers);
+}
+
+function showMain(users) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'block';
+  allUsers = users;
+  renderUsers(users);
+  updateStats(users);
+}
+
+function updateStats(users) {
+  const now = new Date();
+  const active = users.filter(u => u.subscription_end && new Date(u.subscription_end) > now).length;
+  const expired = users.filter(u => u.subscription_end && new Date(u.subscription_end) <= now).length;
+  document.getElementById('statTotal').textContent = users.length;
+  document.getElementById('statActive').textContent = active;
+  document.getElementById('statExpired').textContent = expired;
+}
+
+function filterUsers() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allUsers.filter(u => u.email.toLowerCase().includes(q) || (u.name||'').toLowerCase().includes(q));
+  renderUsers(filtered);
+}
+
+function renderUsers(users) {
+  const now = new Date();
+  const tbody = document.getElementById('usersBody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Пользователи не найдены</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map((u, i) => {
+    const subEnd = u.subscription_end ? new Date(u.subscription_end) : null;
+    const isActive = subEnd && subEnd > now;
+    const hasAny = !!subEnd;
+    const badge = isActive
+      ? `<span class="badge-active">✅ Активна</span>`
+      : hasAny
+        ? `<span class="badge-expired">❌ Истекла</span>`
+        : `<span class="badge-none">— Нет</span>`;
+    const subDate = subEnd ? subEnd.toLocaleDateString('ru-RU') : '—';
+    const regDate = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU') : '—';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><strong>${u.email}</strong></td>
+      <td style="color:var(--muted)">${u.name || '—'}</td>
+      <td style="color:var(--muted)">${regDate}</td>
+      <td>${badge}</td>
+      <td style="color:var(--muted)">${subDate}</td>
+      <td>
+        <select class="months-select" id="plan_${u.id}">
+          <option value="start" ${(u.plan||'start')==='start'?'selected':''}>Старт</option>
+          <option value="pro" ${u.plan==='pro'?'selected':''}>Про</option>
+          <option value="max" ${u.plan==='max'?'selected':''}>Макс</option>
+        </select>
+      </td>
+      <td>
+        <span id="credits_${u.id}" style="color:#a855f7;font-weight:700">${u.photo_credits||0}</span>
+        <button class="activate-btn" onclick="showAddCredits('${u.email}', ${u.id})" style="margin-left:6px;background:#1a1a2e;border:1px solid #7b2ff7;color:#a855f7;padding:4px 8px;font-size:11px">+📸</button>
+      </td>
+      <td>
+        <div class="activate-wrap">
+          <select class="months-select" id="months_${u.id}" onchange="toggleCustom(${u.id}, this.value)">
+            <option value="1">1 мес</option>
+            <option value="3">3 мес</option>
+            <option value="6">6 мес</option>
+            <option value="12" selected>12 мес</option>
+            <option value="custom">Свой...</option>
+          </select>
+          <input type="number" class="months-select" id="custom_${u.id}" placeholder="дней" min="1" max="3650" style="display:none;width:70px">
+          <button class="activate-btn" onclick="activate('${u.email}', ${u.id})">✅ Дать</button>
+          <button class="activate-btn" onclick="removeSubscription('${u.email}', ${u.id})" style="background:#2a1a1a;border:1px solid #7f3333;color:#ff8888;">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleCustom(userId, value) {
+  const customInput = document.getElementById(`custom_${userId}`);
+  customInput.style.display = value === 'custom' ? 'inline-block' : 'none';
+}
+
+async function activate(email, userId) {
+  const select = document.getElementById(`months_${userId}`);
+  const customInput = document.getElementById(`custom_${userId}`);
+  let months;
+  
+  if (select.value === 'custom') {
+    const days = parseInt(customInput.value);
+    if (!days || days < 1) { showToast('Введите количество дней', true); return; }
+    months = days / 30; // конвертируем дни в месяцы приблизительно
+  } else {
+    months = parseInt(select.value);
+  }
+  
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳';
+  
+  const resp = await fetch('/api/admin/activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminKey, email, months, plan: document.getElementById('plan_'+userId)?.value || 'start' })
+  });
+  const data = await resp.json();
+  btn.disabled = false; btn.textContent = '✅ Дать';
+  
+  if (data.ok) {
+    showToast(`✅ ${email} — подписка активирована`);
+    loadUsers();
+  } else {
+    showToast(data.error || 'Ошибка', true);
+  }
+}
+
+async function removeSubscription(email, userId) {
+  if (!confirm(`Убрать подписку у ${email}?`)) return;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳';
+  
+  const resp = await fetch('/api/admin/remove-subscription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminKey, email })
+  });
+  const data = await resp.json();
+  btn.disabled = false; btn.textContent = '✕';
+  
+  if (data.ok) {
+    showToast(`✅ Подписка у ${email} убрана`);
+    loadUsers();
+  } else {
+    showToast(data.error || 'Ошибка', true);
+  }
+}
+
+function showAddCredits(email, userId) {
+  // Создаём красивый модальный диалог
+  var existing = document.getElementById('wb-credits-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'wb-credits-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#0f0f1a;border:1px solid #2a2a40;border-radius:16px;padding:24px;width:360px;font-family:-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div style="font-size:15px;font-weight:700;color:#f0f0fa;margin-bottom:4px;">📸 Управление кредитами</div>
+      <div style="font-size:12px;color:#8888aa;margin-bottom:18px;">${email}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <button onclick="setCreditsAmount(10)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+10 фото<br><span style="color:#8888aa;font-size:10px">750 ₸</span></button>
+        <button onclick="setCreditsAmount(30)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+30 фото<br><span style="color:#8888aa;font-size:10px">1 900 ₸</span></button>
+        <button onclick="setCreditsAmount(50)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+50 фото<br><span style="color:#8888aa;font-size:10px">2 900 ₸</span></button>
+        <button onclick="setCreditsAmount(100)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+100 фото<br><span style="color:#8888aa;font-size:10px">5 000 ₸</span></button>
+        <button onclick="setCreditsAmount(200)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+200 фото<br><span style="color:#8888aa;font-size:10px">8 500 ₸</span></button>
+        <button onclick="setCreditsAmount(500)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+500 фото<br><span style="color:#8888aa;font-size:10px">18 000 ₸</span></button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять)</label>
+        <input id="creditsInput" type="number" placeholder="например: 25 или -10" style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Комментарий</label>
+        <input id="creditsNote" type="text" placeholder="Оплата Kaspi, возврат и т.д." style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="creditsConfirm" onclick="confirmCredits('${email}', ${userId})" style="flex:1;padding:10px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Применить</button>
+        <button onclick="document.getElementById('wb-credits-modal').remove()" style="flex:0.5;padding:10px;background:#1a1a2e;border:1px solid #2a2a40;color:#8888aa;border-radius:8px;font-size:13px;cursor:pointer;">Отмена</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function setCreditsAmount(n) {
+  document.getElementById('creditsInput').value = n;
+}
+
+async function confirmCredits(email, userId) {
+  const amount = parseInt(document.getElementById('creditsInput').value);
+  const note = document.getElementById('creditsNote').value || (amount >= 0 ? 'Ручное пополнение' : 'Ручное снятие');
+  if (isNaN(amount) || amount === 0) { alert('Введите количество'); return; }
+  document.getElementById('creditsConfirm').textContent = '⏳';
+  await addCredits(email, userId, amount, note);
+  document.getElementById('wb-credits-modal')?.remove();
+}
+
+async function addCredits(email, userId, credits, note) {
+  const resp = await fetch('/api/admin/add-credits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminKey, email, credits, note })
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    showToast(`✅ ${email} — добавлено ${credits} кредитов. Итого: ${data.photo_credits}`);
+    const el = document.getElementById('credits_'+userId);
+    if (el) el.textContent = data.photo_credits;
+  } else {
+    showToast(data.error || 'Ошибка', true);
+  }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'templates') loadTemplates();
+}
+
+async function loadTemplates() {
+  const tbody = document.getElementById('templatesBody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">⏳ Загрузка...</td></tr>';
+  try {
+    const resp = await fetch('/api/admin/templates', { headers: { 'x-admin-key': adminKey } });
+    const data = await resp.json();
+    if (!data.templates?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Шаблонов пока нет</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.templates.map((t, i) => {
+      const kws = (t.kw || '').split(',').filter(k => k.trim()).map(k => `<span class="kw-tag">${k.trim()}</span>`).join('');
+      const date = t.created_at ? new Date(t.created_at).toLocaleDateString('ru-RU') : '—';
+      return `<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td><strong style="font-size:12px">${t.email||'—'}</strong></td>
+        <td>${t.name||'—'}</td>
+        <td style="color:var(--muted)">${t.category||'—'}</td>
+        <td style="color:#c49aff">${t.price ? t.price+' ₸' : '—'}</td>
+        <td style="max-width:200px">${kws||'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="color:var(--muted)">${date}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ff8888;padding:20px">Ошибка загрузки</td></tr>';
+  }
+}
+
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+// Автовход если ключ сохранён
+const savedKey = localStorage.getItem('wbai_admin_key');
+if (savedKey) {
+  fetch('/api/admin/users', { headers: { 'x-admin-key': savedKey } })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data) { adminKey = savedKey; showMain(data.users); }
+    });
+}
+</script>
+</body>
+</html>
