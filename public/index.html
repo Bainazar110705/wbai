@@ -286,23 +286,59 @@ footer a:hover{color:var(--p2)}
   <div class="section-inner">
     <div class="reveal" style="text-align:center;margin-bottom:48px">
       <div class="section-tag">Цены</div>
-      <div class="section-title">Простой тариф</div>
-      <div class="section-sub" style="margin:0 auto">Один тариф — все функции. Никаких скрытых платежей.</div>
+      <div class="section-title">Выберите свой тариф</div>
+      <div class="section-sub" style="margin:0 auto">Платите только за то что используете. Никаких скрытых платежей.</div>
     </div>
-    <div class="pricing-card reveal">
-      <div style="font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">PRO</div>
-      <div class="pricing-price"><sup>₸</sup>3 000</div>
-      <div class="pricing-period">в месяц</div>
-      <ul class="pricing-features">
-        <li>Неограниченные ответы на отзывы</li>
-        <li>3 варианта ответа на каждый отзыв</li>
-        <li>Шаблоны товаров</li>
-        <li>Заполнение карточек WB</li>
-        <li>Поддержка в Telegram</li>
-        <li>Обновления расширения</li>
-      </ul>
-      <button class="btn-pricing" onclick="location.href='/login'">Начать — 3 000 ₸/мес</button>
-      <p style="font-size:12px;color:var(--muted);margin-top:14px">Оплата через Kaspi Pay · Активация за 1-2 часа</p>
+    <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:960px;margin:0 auto">
+
+      <!-- СТАРТ -->
+      <div class="pricing-card" style="position:relative;overflow:hidden">
+        <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">СТАРТ</div>
+        <div class="pricing-price" style="font-size:40px"><sup style="font-size:18px">₸</sup>1 500</div>
+        <div class="pricing-period">в месяц</div>
+        <ul class="pricing-features">
+          <li>Ответы на отзывы покупателей</li>
+          <li>3 варианта ответа — с юмором или официально</li>
+          <li>Ответы на вопросы покупателей</li>
+          <li>Поддержка в Telegram</li>
+        </ul>
+        <button class="btn-pricing" onclick="location.href='/login'" style="background:rgba(108,63,255,0.3);border:1px solid rgba(108,63,255,0.5)">Начать — 1 500 ₸/мес</button>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px">Оплата через Kaspi Pay · Активация за 1-2 часа</p>
+      </div>
+
+      <!-- ПРО -->
+      <div class="pricing-card" style="border:1.5px solid rgba(108,63,255,0.5);transform:scale(1.03)">
+        <div style="position:absolute;top:14px;right:-28px;background:var(--green);color:#000;font-size:10px;font-weight:800;padding:4px 36px;transform:rotate(45deg);letter-spacing:.04em">ПОПУЛЯРНЫЙ</div>
+        <div style="font-size:12px;color:var(--p2);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">ПРО</div>
+        <div class="pricing-price" style="font-size:40px"><sup style="font-size:18px">₸</sup>3 000</div>
+        <div class="pricing-period">в месяц</div>
+        <ul class="pricing-features">
+          <li>Всё из тарифа Старт</li>
+          <li>Заполнение карточек WB с SEO</li>
+          <li>Анализ конкурентов</li>
+          <li>Шаблоны товаров</li>
+          <li>Обновления расширения</li>
+        </ul>
+        <button class="btn-pricing" onclick="location.href='/login'">Начать — 3 000 ₸/мес</button>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px">Оплата через Kaspi Pay · Активация за 1-2 часа</p>
+      </div>
+
+      <!-- МАКС -->
+      <div class="pricing-card" style="position:relative;overflow:hidden">
+        <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">МАКС</div>
+        <div class="pricing-price" style="font-size:40px"><sup style="font-size:18px">₸</sup>4 500</div>
+        <div class="pricing-period">в месяц + 30 фото инфографики</div>
+        <ul class="pricing-features">
+          <li>Всё из тарифа Про</li>
+          <li>AI Инфографика — 30 фото в месяц</li>
+          <li>Докупка фото: 10 шт — 750 ₸</li>
+          <li>Пакеты до 500 фото</li>
+          <li>Приоритетная поддержка</li>
+        </ul>
+        <button class="btn-pricing" onclick="location.href='/login'" style="background:linear-gradient(135deg,#6c3fff,#a855f7)">Начать — 4 500 ₸/мес</button>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px">Оплата через Kaspi Pay · Активация за 1-2 часа</p>
+      </div>
+
     </div>
   </div>
 </section>

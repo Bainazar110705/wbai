@@ -57,6 +57,19 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  // Новые поля для планов и кредитов
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(20) DEFAULT 'start'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_credits INTEGER DEFAULT 0`);
+  // Таблица транзакций кредитов
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credit_transactions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      note TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
   console.log('[WBai] Database ready');
 }
 

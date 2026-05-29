@@ -115,7 +115,7 @@ tr:hover td { background: rgba(123,47,247,0.04); }
     <div class="table-header">
       <div class="table-title">Пользователи</div>
       <div style="display:flex;gap:10px;align-items:center">
-        <input class="search-input" id="searchInput" placeholder="Поиск по email..." />
+        <input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button class="refresh-btn" id="refreshBtn">↻ Обновить</button>
       </div>
     </div>
@@ -129,7 +129,7 @@ tr:hover td { background: rgba(123,47,247,0.04); }
             <th>Регистрация</th>
             <th>Статус</th>
             <th>Подписка до</th>
-            <th>Активировать</th>
+            <th>Тариф</th><th>Кредиты</th><th>Активировать</th>
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>
@@ -263,6 +263,17 @@ function renderUsers(users) {
       <td>${badge}</td>
       <td style="color:var(--muted)">${subDate}</td>
       <td>
+        <select class="months-select" id="plan_${u.id}">
+          <option value="start" ${(u.plan||'start')==='start'?'selected':''}>Старт</option>
+          <option value="pro" ${u.plan==='pro'?'selected':''}>Про</option>
+          <option value="max" ${u.plan==='max'?'selected':''}>Макс</option>
+        </select>
+      </td>
+      <td>
+        <span id="credits_${u.id}" style="color:#a855f7;font-weight:700">${u.photo_credits||0}</span>
+        <button class="activate-btn" onclick="showAddCredits('${u.email}', ${u.id})" style="margin-left:6px;background:#1a1a2e;border:1px solid #7b2ff7;color:#a855f7;padding:4px 8px;font-size:11px">+📸</button>
+      </td>
+      <td>
         <div class="activate-wrap">
           <select class="months-select" id="months_${u.id}" onchange="toggleCustom(${u.id}, this.value)">
             <option value="1">1 мес</option>
@@ -304,7 +315,7 @@ async function activate(email, userId) {
   const resp = await fetch('/api/admin/activate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ adminKey, email, months })
+    body: JSON.stringify({ adminKey, email, months, plan: document.getElementById('plan_'+userId)?.value || 'start' })
   });
   const data = await resp.json();
   btn.disabled = false; btn.textContent = '✅ Дать';
@@ -333,6 +344,74 @@ async function removeSubscription(email, userId) {
   if (data.ok) {
     showToast(`✅ Подписка у ${email} убрана`);
     loadUsers();
+  } else {
+    showToast(data.error || 'Ошибка', true);
+  }
+}
+
+function showAddCredits(email, userId) {
+  // Создаём красивый модальный диалог
+  var existing = document.getElementById('wb-credits-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'wb-credits-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#0f0f1a;border:1px solid #2a2a40;border-radius:16px;padding:24px;width:360px;font-family:-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div style="font-size:15px;font-weight:700;color:#f0f0fa;margin-bottom:4px;">📸 Управление кредитами</div>
+      <div style="font-size:12px;color:#8888aa;margin-bottom:18px;">${email}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <button onclick="setCreditsAmount(10)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+10 фото<br><span style="color:#8888aa;font-size:10px">750 ₸</span></button>
+        <button onclick="setCreditsAmount(30)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+30 фото<br><span style="color:#8888aa;font-size:10px">1 900 ₸</span></button>
+        <button onclick="setCreditsAmount(50)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+50 фото<br><span style="color:#8888aa;font-size:10px">2 900 ₸</span></button>
+        <button onclick="setCreditsAmount(100)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+100 фото<br><span style="color:#8888aa;font-size:10px">5 000 ₸</span></button>
+        <button onclick="setCreditsAmount(200)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+200 фото<br><span style="color:#8888aa;font-size:10px">8 500 ₸</span></button>
+        <button onclick="setCreditsAmount(500)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+500 фото<br><span style="color:#8888aa;font-size:10px">18 000 ₸</span></button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять)</label>
+        <input id="creditsInput" type="number" placeholder="например: 25 или -10" style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Комментарий</label>
+        <input id="creditsNote" type="text" placeholder="Оплата Kaspi, возврат и т.д." style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="creditsConfirm" onclick="confirmCredits('${email}', ${userId})" style="flex:1;padding:10px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Применить</button>
+        <button onclick="document.getElementById('wb-credits-modal').remove()" style="flex:0.5;padding:10px;background:#1a1a2e;border:1px solid #2a2a40;color:#8888aa;border-radius:8px;font-size:13px;cursor:pointer;">Отмена</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function setCreditsAmount(n) {
+  document.getElementById('creditsInput').value = n;
+}
+
+async function confirmCredits(email, userId) {
+  const amount = parseInt(document.getElementById('creditsInput').value);
+  const note = document.getElementById('creditsNote').value || (amount >= 0 ? 'Ручное пополнение' : 'Ручное снятие');
+  if (isNaN(amount) || amount === 0) { alert('Введите количество'); return; }
+  document.getElementById('creditsConfirm').textContent = '⏳';
+  await addCredits(email, userId, amount, note);
+  document.getElementById('wb-credits-modal')?.remove();
+}
+
+async function addCredits(email, userId, credits, note) {
+  const resp = await fetch('/api/admin/add-credits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ adminKey, email, credits, note })
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    showToast(`✅ ${email} — добавлено ${credits} кредитов. Итого: ${data.photo_credits}`);
+    const el = document.getElementById('credits_'+userId);
+    if (el) el.textContent = data.photo_credits;
   } else {
     showToast(data.error || 'Ошибка', true);
   }
