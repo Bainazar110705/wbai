@@ -415,10 +415,18 @@ async function callFalApi(endpoint, body) {
   });
   console.log('[WBai] fal.ai status:', resp.status);
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err?.detail || err?.error || `fal.ai error ${resp.status}`);
+    const errText = await resp.text().catch(() => '{}');
+    console.error('[WBai] fal.ai error response:', resp.status, errText);
+    let err = {};
+    try { err = JSON.parse(errText); } catch(e) {}
+    const msg = typeof err?.detail === 'string' ? err.detail 
+      : Array.isArray(err?.detail) ? JSON.stringify(err.detail)
+      : err?.message || err?.error || errText || `fal.ai error ${resp.status}`;
+    throw new Error(msg);
   }
-  return await resp.json();
+  const resultJson = await resp.json();
+  console.log('[WBai] fal.ai success, keys:', Object.keys(resultJson || {}));
+  return resultJson;
 }
 
 app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
