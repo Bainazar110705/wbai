@@ -423,7 +423,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     });
   }
 
-  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'flux-kontext';
+  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'nano-banana-2';
   const model = AI_MODELS[selectedModelId];
   console.log('[WBai] selectedModelId:', selectedModelId, 'model found:', !!model);
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
@@ -457,8 +457,15 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
 
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
-    if (selectedModelId === 'flux-kontext' || selectedModelId === 'flux-kontext-max') {
-      // FLUX Kontext — специально для редактирования с сохранением объекта
+    if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
+      // Nano Banana — Google Gemini, image editing + точный текст
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+      };
+    } else if (selectedModelId === 'flux-kontext') {
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
@@ -468,12 +475,12 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
         num_images: 1,
         safety_tolerance: '5',
       };
-    } else if (selectedModelId === 'flux-dev-i2i' || selectedModelId === 'flux-schnell') {
+    } else if (selectedModelId === 'flux-dev-i2i') {
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
         strength: model.strength || 0.55,
-        num_inference_steps: selectedModelId === 'flux-schnell' ? 4 : 35,
+        num_inference_steps: 35,
         guidance_scale: 3.5,
         image_size: 'portrait_4_3',
         num_images: 1,
@@ -483,8 +490,6 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        guidance_scale: 3.5,
-        num_inference_steps: 28,
         image_size: 'portrait_4_3',
         num_images: 1,
       };
