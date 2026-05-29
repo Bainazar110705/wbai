@@ -423,7 +423,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     });
   }
 
-  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'flux-dev-i2i';
+  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'flux-kontext';
   const model = AI_MODELS[selectedModelId];
   console.log('[WBai] selectedModelId:', selectedModelId, 'model found:', !!model);
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
@@ -457,8 +457,18 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
 
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
-    if (selectedModelId === 'flux-dev-i2i' || selectedModelId === 'flux-schnell') {
-      // FLUX image-to-image — передаём фото напрямую
+    if (selectedModelId === 'flux-kontext' || selectedModelId === 'flux-kontext-max') {
+      // FLUX Kontext — специально для редактирования с сохранением объекта
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        guidance_scale: 3.5,
+        num_inference_steps: 28,
+        image_size: 'portrait_4_3',
+        num_images: 1,
+        safety_tolerance: '5',
+      };
+    } else if (selectedModelId === 'flux-dev-i2i' || selectedModelId === 'flux-schnell') {
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
@@ -469,32 +479,14 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
         num_images: 1,
         enable_safety_checker: false,
       };
-    } else if (selectedModelId === 'flux-kontext') {
-      falBody = {
-        prompt: finalPrompt,
-        image_url: imageUrl,
-        guidance_scale: 3.5,
-        num_inference_steps: 28,
-        image_size: 'portrait_4_3',
-        num_images: 1,
-      };
-    } else if (selectedModelId === 'seedream') {
-      falBody = {
-        prompt: finalPrompt,
-        image_url: imageUrl,
-        image_size: 'portrait_4_3',
-        num_images: 1,
-      };
     } else {
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        strength: 0.55,
-        num_inference_steps: 28,
         guidance_scale: 3.5,
+        num_inference_steps: 28,
         image_size: 'portrait_4_3',
         num_images: 1,
-        enable_safety_checker: false,
       };
     }
 
