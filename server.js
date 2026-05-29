@@ -294,19 +294,13 @@ function buildAccessoriesInstructions(productName, specs) {
 // КОНФИГУРАЦИЯ МОДЕЛЕЙ FAL.AI
 // ============================================================
 const AI_MODELS = {
-  'nano-banana-2': {
-    name: 'Nano Banana 2',
-    description: 'Лучший текст, сохраняет товар',
+  'flux-dev-i2i': {
+    name: 'FLUX.1 Dev',
+    description: 'Сохраняет товар, копирует стиль',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/nano-banana-2',
+    endpoint: 'fal-ai/flux/dev/image-to-image',
     supportsImageInput: true,
-  },
-  'nano-banana-pro': {
-    name: 'Nano Banana Pro',
-    description: 'Максимальное качество текста',
-    badge: null,
-    endpoint: 'fal-ai/nano-banana-pro',
-    supportsImageInput: true,
+    strength: 0.55,
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -315,13 +309,20 @@ const AI_MODELS = {
     endpoint: 'fal-ai/flux-pro/kontext',
     supportsImageInput: true,
   },
-  'flux-dev-i2i': {
-    name: 'FLUX.1 Dev',
-    description: 'Творческий стиль',
+  'seedream': {
+    name: 'Seedream 3',
+    description: 'Яркий кинематограф',
     badge: null,
-    endpoint: 'fal-ai/flux/dev/image-to-image',
+    endpoint: 'fal-ai/bytedance/seedream-3',
     supportsImageInput: true,
-    strength: 0.55,
+  },
+  'flux-schnell': {
+    name: 'FLUX Schnell',
+    description: 'Максимальная скорость',
+    badge: 'Быстро',
+    endpoint: 'fal-ai/flux/schnell/image-to-image',
+    supportsImageInput: true,
+    strength: 0.6,
   },
 };
 
@@ -353,10 +354,12 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
 
   return `You are editing a product photo to create a Wildberries marketplace infographic.
 
-== STEP 1: PRODUCT ==
-Keep the product from the input photo EXACTLY as-is.
-- Same object, same color, same brand markings — do NOT change anything about the product itself
-- Add subtle white glow/rim light on product edges to separate it from background
+== STEP 1: PRODUCT (CRITICAL) ==
+The input image contains a specific product. You MUST use that exact product — do NOT replace it with a different brand or model.
+- KEEP the exact product from the input photo: same shape, same color, same brand markings
+- Do NOT draw RYOBI, Makita, Bosch or any other brand — use ONLY the product from the input photo
+- The product from the input photo must appear as the main hero of the infographic
+- Add subtle white rim light on product edges to separate from background
 - Add soft drop shadow below product
 
 == STEP 2: BACKGROUND & STYLE ==
@@ -468,7 +471,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        image_size: 'portrait_4_3',
+        image_size: { width: 768, height: 1024 },
         num_images: 1,
       };
     } else if (selectedModelId === 'flux-kontext') {
