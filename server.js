@@ -337,41 +337,41 @@ app.get('/api/models', authMiddleware, (req, res) => {
 // Построитель промптов под каждую модель
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock }) {
   const styleBlock = styleAnalysis
-    ? `REFERENCE STYLE (copy this visual style exactly):\n${styleAnalysis}\n`
-    : `STYLE: Dark cinematic background, dramatic side lighting, deep shadows, product hero shot.`;
+    ? `BACKGROUND AND STYLE (copy from reference):\n${styleAnalysis}\n`
+    : `BACKGROUND: Split diagonal — left half light grey, right half bright yellow. Clean, high contrast.`;
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  return `Transform this product photo into a Wildberries marketplace infographic.
+  // Собираем список текстов
+  const allTexts = [];
+  if (title) allTexts.push(`Title at top in large bold white text: "${title}"`);
+  if (primarySpec) allTexts.push(`Large prominent badge in center-left: "${primarySpec}"`);
+  specs.forEach(s => allTexts.push(`Specification badge: "${s}"`));
 
-ABSOLUTE RULE: DO NOT change, replace or modify the product. Keep it 100% identical — same brand markings, same color, same shape, same model. Only change the background and lighting.
+  return `Edit this product photo to create a Wildberries marketplace infographic card.
 
-Professional Wildberries product infographic card.
+PRODUCT — DO NOT TOUCH:
+- Keep the exact product from the photo 100% unchanged
+- Same brand ARIKO, same blue-black color, same shape
+- Make the product POP from background — add bright white rim light on edges
+- Add strong drop shadow under product so it doesn't merge with background
+- Product must be clearly separated and visible against background
 
-CRITICAL — PRODUCT PRESERVATION:
-- Keep the EXACT product from the input photo
-- Same brand, model, color, shape — do NOT change or replace it
-- Product should dominate 65-70% of the frame, slightly tilted for dynamism
-
+BACKGROUND:
 ${styleBlock}
+
+TEXT — WRITE EXACTLY THESE WORDS IN RUSSIAN, NO SUBSTITUTIONS:
+${allTexts.map((t, i) => `${i+1}. ${t}`).join('\n')}
+
+IMPORTANT TEXT RULES:
+- Copy every word letter by letter — no paraphrasing, no codes, no random numbers
+- Russian Cyrillic only, large readable font
+- Place text in empty areas, not over the product
+- Text must be high contrast against background
+
 ${accessoriesBlock}
+${extraText ? `EXTRA: ${extraText}` : ''}
 
-COMPOSITION:
-- Dark dramatic background matching the reference style
-- Cinematic rim lighting on the product edges
-- Atmospheric depth and smoke/glow effects
-- Portrait orientation optimized for WB marketplace
-
-TEXT OVERLAY (Russian Cyrillic, render EXACTLY):
-${title ? `- Product title (top, large bold): "${title}"` : ''}
-${primarySpec ? `- Main specification (huge badge, high contrast): "${primarySpec}"` : ''}
-${specs.length > 0 ? `- Secondary specs (dark rounded badges, bottom): ${specs.map(s => `"${s}"`).join(' | ')}` : ''}
-
-RULES:
-- Render ALL text exactly as specified, no typos
-- Text in Cyrillic must be readable and correct
-- NO invented text, NO watermarks, NO logos unless in original photo
-- High contrast, conversion-optimized for mobile shoppers
-${extraText ? `\nADDITIONAL INSTRUCTIONS: ${extraText}` : ''}`;
+DO NOT add: watermarks, barcodes, random codes like FFD700, WB logo, extra product shots unless specified.`;
 }
 
 
