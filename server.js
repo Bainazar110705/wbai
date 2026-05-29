@@ -294,19 +294,13 @@ function buildAccessoriesInstructions(productName, specs) {
 // КОНФИГУРАЦИЯ МОДЕЛЕЙ FAL.AI
 // ============================================================
 const AI_MODELS = {
-  'nano-banana-2': {
-    name: 'Nano Banana 2',
-    description: 'Лучший текст, сохраняет товар',
+  'flux-dev-i2i': {
+    name: 'FLUX.1 Dev',
+    description: 'Сохраняет товар, копирует стиль',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/nano-banana-2',
+    endpoint: 'fal-ai/flux/dev/image-to-image',
     supportsImageInput: true,
-  },
-  'nano-banana-pro': {
-    name: 'Nano Banana Pro',
-    description: 'Максимальное качество текста',
-    badge: null,
-    endpoint: 'fal-ai/nano-banana-pro',
-    supportsImageInput: true,
+    strength: 0.55,
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -315,13 +309,20 @@ const AI_MODELS = {
     endpoint: 'fal-ai/flux-pro/kontext',
     supportsImageInput: true,
   },
-  'flux-dev-i2i': {
-    name: 'FLUX.1 Dev',
-    description: 'Творческий стиль',
+  'seedream': {
+    name: 'Seedream 3',
+    description: 'Яркий кинематограф',
     badge: null,
-    endpoint: 'fal-ai/flux/dev/image-to-image',
+    endpoint: 'fal-ai/bytedance/seedream-3',
     supportsImageInput: true,
-    strength: 0.55,
+  },
+  'flux-schnell': {
+    name: 'FLUX Schnell',
+    description: 'Максимальная скорость',
+    badge: 'Быстро',
+    endpoint: 'fal-ai/flux/schnell/image-to-image',
+    supportsImageInput: true,
+    strength: 0.6,
   },
 };
 
@@ -342,35 +343,42 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
 
   // Собираем список текстов
   const allTexts = [];
-  if (title) allTexts.push(`Title at top in large bold white text: "${title}"`);
-  if (primarySpec) allTexts.push(`Large prominent badge in center-left: "${primarySpec}"`);
-  specs.forEach(s => allTexts.push(`Specification badge: "${s}"`));
+  if (title) allTexts.push(`TITLE (top of image, very large bold): "${title}"`);
+  if (primarySpec) allTexts.push(`MAIN SPEC (large colored badge): "${primarySpec}"`);
+  specs.forEach(s => allTexts.push(`SPEC BADGE: "${s}"`));
 
-  return `Edit this product photo to create a Wildberries marketplace infographic card.
+  // Формируем чёткий список текстов
+  const textInstructions = allTexts.length > 0
+    ? allTexts.map((t, i) => `${i+1}. ${t}`).join('\n')
+    : 'No text needed.';
 
-PRODUCT — DO NOT TOUCH:
-- Keep the exact product from the photo 100% unchanged
-- Same brand ARIKO, same blue-black color, same shape
-- Make the product POP from background — add bright white rim light on edges
-- Add strong drop shadow under product so it doesn't merge with background
-- Product must be clearly separated and visible against background
+  return `You are editing a product photo to create a Wildberries marketplace infographic.
 
-BACKGROUND:
+== STEP 1: PRODUCT ==
+Keep the product from the input photo EXACTLY as-is.
+- Same object, same color, same brand markings — do NOT change anything about the product itself
+- Add subtle white glow/rim light on product edges to separate it from background
+- Add soft drop shadow below product
+
+== STEP 2: BACKGROUND & STYLE ==
 ${styleBlock}
 
-TEXT — WRITE EXACTLY THESE WORDS IN RUSSIAN, NO SUBSTITUTIONS:
-${allTexts.map((t, i) => `${i+1}. ${t}`).join('\n')}
+== STEP 3: TEXT (MOST IMPORTANT) ==
+Add ONLY these exact texts to the image. Copy every letter precisely:
 
-IMPORTANT TEXT RULES:
-- Copy every word letter by letter — no paraphrasing, no codes, no random numbers
-- Russian Cyrillic only, large readable font
-- Place text in empty areas, not over the product
-- Text must be high contrast against background
+${textInstructions}
+
+TEXT PLACEMENT RULES:
+- Large title text at the TOP of the image (above the product)
+- Specification badges on the LEFT or RIGHT side of the product  
+- Use the same text style as the reference image (bold white title, colored badge backgrounds)
+- DO NOT write any other words — no "гайковёрт", no "дрель", no invented names
+- If the text above says "бесщеточная БОЛГАРКА" — write exactly "бесщеточная БОЛГАРКА", nothing else
 
 ${accessoriesBlock}
-${extraText ? `EXTRA: ${extraText}` : ''}
+${extraText ? `== EXTRA: ${extraText}` : ''}
 
-DO NOT add: watermarks, barcodes, random codes like FFD700, WB logo, extra product shots unless specified.`;
+FORBIDDEN: inventing product names, watermarks, barcodes, random numbers not in the text list above.`;
 }
 
 
