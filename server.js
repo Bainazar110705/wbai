@@ -324,6 +324,7 @@ const AI_MODELS = {
     strength: 0.55,
   },
 };
+
 // Эндпоинт — список моделей для UI
 app.get('/api/models', authMiddleware, (req, res) => {
   const list = Object.entries(AI_MODELS).map(([id, m]) => ({
@@ -352,13 +353,13 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
 
   return `You are editing a product photo to create a Wildberries marketplace infographic.
 
-== STEP 1: PRODUCT (CRITICAL) ==
-The input image contains a specific product. You MUST use that exact product — do NOT replace it with a different brand or model.
-- KEEP the exact product from the input photo: same shape, same color, same brand markings
-- Do NOT draw RYOBI, Makita, Bosch or any other brand — use ONLY the product from the input photo
-- The product from the input photo must appear as the main hero of the infographic
-- Add subtle white rim light on product edges to separate from background
-- Add soft drop shadow below product
+== STEP 1: PRODUCT (MOST CRITICAL RULE) ==
+You are given an input photo. The product in that photo MUST appear in the output unchanged.
+- TRACE the exact product from the input photo into the output — same silhouette, same colors, same brand text on the body
+- This is NOT a text-to-image task — you are EDITING the provided photo
+- Do NOT generate a new product. Do NOT use RYOBI, Makita, Bosch, Морлер or any other brand
+- The output must show the SAME physical object that is in the input photo
+- Add white rim light on product edges and drop shadow below so it stands out from background
 
 == STEP 2: BACKGROUND & STYLE ==
 ${styleBlock}
@@ -478,7 +479,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
         image_url: imageUrl,
         guidance_scale: 3.5,
         num_inference_steps: 28,
-        image_size: 'portrait_4_3',
+        image_size: { width: 768, height: 1024 },
         num_images: 1,
         safety_tolerance: '5',
       };
@@ -489,7 +490,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
         strength: model.strength || 0.55,
         num_inference_steps: 35,
         guidance_scale: 3.5,
-        image_size: 'portrait_4_3',
+        image_size: { width: 768, height: 1024 },
         num_images: 1,
         enable_safety_checker: false,
       };
@@ -497,7 +498,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       falBody = {
         prompt: finalPrompt,
         image_url: imageUrl,
-        image_size: 'portrait_4_3',
+        image_size: { width: 768, height: 1024 },
         num_images: 1,
       };
     }
