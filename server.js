@@ -298,28 +298,28 @@ const AI_MODELS = {
     name: 'GPT Image 2',
     description: 'Лучший текст на кириллице, инфографика',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/gpt-image-2/image-to-image',
+    endpoint: 'fal-ai/gpt-image-2',
     supportsImageInput: true,
   },
   'flux-kontext-pro': {
     name: 'FLUX Kontext Pro',
     description: 'Точная передача товара, реализм',
     badge: null,
-    endpoint: 'fal-ai/flux-pro/kontext',
+    endpoint: 'fal-ai/flux-pro/v1/kontext',
     supportsImageInput: true,
   },
   'seedream-5': {
     name: 'Seedream 5.0',
     description: 'Яркий стиль, кинематограф',
     badge: null,
-    endpoint: 'fal-ai/seedream/v5',
+    endpoint: 'fal-ai/bytedance/seedream-3',
     supportsImageInput: true,
   },
   'nano-banana-pro': {
     name: 'Nano Banana Pro',
     description: 'Максимальная скорость',
     badge: 'Быстро',
-    endpoint: 'fal-ai/nano-banana/pro',
+    endpoint: 'fal-ai/fast-lightning-sdxl',
     supportsImageInput: false,
   },
 };
@@ -471,7 +471,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     // Шаг 5: Формируем тело запроса
     let falBody = {};
     if (selectedModelId === 'gpt-image-2') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'square_hd', quality: 'high', num_images: 1 };
+      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: '1024x1024', quality: 'high', n: 1 };
     } else if (selectedModelId === 'flux-kontext-pro') {
       falBody = { prompt: finalPrompt, image_url: imageUrl, guidance_scale: 3.5, num_inference_steps: 28, image_size: 'square_hd', num_images: 1 };
     } else if (selectedModelId === 'seedream-5') {
@@ -484,7 +484,8 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     console.log(`[WBai] Отправляем запрос в fal.ai/${model.endpoint}...`);
     const result = await callFalApi(model.endpoint, falBody);
 
-    const generatedUrl = result?.images?.[0]?.url || result?.image?.url;
+    console.log('[WBai] fal.ai result keys:', Object.keys(result || {}));
+    const generatedUrl = result?.images?.[0]?.url || result?.image?.url || result?.data?.[0]?.url;
     if (!generatedUrl) {
       console.error('[WBai] fal.ai ответ без изображения:', JSON.stringify(result));
       return res.status(500).json({ error: 'Изображение не сгенерировано' });
