@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBai — Кабинет</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--purple:#7b2ff7;--purple-dark:#5a1fc7;--bg:#f4f4f8;--white:#fff;--border:#e8e8f0;--text:#1a1a2e;--muted:#888;--green:#22c55e;--red:#ef4444}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+.header{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 20px;gap:16px}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+.logo-text{font-size:18px;font-weight:800;color:var(--text)}
+.menu-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;background:#fff;color:var(--text);transition:all .2s;flex-shrink:0}
+.menu-btn:hover{border-color:var(--purple);color:var(--purple)}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;transition:all .2s}
+.icon-btn:hover{border-color:var(--purple)}
+.notif-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--green);border-radius:50%;border:2px solid #fff}
+.profile-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;cursor:pointer;border:none;flex-shrink:0}
+
+/* SIDEBAR MENU */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:300}
+.sidebar-overlay.open{display:block}
+.sidebar{position:fixed;top:0;left:-320px;width:300px;height:100vh;background:#fff;z-index:400;transition:left .25s ease;overflow-y:auto;box-shadow:4px 0 24px rgba(0,0,0,0.1)}
+.sidebar.open{left:0}
+.sidebar-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sidebar-logo{font-size:18px;font-weight:800;color:var(--text)}
+.sidebar-close{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.sidebar-search{padding:12px 16px;border-bottom:1px solid var(--border)}
+.sidebar-search input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;outline:none}
+.sidebar-search input:focus{border-color:var(--purple)}
+.sidebar-nav{padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;font-size:15px;font-weight:500;color:var(--text);transition:background .15s;border-radius:0}
+.nav-item:hover{background:#f4f4f8}
+.nav-item.active{background:rgba(123,47,247,0.08);color:var(--purple)}
+.nav-icon{font-size:18px;width:24px;text-align:center}
+
+/* PROFILE DROPDOWN */
+.profile-dropdown{display:none;position:fixed;top:60px;right:16px;background:#fff;border:1px solid var(--border);border-radius:14px;width:280px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,0.12);overflow:hidden}
+.profile-dropdown.open{display:block}
+.profile-banner{background:linear-gradient(135deg,var(--purple),#a855f7);padding:16px;color:#fff}
+.profile-banner-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.profile-banner-sub{font-size:12px;opacity:.8}
+.profile-menu-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;font-size:14px;color:var(--text);transition:background .15s;border-top:1px solid var(--border)}
+.profile-menu-item:hover{background:#f4f4f8}
+.profile-menu-item .pmi-icon{font-size:18px;width:22px;text-align:center}
+.profile-menu-item .pmi-email{font-size:12px;color:var(--muted);margin-left:auto}
+.profile-menu-item.danger{color:var(--red)}
+
+/* CONTENT */
+.content{max-width:1100px;margin:0 auto;padding:28px 24px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:700;margin-bottom:20px}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.stat-value{font-size:30px;font-weight:800;color:var(--text)}
+.stat-value.purple{color:var(--purple)}
+.stat-value.green{color:var(--green)}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.sub-status{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:15px;font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.red{background:var(--red)}
+.download-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;border:none;cursor:pointer}
+.kaspi-box{background:rgba(123,47,247,0.05);border:1.5px solid rgba(123,47,247,0.15);border-radius:12px;padding:20px;margin-top:8px}
+.kaspi-box h4{font-size:14px;font-weight:700;color:var(--purple);margin-bottom:10px}
+.kaspi-btn{display:inline-flex;align-items:center;gap:8px;background:#f9a825;color:#000;font-weight:700;font-size:14px;padding:11px 22px;border-radius:10px;text-decoration:none;margin-top:12px}
+.tg-link{color:var(--purple);font-weight:600;text-decoration:none}
+.install-steps{color:var(--muted);line-height:2.2;padding-left:20px;font-size:14px}
+.install-steps strong{color:var(--text)}
+
+/* TEMPLATES */
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tpl-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px}
+.tpl-name{font-weight:700;font-size:14px;margin-bottom:4px}
+.tpl-cat{font-size:12px;color:var(--muted)}
+.tpl-price{font-size:12px;color:var(--purple);margin-top:6px;font-weight:600}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+
+/* VIDEOS */
+.videos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.video-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.video-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+.video-thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(123,47,247,0.12),rgba(168,85,247,0.06));display:flex;align-items:center;justify-content:center;font-size:40px}
+.video-info{padding:12px}
+.video-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.video-sub{font-size:12px;color:var(--muted)}
+.video-link{font-size:11px;color:var(--purple);margin-top:6px;font-weight:600}
+.main-video{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:28px}
+.main-video-thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(123,47,247,0.1),rgba(168,85,247,0.05));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.play-btn{width:64px;height:64px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
+.main-video-info{padding:16px 20px;border-top:1px solid var(--border)}
+.main-video-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.main-video-sub{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <a class="logo" href="/dashboard">
+    <div class="logo-icon">W</div>
+    <div class="logo-text">WBai</div>
+  </a>
+  <button class="menu-btn" onclick="toggleSidebar()">☰ Меню</button>
+  <div class="header-right">
+    <div class="icon-btn" onclick="toggleNotif()">🔔<span class="notif-dot"></span></div>
+    <div class="profile-btn" id="profileAvatar" onclick="toggleProfile()">?</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">WBai</div>
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <div class="sidebar-search">
+    <input placeholder="🔍 Поиск по разделам..." oninput="filterNav(this.value)">
+  </div>
+  <div class="sidebar-nav" id="sidebarNav">
+    <div class="nav-item active" onclick="showPage('home');closeSidebar()"><span class="nav-icon">🏠</span>Главная</div>
+    <div class="nav-item" onclick="showPage('subscription');closeSidebar()"><span class="nav-icon">💳</span>Подписка</div>
+    <div class="nav-item" onclick="showPage('templates');closeSidebar()"><span class="nav-icon">📦</span>Шаблоны товаров</div>
+    <div class="nav-item" onclick="showPage('videos');closeSidebar()"><span class="nav-icon">🎥</span>Видео обзор</div>
+    <div class="nav-item" onclick="showPage('history');closeSidebar()"><span class="nav-icon">📋</span>История запросов</div>
+    <div class="nav-item" onclick="showPage('settings');closeSidebar()"><span class="nav-icon">⚙️</span>Настройки</div>
+    <div class="nav-item" onclick="showPage('install');closeSidebar()"><span class="nav-icon">🔧</span>Установка расширения</div>
+    <div class="nav-item" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon">💬</span>Поддержка</div>
+  </div>
+</div>
+
+<!-- PROFILE DROPDOWN -->
+<div class="profile-dropdown" id="profileDropdown">
+  <div class="profile-banner">
+    <div class="profile-banner-title">WBai — AI помощник</div>
+    <div class="profile-banner-sub">Подписка активна</div>
+  </div>
+  <div class="profile-menu-item">
+    <span class="pmi-icon">👤</span>Аккаунт
+    <span class="pmi-email" id="profileEmailDD"></span>
+  </div>
+  <div class="profile-menu-item" onclick="showPage('subscription');closeDropdowns()">
+    <span class="pmi-icon">💳</span>Подписка
+  </div>
+  <div class="profile-menu-item" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')">
+    <span class="pmi-icon">💬</span>Поддержка
+  </div>
+  <div class="profile-menu-item" onclick="window.location.href='/'">
+    <span class="pmi-icon">🌐</span>Главная страница
+  </div>
+  <div class="profile-menu-item danger" onclick="logout()">
+    <span class="pmi-icon">🚪</span>Выйти
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="page-title">Главная</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Ответов сгенерировано</div>
+        <div class="stat-value purple" id="statRequests">0</div>
+        <div class="stat-sub">За всё время</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Статус подписки</div>
+        <div class="stat-value" id="statSubVal" style="font-size:18px">—</div>
+        <div class="stat-sub" id="statSubDate"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Шаблонов товаров</div>
+        <div class="stat-value green" id="statTemplates">0</div>
+        <div class="stat-sub">Сохранено</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Быстрые действия</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a class="download-btn" href="https://chromewebstore.google.com/detail/wb-%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D1%8B-%D0%BD%D0%B0-%D0%BE%D1%82%D0%B7%D1%8B%D0%B2%D1%8B/ffbgoblennegeajdpfkaeanfhjljpdlh" target="_blank">🔧 Установить расширение</a>
+        <button onclick="showPage('templates')" style="padding:11px 22px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer">📦 Мои шаблоны</button>
+        <button onclick="showPage('videos')" style="padding:11px 22px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer">🎥 Видео обзор</button>
+        <a href="https://t.me/WBAI_SUPPORT" target="_blank" style="padding:11px 22px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;color:var(--text)">💬 Поддержка</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBSCRIPTION -->
+  <div class="page" id="page-subscription">
+    <div class="page-title">Подписка</div>
+    <div class="card">
+      <div class="card-title">Статус подписки</div>
+      <div class="sub-status">
+        <div class="dot" id="subDot"></div>
+        <span id="subText"></span>
+      </div>
+      <div id="subActiveBlock" style="display:none">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Подписка активна. Скачайте расширение и начните работу.</p>
+        <a class="download-btn" href="https://chromewebstore.google.com/detail/wb-%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D1%8B-%D0%BD%D0%B0-%D0%BE%D1%82%D0%B7%D1%8B%D0%B2%D1%8B/ffbgoblennegeajdpfkaeanfhjljpdlh" target="_blank">🔧 Установить расширение</a>
+      </div>
+      <div id="subInactiveBlock" style="display:none">
+        <div class="kaspi-box">
+          <h4>Как оплатить подписку</h4>
+          <p style="font-size:14px;color:var(--muted);line-height:1.7">
+            Нажмите кнопку ниже — откроется Kaspi Pay.<br>
+            В комментарии укажите ваш email: <strong id="paymentEmail" style="color:var(--text)"></strong><br>
+            После оплаты подписка активируется в течение 1-2 часов.
+          </p>
+          <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank">💳 Оплатить через Kaspi — 3 000 ₸</a>
+          <p style="font-size:13px;color:var(--muted);margin-top:12px">Есть вопросы? <a href="https://t.me/WBAI_SUPPORT" target="_blank" class="tg-link">@WBAI_SUPPORT</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div class="page" id="page-templates">
+    <div class="page-title">Шаблоны товаров</div>
+    <div class="card">
+      <div class="card-title">Мои шаблоны</div>
+      <div id="templatesContent"><div class="empty-state">⏳ Загрузка...</div></div>
+    </div>
+  </div>
+
+  <!-- VIDEOS -->
+  <div class="page" id="page-videos">
+    <div class="page-title">Видео обзор</div>
+    <div class="main-video">
+      <div class="main-video-thumb">
+        <div class="play-btn">▶️</div>
+        <div style="text-align:center">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Обзор WBai — скоро</div>
+          <div style="font-size:13px;color:var(--muted)">Видео появится здесь после записи</div>
+        </div>
+      </div>
+      <div class="main-video-info">
+        <div class="main-video-title">WBai — AI помощник для продавцов Wildberries</div>
+        <div class="main-video-sub">Как отвечать на отзывы в 10 раз быстрее с помощью AI</div>
+      </div>
+    </div>
+    <div class="card-title" style="margin-bottom:16px">📚 Полезные видео по Wildberries</div>
+    <div class="videos-grid">
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+для+новичков+2024','_blank')">
+        <div class="video-thumb">📦</div>
+        <div class="video-info"><div class="video-title">Wildberries для новичков</div><div class="video-sub">С чего начать продажи на WB</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+карточка+товара+оформление','_blank')">
+        <div class="video-thumb">🎨</div>
+        <div class="video-info"><div class="video-title">Оформление карточки</div><div class="video-sub">Карточка которая продаёт</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+seo+продвижение','_blank')">
+        <div class="video-thumb">🔍</div>
+        <div class="video-info"><div class="video-title">SEO продвижение</div><div class="video-sub">Как вывести товар в топ</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+отзывы+работа','_blank')">
+        <div class="video-thumb">⭐</div>
+        <div class="video-info"><div class="video-title">Работа с отзывами</div><div class="video-sub">Как правильно отвечать</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+реклама+2024','_blank')">
+        <div class="video-thumb">📢</div>
+        <div class="video-info"><div class="video-title">Реклама на WB</div><div class="video-sub">Внутренняя реклама WB</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+      <div class="video-card" onclick="window.open('https://www.youtube.com/results?search_query=wildberries+аналитика+продаж','_blank')">
+        <div class="video-thumb">📊</div>
+        <div class="video-info"><div class="video-title">Аналитика продаж</div><div class="video-sub">Как анализировать и расти</div><div class="video-link">▶ Смотреть →</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="page-history">
+    <div class="page-title">История запросов</div>
+    <div class="card">
+      <div class="card-title">Последние 20 запросов</div>
+      <div id="historyContent"><div class="empty-state">⏳ Загрузка...</div></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="page-title">Настройки</div>
+    <div class="card">
+      <div class="card-title">🔒 Смена пароля</div>
+      <div style="max-width:400px">
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600">Текущий пароль</label>
+          <input type="password" id="curPass" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;background:var(--bg);color:var(--text);outline:none" placeholder="••••••••">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600">Новый пароль</label>
+          <input type="password" id="newPass" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;background:var(--bg);color:var(--text);outline:none" placeholder="Минимум 6 символов">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600">Повторите пароль</label>
+          <input type="password" id="newPass2" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;background:var(--bg);color:var(--text);outline:none" placeholder="••••••••">
+        </div>
+        <div id="passMsg" style="font-size:13px;margin-bottom:12px;display:none"></div>
+        <button onclick="changePassword()" style="padding:11px 24px;border-radius:8px;background:var(--purple,#7b2ff7);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Сохранить пароль</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTALL -->
+  <div class="page" id="page-install">
+    <div class="page-title">Установка расширения</div>
+    <div class="card">
+      <div class="card-title">Как установить</div>
+      <ol class="install-steps">
+        <li>Нажмите кнопку ниже — откроется Chrome Web Store</li>
+        <li>Нажмите <strong>Установить</strong></li>
+        <li>Подтвердите установку</li>
+        <li>Войдите в расширение — email и пароль от WBai</li>
+        <li>Перейдите на <strong>seller.wildberries.ru</strong> и начните работу</li>
+      </ol>
+      <div style="margin-top:20px">
+        <a class="download-btn" href="https://chromewebstore.google.com/detail/wb-%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D1%8B-%D0%BD%D0%B0-%D0%BE%D1%82%D0%B7%D1%8B%D0%B2%D1%8B/ffbgoblennegeajdpfkaeanfhjljpdlh" target="_blank">🔧 Установить из Chrome Web Store</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const token = localStorage.getItem('wbai_token');
+if(!token) location.href = '/login';
+
+let currentUser = null;
+
+async function init() {
+  try {
+    const r = await fetch('/api/me', {headers:{'Authorization':'Bearer '+token}});
+    if(!r.ok){localStorage.removeItem('wbai_token');location.href='/login';return;}
+    const d = await r.json();
+    currentUser = d.user;
+    setUser(d.user, d.subscription);
+    checkSubExpiry(d.subscription);
+    if(d.subscription?.active) loadTemplates();
+    else document.getElementById('templatesContent').innerHTML='<div class="empty-state">Шаблоны доступны после активации подписки.</div>';
+  } catch(e){ console.error(e); }
+}
+
+function setUser(user, sub) {
+  const initials = (user.name||user.email||'?')[0].toUpperCase();
+  document.getElementById('profileAvatar').textContent = initials;
+  document.getElementById('profileEmailDD').textContent = user.email;
+  document.getElementById('paymentEmail').textContent = user.email;
+  document.getElementById('statRequests').textContent = user.ai_requests_count || 0;
+
+  const isActive = sub?.active;
+  const dot = document.getElementById('subDot');
+  dot.className = 'dot '+(isActive?'green':'red');
+  document.getElementById('subText').textContent = isActive
+    ? 'Активна до '+new Date(sub.end).toLocaleDateString('ru-RU')
+    : 'Подписка не активна';
+  document.getElementById('subActiveBlock').style.display = isActive?'block':'none';
+  document.getElementById('subInactiveBlock').style.display = isActive?'none':'block';
+  document.getElementById('statSubVal').innerHTML = isActive
+    ? '<span style="color:var(--green)">✅ Активна</span>'
+    : '<span style="color:var(--red)">❌ Не активна</span>';
+  document.getElementById('statSubDate').textContent = isActive
+    ? 'До '+new Date(sub.end).toLocaleDateString('ru-RU') : '';
+
+  // Profile banner
+  const banner = document.querySelector('.profile-banner-sub');
+  banner.textContent = isActive ? 'Подписка активна' : 'Подписка не активна';
+}
+
+async function loadTemplates() {
+  try {
+    const r = await fetch('/api/templates',{headers:{'Authorization':'Bearer '+token}});
+    const d = await r.json();
+    const count = d.templates?.length||0;
+    document.getElementById('statTemplates').textContent = count;
+    const el = document.getElementById('templatesContent');
+    if(!count){el.innerHTML='<div class="empty-state">📦 Шаблонов пока нет.<br>Создайте их в расширении при заполнении карточек товаров.</div>';return;}
+    el.innerHTML='<div class="templates-grid">'+d.templates.map(t=>`
+      <div class="tpl-card">
+        <div class="tpl-name">📦 ${t.name}</div>
+        <div class="tpl-cat">${t.category||'Без категории'}</div>
+        ${t.price?`<div class="tpl-price">💰 ${t.price} ₸</div>`:''}
+      </div>`).join('')+'</div>';
+  } catch(e){}
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name)?.classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n=>{if(n.textContent.toLowerCase().includes(name==='home'?'главная':name==='subscription'?'подписка':name==='templates'?'шаблон':name==='videos'?'видео':name==='history'?'история':name==='settings'?'настройки':'установка')) n.classList.add('active');});
+  if(name==='history') loadHistory();
+}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+function toggleProfile(){
+  document.getElementById('profileDropdown').classList.toggle('open');
+}
+function toggleNotif(){ closeDropdowns(); }
+function closeDropdowns(){
+  document.getElementById('profileDropdown').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.profile-btn')&&!e.target.closest('.profile-dropdown')) closeDropdowns();
+});
+function filterNav(q){
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.style.display=n.textContent.toLowerCase().includes(q.toLowerCase())?'flex':'none';
+  });
+}
+function logout(){
+  localStorage.removeItem('wbai_token');
+  localStorage.removeItem('wbai_user');
+  location.href='/';
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/history', {headers:{'Authorization':'Bearer '+token}});
+    const d = await r.json();
+    const el = document.getElementById('historyContent');
+    if(!d.history?.length){el.innerHTML='<div class="empty-state">История пуста. Начните генерировать ответы через расширение.</div>';return;}
+    el.innerHTML=d.history.map(h=>`
+      <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${new Date(h.created_at).toLocaleString('ru-RU')}</div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:8px;background:var(--bg);padding:8px 12px;border-radius:8px">${h.response||'—'}</div>
+      </div>`).join('');
+  } catch(e){}
+}
+
+async function changePassword() {
+  const cur=document.getElementById('curPass').value;
+  const nw=document.getElementById('newPass').value;
+  const nw2=document.getElementById('newPass2').value;
+  const msg=document.getElementById('passMsg');
+  if(!cur||!nw||!nw2){showPassMsg('Заполните все поля','red');return;}
+  if(nw!==nw2){showPassMsg('Пароли не совпадают','red');return;}
+  if(nw.length<6){showPassMsg('Пароль минимум 6 символов','red');return;}
+  try{
+    const r=await fetch('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({currentPassword:cur,newPassword:nw})});
+    const d=await r.json();
+    if(!r.ok){showPassMsg(d.error||'Ошибка','red');return;}
+    showPassMsg('✅ Пароль успешно изменён','green');
+    document.getElementById('curPass').value='';
+    document.getElementById('newPass').value='';
+    document.getElementById('newPass2').value='';
+  }catch(e){showPassMsg('Ошибка соединения','red');}
+}
+
+function showPassMsg(text, color) {
+  const el = document.getElementById('passMsg');
+  el.textContent = text;
+  el.style.color = color === 'green' ? '#22c55e' : '#ef4444';
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function checkSubExpiry(sub) {
+  if (!sub?.active || !sub?.end) return;
+  const end = new Date(sub.end);
+  const now = new Date();
+  const daysLeft = Math.ceil((end - now) / (1000*60*60*24));
+  if (daysLeft <= 7) {
+    const notifDot = document.querySelector('.notif-dot');
+    if (notifDot) notifDot.style.background = '#ef4444';
+    // Показываем баннер
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;padding:12px 20px;font-size:14px;text-align:center;font-weight:600';
+    banner.innerHTML = `⚠️ Подписка истекает через ${daysLeft} дн. — <a href="#" onclick="showPage('subscription')" style="color:#fff;font-weight:700">Продлить →</a>`;
+    document.querySelector('.header').after(banner);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

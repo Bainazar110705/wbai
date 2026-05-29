@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBai — Вход</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.logo-wrap{display:flex;align-items:center;gap:10px;margin-bottom:32px;cursor:pointer}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+.logo-text{font-size:22px;font-weight:800;color:#1a1a2e}
+.card{background:#fff;border-radius:16px;padding:36px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.back-btn{color:#999;font-size:24px;cursor:pointer;text-decoration:none;line-height:1}
+.card-title{font-size:20px;font-weight:700;color:#1a1a2e}
+.tab-link{color:#7b2ff7;font-size:14px;font-weight:600;cursor:pointer}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:14px;color:#444;margin-bottom:8px;font-weight:500}
+.field input{width:100%;border:1.5px solid #e0e0e8;border-radius:10px;padding:12px 16px;font-size:15px;color:#1a1a2e;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#7b2ff7}
+.pass-wrap{position:relative}
+.pass-wrap input{padding-right:44px}
+.pass-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-size:18px;background:none;border:none}
+.submit-btn{width:100%;padding:14px;border-radius:10px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.submit-btn:hover{opacity:.9}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.err{background:#fff0f0;border:1.5px solid #ffcccc;border-radius:8px;padding:10px 14px;color:#c0392b;font-size:13px;margin-bottom:14px;display:none}
+.suc{background:#f0fff4;border:1.5px solid #b7e4c7;border-radius:8px;padding:10px 14px;color:#1a7a4a;font-size:13px;margin-bottom:14px;display:none}
+</style>
+</head>
+<body>
+<div class="logo-wrap" onclick="location.href='/'">
+  <div class="logo-icon">W</div>
+  <div class="logo-text">WBai</div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <a class="back-btn" href="/">‹</a>
+    <div class="card-title" id="cardTitle">Вход</div>
+    <span class="tab-link" id="switchBtn" onclick="switchTab()">Регистрация</span>
+  </div>
+  <div class="err" id="err"></div>
+  <div class="suc" id="suc"></div>
+  <div id="loginForm">
+    <div class="field"><label>Почта</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
+    <div class="field"><label>Пароль</label><div class="pass-wrap"><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"><button class="pass-eye" onclick="togglePass('loginPass')">👁</button></div></div>
+    <button class="submit-btn" onclick="doLogin()" id="loginBtn">Войти</button>
+  </div>
+  <div id="regForm" style="display:none">
+    <div class="field"><label>Имя</label><input type="text" id="regName" placeholder="Ваше имя"></div>
+    <div class="field"><label>Почта</label><input type="email" id="regEmail" placeholder="your@email.com"></div>
+    <div class="field"><label>Пароль</label><div class="pass-wrap"><input type="password" id="regPass" placeholder="Минимум 6 символов" onkeydown="if(event.key==='Enter')doRegister()"><button class="pass-eye" onclick="togglePass('regPass')">👁</button></div></div>
+    <button class="submit-btn" onclick="doRegister()" id="regBtn">Создать аккаунт</button>
+  </div>
+</div>
+<script>
+if(localStorage.getItem('wbai_token')) location.href='/dashboard';
+let isLogin=true;
+function switchTab(){
+  isLogin=!isLogin;
+  document.getElementById('loginForm').style.display=isLogin?'block':'none';
+  document.getElementById('regForm').style.display=isLogin?'none':'block';
+  document.getElementById('cardTitle').textContent=isLogin?'Вход':'Регистрация';
+  document.getElementById('switchBtn').textContent=isLogin?'Регистрация':'Войти';
+  document.getElementById('err').style.display='none';
+  document.getElementById('suc').style.display='none';
+}
+function togglePass(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
+function showErr(m){const e=document.getElementById('err');e.textContent=m;e.style.display='block';document.getElementById('suc').style.display='none';}
+function showSuc(m){const e=document.getElementById('suc');e.textContent=m;e.style.display='block';document.getElementById('err').style.display='none';}
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  if(!email||!pass)return showErr('Заполните все поля');
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='⏳ Входим...';
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();
+    if(!r.ok)return showErr(d.error||'Ошибка входа');
+    localStorage.setItem('wbai_token',d.token);
+    localStorage.setItem('wbai_user',JSON.stringify(d.user));
+    location.href='/dashboard';
+  }catch(e){showErr('Ошибка соединения');}
+  finally{btn.disabled=false;btn.textContent='Войти';}
+}
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPass').value;
+  if(!email||!pass)return showErr('Заполните email и пароль');
+  if(pass.length<6)return showErr('Пароль минимум 6 символов');
+  const btn=document.getElementById('regBtn');
+  btn.disabled=true;btn.textContent='⏳ Создаём...';
+  try{
+    const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,name})});
+    const d=await r.json();
+    if(!r.ok)return showErr(d.error||'Ошибка регистрации');
+    showSuc('Аккаунт создан! Теперь войдите.');
+    setTimeout(()=>switchTab(),1500);
+    document.getElementById('loginEmail').value=email;
+  }catch(e){showErr('Ошибка соединения');}
+  finally{btn.disabled=false;btn.textContent='Создать аккаунт';}
+}
+</script>
+</body>
+</html>
