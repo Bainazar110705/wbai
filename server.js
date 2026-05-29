@@ -398,59 +398,27 @@ ${extraText ? 'Notes: ' + extraText : ''}`;
 }
 
 // Загрузка изображения в fal.ai storage
-async function uploadImageToFal(base64DataUrl) {
-  console.log('[WBai] uploadImageToFal start, FAL_KEY length:', FAL_KEY.length);
-  const base64 = base64DataUrl.replace(/^data:image\/[a-z+]+;base64,/, '');
-  const mimeType = base64DataUrl.includes('data:image/png') ? 'image/png' : 'image/jpeg';
-  const buffer = Buffer.from(base64, 'base64');
-  const uploadResp = await fetch('https://upload.fal.run/fal-ai/storage/upload/initiate', {
-    method: 'POST',
-    headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content_type: mimeType, file_name: 'product.jpg' }),
-  });
-  if (!uploadResp.ok) {
-    const errText = await uploadResp.text().catch(() => 'no body');
-    console.error('[WBai] upload initiate failed:', uploadResp.status, errText);
-    throw new Error('Ошибка инициализации загрузки в fal.ai: ' + uploadResp.status);
-  }
-  const { upload_url, file_url } = await uploadResp.json();
-  const putResp = await fetch(upload_url, {
-    method: 'PUT',
-    headers: { 'Content-Type': mimeType },
-    body: buffer,
-  });
-  if (!putResp.ok) throw new Error('Ошибка загрузки изображения в fal.ai');
-  return file_url;
+// Конвертируем base64 в data URL для передачи напрямую в fal.ai
+function prepareImageForFal(base64DataUrl) {
+  // fal.ai принимает base64 data URL напрямую в поле image_url
+  return base64DataUrl;
 }
 
-// Вызов fal.ai через queue API
+// Вызов fal.ai — прямой синхронный API
 async function callFalApi(endpoint, body) {
   if (!FAL_KEY) throw new Error('FAL_KEY не настроен в переменных окружения');
-  const submitResp = await fetch(`https://queue.fal.run/${endpoint}`, {
+  console.log('[WBai] callFalApi endpoint:', endpoint);
+  const resp = await fetch(`https://fal.run/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${FAL_KEY}` },
     body: JSON.stringify(body),
   });
-  if (!submitResp.ok) {
-    const err = await submitResp.json().catch(() => ({}));
-    throw new Error(err?.detail || err?.error || `fal.ai error ${submitResp.status}`);
+  console.log('[WBai] fal.ai status:', resp.status);
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err?.detail || err?.error || `fal.ai error ${resp.status}`);
   }
-  const { request_id } = await submitResp.json();
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-    const statusResp = await fetch(`https://queue.fal.run/${endpoint}/requests/${request_id}/status`, {
-      headers: { 'Authorization': `Key ${FAL_KEY}` },
-    });
-    const status = await statusResp.json();
-    if (status.status === 'COMPLETED') {
-      const resultResp = await fetch(`https://queue.fal.run/${endpoint}/requests/${request_id}`, {
-        headers: { 'Authorization': `Key ${FAL_KEY}` },
-      });
-      return await resultResp.json();
-    }
-    if (status.status === 'FAILED') throw new Error(status.error || 'fal.ai: ошибка генерации');
-  }
-  throw new Error('fal.ai: превышено время ожидания (180 сек)');
+  return await resp.json();
 }
 
 app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
@@ -493,11 +461,11 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
       title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock
     });
 
-    // Шаг 4: Загружаем фото в fal.ai storage
+    // Шаг 4: Подготавливаем фото (передаём base64 напрямую)
     let imageUrl = null;
     if (model.supportsImageInput) {
-      console.log('[WBai] Загружаем фото товара в fal.ai...');
-      imageUrl = await uploadImageToFal(imageBase64);
+      console.log('[WBai] Подготавливаем фото для fal.ai...');
+      imageUrl = prepareImageForFal(imageBase64);
     }
 
     // Шаг 5: Формируем тело запроса
