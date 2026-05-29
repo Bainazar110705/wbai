@@ -419,8 +419,9 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     });
   }
 
-  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'gpt-image-2';
+  const selectedModelId = modelId && AI_MODELS[modelId] ? modelId : 'flux-dev-i2i';
   const model = AI_MODELS[selectedModelId];
+  console.log('[WBai] selectedModelId:', selectedModelId, 'model found:', !!model);
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
   try {
