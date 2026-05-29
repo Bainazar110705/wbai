@@ -337,21 +337,15 @@ app.get('/api/models', authMiddleware, (req, res) => {
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock }) {
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  const styleBlock = styleAnalysis
-    ? `REFERENCE DESIGN STYLE:\n${styleAnalysis}
-
-ADAPTATION RULE:
-Copy the reference EXACTLY in terms of:
-- Layout structure (where title is, where badges are, how background is split)
-- Badge shapes, font sizes, text hierarchy
-- Overall mood and theme (industrial, dark, powerful, energetic — match the vibe)
-
-Adapt naturally for THIS specific product:
-- The background theme should feel like it belongs to THIS product
-  Example: if reference has dark industrial feel → keep dark industrial feel but make it feel like it's built around THIS product specifically
-- Small contextual details can change (sparks for grinder, gears for drill) but overall structure stays the same
-- Do NOT change the color scheme dramatically — keep reference colors`
-    : `BACKGROUND: Dark industrial theme with diagonal geometric split. Professional marketplace style.`;
+  const styleBlock = styleImageBase64
+    ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic.
+Copy its design EXACTLY:
+- Same background layout and color scheme
+- Same badge shapes, sizes and positioning
+- Same text hierarchy and font style
+- Same overall composition and mood
+Adapt only: replace the product with the one from image 1, update the text with the specs provided below.`
+    : `BACKGROUND: Professional Wildberries infographic style. Dark or split background, bold text, colored spec badges.`;
 
   const textLines = [];
   if (title) textLines.push(`"${title}"`);
@@ -469,9 +463,10 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
   try {
-    // Шаг 1: Claude анализирует референс-стиль
+    // Шаг 1: Claude анализирует стиль только для FLUX моделей
+    // Nano Banana получает референс напрямую как изображение
     let styleAnalysis = null;
-    if (styleImageBase64) {
+    if (styleImageBase64 && !selectedModelId.startsWith('nano-banana')) {
       styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
     }
 
@@ -507,10 +502,14 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
     if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
-      // Nano Banana Edit — все фото передаём в массив
+      // Nano Banana Edit — передаём все фото напрямую включая референс стиля
+      const editImageUrls = [...allImageUrls]; // товар + аксессуары
+      if (styleImageBase64) {
+        editImageUrls.push(prepareImageForFal(styleImageBase64)); // референс стиля последним
+      }
       falBody = {
         prompt: finalPrompt,
-        image_urls: allImageUrls,  // главное фото + кейс + диски + АКБ
+        image_urls: editImageUrls,
         aspect_ratio: '3:4',
         num_images: 1,
         safety_tolerance: '5',
