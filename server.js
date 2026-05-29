@@ -298,14 +298,14 @@ const AI_MODELS = {
     name: 'Nano Banana 2',
     description: 'Лучший текст, сохраняет товар',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/nano-banana-2',
+    endpoint: 'fal-ai/nano-banana-2/edit',
     supportsImageInput: true,
   },
   'nano-banana-pro': {
     name: 'Nano Banana Pro',
     description: 'Максимальное качество текста',
     badge: null,
-    endpoint: 'fal-ai/nano-banana-pro',
+    endpoint: 'fal-ai/nano-banana-pro/edit',
     supportsImageInput: true,
   },
   'flux-kontext': {
@@ -335,51 +335,47 @@ app.get('/api/models', authMiddleware, (req, res) => {
 
 // Построитель промптов под каждую модель
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock }) {
-  const styleBlock = styleAnalysis
-    ? `BACKGROUND AND STYLE (copy from reference):\n${styleAnalysis}\n`
-    : `BACKGROUND: Split diagonal — left half light grey, right half bright yellow. Clean, high contrast.`;
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
-  // Собираем список текстов
-  const allTexts = [];
-  if (title) allTexts.push(`TITLE (top of image, very large bold): "${title}"`);
-  if (primarySpec) allTexts.push(`MAIN SPEC (large colored badge): "${primarySpec}"`);
-  specs.forEach(s => allTexts.push(`SPEC BADGE: "${s}"`));
+  const styleBlock = styleAnalysis
+    ? `STYLE TO COPY FROM REFERENCE IMAGE:\n${styleAnalysis}`
+    : `STYLE: Yellow and black split background (diagonal). Left side yellow, right side dark grey/black.`;
 
-  // Формируем чёткий список текстов
-  const textInstructions = allTexts.length > 0
-    ? allTexts.map((t, i) => `${i+1}. ${t}`).join('\n')
-    : 'No text needed.';
+  const textLines = [];
+  if (title) textLines.push(`TITLE (top, very large bold white text): "${title}"`);
+  if (primarySpec) textLines.push(`MAIN BADGE (large, red background, white text): "${primarySpec}"`);
+  specs.forEach(s => textLines.push(`SPEC BADGE (red background, white text): "${s}"`));
 
-  return `You are editing a product photo to create a Wildberries marketplace infographic.
+  const textBlock = textLines.length > 0
+    ? textLines.map((t, i) => `${i+1}. ${t}`).join('\n')
+    : 'No text specified.';
 
-== STEP 1: PRODUCT (MOST CRITICAL RULE) ==
-You are given an input photo. The product in that photo MUST appear in the output unchanged.
-- TRACE the exact product from the input photo into the output — same silhouette, same colors, same brand text on the body
-- This is NOT a text-to-image task — you are EDITING the provided photo
-- Do NOT generate a new product. Do NOT use RYOBI, Makita, Bosch, Морлер or any other brand
-- The output must show the SAME physical object that is in the input photo
-- Add white rim light on product edges and drop shadow below so it stands out from background
+  return `You are editing the provided product photo into a Wildberries marketplace infographic card (portrait 3:4 format).
 
-== STEP 2: BACKGROUND & STYLE ==
+RULE 1 — PRODUCT (ABSOLUTE):
+This is an IMAGE EDITING task, NOT image generation.
+The product in the INPUT PHOTO must appear in the output EXACTLY as shown.
+- Do NOT replace the product with a different brand (not ЗУБР, not Makita, not RYOBI, not Морлер, not any other)
+- Copy the exact shape, color, brand markings from the input photo
+- Place the product as the main hero, occupying 60-70% of the frame
+- Add white rim light on edges and drop shadow below
+
+RULE 2 — FORMAT:
+Output must be portrait orientation, taller than wide (3:4 ratio, like a phone screen).
+Width must be LESS than height.
+
+RULE 3 — BACKGROUND:
 ${styleBlock}
 
-== STEP 3: TEXT (MOST IMPORTANT) ==
-Add ONLY these exact texts to the image. Copy every letter precisely:
-
-${textInstructions}
-
-TEXT PLACEMENT RULES:
-- Large title text at the TOP of the image (above the product)
-- Specification badges on the LEFT or RIGHT side of the product  
-- Use the same text style as the reference image (bold white title, colored badge backgrounds)
-- DO NOT write any other words — no "гайковёрт", no "дрель", no invented names
-- If the text above says "бесщеточная БОЛГАРКА" — write exactly "бесщеточная БОЛГАРКА", nothing else
+RULE 4 — TEXT (copy letter by letter, no changes):
+${textBlock}
+- Write ONLY the texts listed above, nothing else
+- Do NOT invent new words or product names
+- Large, bold, readable font
+- Place text in empty areas, not over the product
 
 ${accessoriesBlock}
-${extraText ? `== EXTRA: ${extraText}` : ''}
-
-FORBIDDEN: inventing product names, watermarks, barcodes, random numbers not in the text list above.`;
+${extraText ? `RULE 5 — EXTRA: ${extraText}` : ''}`;
 }
 
 
@@ -466,12 +462,13 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
     if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
-      // Nano Banana — Google Gemini, image editing + точный текст
+      // Nano Banana Edit — Google Gemini, редактирует фото сохраняя товар
       falBody = {
         prompt: finalPrompt,
-        image_url: imageUrl,
-        image_size: { width: 768, height: 1024 },
+        image_urls: [imageUrl],   // массив — сохраняет объект с фото
+        aspect_ratio: '3:4',      // всегда portrait 3:4
         num_images: 1,
+        safety_tolerance: '5',
       };
     } else if (selectedModelId === 'flux-kontext') {
       falBody = {
