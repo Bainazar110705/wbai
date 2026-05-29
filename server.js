@@ -338,8 +338,20 @@ function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, s
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
 
   const styleBlock = styleAnalysis
-    ? `REFERENCE DESIGN STYLE:\n${styleAnalysis}\nCopy the colors, background style, badge shapes and text layout from this reference exactly.`
-    : `BACKGROUND: Diagonal split — top-left white/light grey, bottom-right bright yellow. Clean geometric separation.`;
+    ? `REFERENCE DESIGN STYLE:\n${styleAnalysis}
+
+ADAPTATION RULE:
+Copy the reference EXACTLY in terms of:
+- Layout structure (where title is, where badges are, how background is split)
+- Badge shapes, font sizes, text hierarchy
+- Overall mood and theme (industrial, dark, powerful, energetic — match the vibe)
+
+Adapt naturally for THIS specific product:
+- The background theme should feel like it belongs to THIS product
+  Example: if reference has dark industrial feel → keep dark industrial feel but make it feel like it's built around THIS product specifically
+- Small contextual details can change (sparks for grinder, gears for drill) but overall structure stays the same
+- Do NOT change the color scheme dramatically — keep reference colors`
+    : `BACKGROUND: Dark industrial theme with diagonal geometric split. Professional marketplace style.`;
 
   const textLines = [];
   if (title) textLines.push(`"${title}"`);
@@ -375,14 +387,16 @@ Create a visually stunning, conversion-optimized infographic like a top Wildberr
    - All accessories clearly visible but clearly secondary to main product
 
 3. TITLE BLOCK (top area):
-   - Bold rounded rectangle badge (red or matching reference color)
+   - Copy the title block style EXACTLY from the reference image (shape, position, font size)
+   - Use the same background color as title block in reference, but adapted to product color
    - Large white bold text inside: ${title ? `"${title}"` : 'product name'}
    - This is the MOST prominent text element
 
 4. SPEC BADGES (left or right column, stacked vertically):
    Create professional rounded rectangle badges for each spec:
 ${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
-   - Each badge: dark/colored background, white bold text, large readable numbers
+   - Each badge: same style as spec badges in reference image (copy shape, color, font)
+   - Adapt badge color to match product — if product is blue, use blue/dark-blue badges
    - Numbers should be VERY large, labels smaller below
 
 5. OVERALL FEEL:
