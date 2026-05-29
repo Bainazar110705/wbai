@@ -294,13 +294,19 @@ function buildAccessoriesInstructions(productName, specs) {
 // КОНФИГУРАЦИЯ МОДЕЛЕЙ FAL.AI
 // ============================================================
 const AI_MODELS = {
-  'flux-dev-i2i': {
-    name: 'FLUX.1 Dev',
-    description: 'Сохраняет товар, копирует стиль',
+  'nano-banana-2': {
+    name: 'Nano Banana 2',
+    description: 'Лучший текст, сохраняет товар',
     badge: 'Рекомендуем',
-    endpoint: 'fal-ai/flux/dev/image-to-image',
+    endpoint: 'fal-ai/nano-banana-2',
     supportsImageInput: true,
-    strength: 0.55,
+  },
+  'nano-banana-pro': {
+    name: 'Nano Banana Pro',
+    description: 'Максимальное качество текста',
+    badge: null,
+    endpoint: 'fal-ai/nano-banana-pro',
+    supportsImageInput: true,
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -309,23 +315,15 @@ const AI_MODELS = {
     endpoint: 'fal-ai/flux-pro/kontext',
     supportsImageInput: true,
   },
-  'seedream': {
-    name: 'Seedream 3',
-    description: 'Яркий кинематограф',
+  'flux-dev-i2i': {
+    name: 'FLUX.1 Dev',
+    description: 'Творческий стиль',
     badge: null,
-    endpoint: 'fal-ai/bytedance/seedream-3',
+    endpoint: 'fal-ai/flux/dev/image-to-image',
     supportsImageInput: true,
-  },
-  'flux-schnell': {
-    name: 'FLUX Schnell',
-    description: 'Максимальная скорость',
-    badge: 'Быстро',
-    endpoint: 'fal-ai/flux/schnell/image-to-image',
-    supportsImageInput: true,
-    strength: 0.6,
+    strength: 0.55,
   },
 };
-
 // Эндпоинт — список моделей для UI
 app.get('/api/models', authMiddleware, (req, res) => {
   const list = Object.entries(AI_MODELS).map(([id, m]) => ({
