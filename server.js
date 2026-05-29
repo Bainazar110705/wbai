@@ -479,13 +479,13 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     // Шаг 5: Формируем тело запроса
     let falBody = {};
     if (selectedModelId === 'gpt-image-2') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: '1024x1024', quality: 'high', n: 1 };
+      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'portrait_4_3', quality: 'high', num_images: 1 };
     } else if (selectedModelId === 'flux-kontext-pro') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, guidance_scale: 3.5, num_inference_steps: 28, image_size: 'square_hd', num_images: 1 };
+      falBody = { prompt: finalPrompt, image_url: imageUrl, guidance_scale: 3.5, num_inference_steps: 28, image_size: 'portrait_4_3', num_images: 1 };
     } else if (selectedModelId === 'seedream-5') {
-      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'square_hd', num_images: 1 };
+      falBody = { prompt: finalPrompt, image_url: imageUrl, image_size: 'portrait_4_3', num_images: 1 };
     } else {
-      falBody = { prompt: finalPrompt, image_size: 'square_hd', num_inference_steps: 4, num_images: 1 };
+      falBody = { prompt: finalPrompt, image_size: 'portrait_4_3', num_inference_steps: 4, num_images: 1 };
     }
 
     // Шаг 6: Вызываем fal.ai
