@@ -77,9 +77,6 @@ init().catch(console.error);
 
 module.exports = {
   getAsync: async (query, params) => {
-    const pg = query
-      .replace(/\?/g, (_, i) => `$${++i}`)
-      .replace(/INTEGER PRIMARY KEY AUTOINCREMENT/g, 'SERIAL PRIMARY KEY');
     let idx = 0;
     const pgQuery = query.replace(/\?/g, () => `$${++idx}`);
     const result = await pool.query(pgQuery, params);

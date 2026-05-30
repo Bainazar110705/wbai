@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const db = require('./db');
 
@@ -12,12 +13,33 @@ const FAL_KEY = process.env.FAL_KEY || '';
 // ADMIN_KEY: если задана переменная окружения — используем её, иначе дефолт
 const ADMIN_KEY = (process.env.ADMIN_KEY || '').trim() || 'wbai-admin-2024';
 
-console.log('[WBai] ADMIN_KEY source:', process.env.ADMIN_KEY ? 'ENV (Railway)' : 'DEFAULT (wbai-admin-2024)');
-console.log('[WBai] ADMIN_KEY value:', ADMIN_KEY);
+// Безопасное логирование — никогда не выводим значение ключа
+console.log('[WBai] ADMIN_KEY source:', process.env.ADMIN_KEY ? 'ENV (Railway)' : 'DEFAULT');
 console.log('[WBai] CLAUDE_API_KEY set:', !!CLAUDE_API_KEY);
 console.log('[WBai] FAL_KEY set:', !!FAL_KEY);
 
-app.use(cors());
+// Rate limiting
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много запросов. Подождите минуту.' }
+});
+const imageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  message: { error: 'Максимум 3 генерации в минуту.' }
+});
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    const allowed = /^chrome-extension:\/\/|wbai\.up\.railway\.app|localhost/;
+    allowed.test(origin) ? cb(null, true) : cb(new Error('CORS: домен не разрешён'));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -334,91 +356,125 @@ app.get('/api/models', authMiddleware, (req, res) => {
 });
 
 // Построитель промптов под каждую модель
-function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef }) {
+function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef, mode }) {
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
-
-  const styleBlock = (hasStyleRef || styleAnalysis)
-    ? `STYLE REFERENCE: The LAST image in the provided images is a reference infographic from a competitor.
-
-CRITICAL INSTRUCTION — TWO SEPARATE TASKS:
-
-TASK A — DESIGN TEMPLATE (from the LAST image):
-Copy these elements PIXEL-PERFECTLY from the reference:
-- Background: exact same colors, exact same split/diagonal/gradient
-- Badge style: exact same shape, exact same colors, exact same rounded corners
-- Text style: exact same font weight, exact same hierarchy (big number + small label)
-- Layout: exact same positions — title top, specs left/right, product center
-- Icons: copy guarantee shield, feature icons exactly as shown
-- DO NOT change colors to match the product — keep reference colors exactly
-
-TASK B — PRODUCT (from IMAGE 1 only):
-- Place the exact product from Image 1 into the design template
-- Keep every detail: same brand ARIKO, same blue-black color, same shape
-- Do NOT use the product from the reference image at all
-- Only the product object changes between reference and output — everything else stays identical
-
-Final result = reference design template + Image 1 product inserted into it`
-    : `BACKGROUND: Professional Wildberries infographic style. Yellow diagonal split, bold text, colored spec badges.`;
+  const isRedesign = mode === 'redesign';
 
   const textLines = [];
   if (title) textLines.push(`"${title}"`);
   if (primarySpec) textLines.push(`"${primarySpec}"`);
   specs.forEach(s => textLines.push(`"${s}"`));
-
   const textBlock = textLines.join('\n');
 
-  return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
+  // ── Image roles — the most important rules ──────────────────────────────
+  const imageRolesBlock = hasStyleRef ? `
+╔══════════════════════════════════════════════════════════╗
+║           IMAGE ROLES — READ THIS FIRST                  ║
+╠══════════════════════════════════════════════════════════╣
+║ IMAGES 1…N-1  =  USER'S PRODUCT  (product source)       ║
+║ LAST IMAGE    =  STYLE REFERENCE (design source ONLY)    ║
+╚══════════════════════════════════════════════════════════╝
 
-=== IMAGES PROVIDED ===
-You receive multiple photos:
-- FIRST IMAGE: the main product (bolgarki/grinder ARIKO) — this is the HERO of the infographic, place it large in center
-- ADDITIONAL IMAGES (if provided): accessories like case, discs, battery — place them SMALLER around the main product as supporting elements
-Do NOT replace any object. Use exactly what is shown in each photo. This is image EDITING not generation.
+PRODUCT SOURCE (Images 1 to N-1):
+These are the ONLY source for: product shape, product brand, product color,
+accessories, product markings. The product in the final image MUST come
+from these images and ONLY from these images.
+
+STYLE REFERENCE (Last image) — ALLOWED to copy:
+✅ Color palette and background colors
+✅ Background style (diagonal, gradient, split, pattern)
+✅ Badge/block shapes, rounded corners, borders
+✅ Typography weight, size hierarchy, label style
+✅ Icon style, decorative elements, shadows, glow effects
+✅ Overall composition and layout positions
+
+STYLE REFERENCE (Last image) — FORBIDDEN to copy:
+❌ The product shown in it — use ONLY product from Images 1…N-1
+❌ Any brand name or logo from the reference
+❌ Any text, numbers, specifications from the reference
+❌ Model names, product features from the reference
+` : '';
+
+  // ── Mode-specific scenario block ────────────────────────────────────────
+  let scenarioBlock = '';
+  if (hasStyleRef && isRedesign) {
+    scenarioBlock = `
+=== MODE: REDESIGN EXISTING CARD ===
+Image 1 is the user's EXISTING infographic that needs a visual refresh.
+KEEP from Image 1: the product, brand markings, advantages, characteristics, meaning.
+REPLACE with last image's style: colors, background, typography, layout, icons, decorative elements.
+Think of it as: same content dressed in the new visual style.`;
+  } else if (hasStyleRef) {
+    scenarioBlock = `
+=== MODE: NEW INFOGRAPHIC WITH STYLE REFERENCE ===
+Create a new infographic for the user's product using the reference as a design template.
+Product = Images 1…N-1. Design template = last image.
+The result should look like the user's product was always part of the same product line as the reference.`;
+  } else {
+    scenarioBlock = `
+=== MODE: NEW INFOGRAPHIC FROM SCRATCH ===
+Create a professional Wildberries infographic from scratch.
+Bold design: diagonal color split or gradient background, strong typography, colored spec badges.`;
+  }
+
+  // ── Style instructions ──────────────────────────────────────────────────
+  const styleInstructions = (hasStyleRef || styleAnalysis)
+    ? `=== DESIGN TEMPLATE (from LAST image) ===
+Copy PIXEL-PERFECTLY from the reference:
+- Background: exact colors, gradients, diagonal splits, patterns — do NOT change to match product
+- Badge/block style: exact shapes, rounded corners, border colors
+- Typography: font weights, size hierarchy (large number + small label below)
+- Layout positions: title top, specs left/right, product centered
+- Icons style: copy guarantee shield, feature icons exactly
+- Decorative elements: dividers, overlays, glow, shadows
+${styleAnalysis ? `\nStyle analysis notes: ${styleAnalysis}` : ''}`
+    : `=== DESIGN ===
+Create a premium Wildberries infographic: diagonal yellow/color split background, bold spec badges,
+cinematic product lighting, high contrast, professional marketplace card aesthetic.`;
+
+  return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
+${imageRolesBlock}
+${scenarioBlock}
+
+=== IMAGES IN THIS REQUEST ===
+- IMAGE 1: User's ${isRedesign ? 'EXISTING infographic' : 'product photo'}${title ? ` — "${title}"` : ''} → this is the HERO, place it large in center
+- ADDITIONAL IMAGES (if any): Product accessories (case, battery, discs) → place them SMALLER around main product
+- LAST IMAGE (if provided): Style reference ONLY → use for design, NOT for product content
+
+${styleInstructions}
 
 === OUTPUT FORMAT ===
-Portrait orientation 3:4 ratio (taller than wide, like 768x1024px).
+Portrait orientation 3:4 ratio (768×1024px).
 
-=== PROFESSIONAL DESIGN LAYOUT ===
-Create a visually stunning, conversion-optimized infographic like a top Wildberries seller would use:
+=== LAYOUT ===
+1. PRODUCT PLACEMENT (from Image 1):
+   - Center or center-right, large (60-65% of frame height)
+   - Keep exact angle from input photo — do NOT rotate or tilt
+   - Strong cinematic lighting, bright rim light, drop shadow
+   ${accessoriesBlock ? `- Accessories: place smaller (15-25%) arranged neatly around product` : '- No accessories'}
 
-1. BACKGROUND: ${styleBlock}
+2. TITLE BLOCK (top area):
+   - Copy title block style from reference (shape, position, font size)
+   - Text inside: ${title ? `"${title}"` : 'product name from photo'}
 
-2. PRODUCT PLACEMENT:
-   - MAIN PRODUCT (first image): center or center-right, large (60-65% of frame height)
-   - Keep exact angle from the input photo — do NOT rotate or tilt
-   - Strong cinematic lighting, bright rim light on edges, drop shadow
-   - ACCESSORIES (additional images): place smaller (15-25% size each) around main product:
-     * Case: bottom-left corner
-     * Battery/АКБ: bottom-right or left side
-     * Discs/насадки: small row at bottom center
-   - All accessories clearly visible but clearly secondary to main product
+3. SPEC BADGES (left or right column):
+${textLines.slice(1).map(t => `   - "${t.replace(/^"|"$/g, '')}"`).join('\n') || '   - Key product characteristics'}
 
-3. TITLE BLOCK (top area):
-   - Copy the title block style EXACTLY from the reference image (shape, position, font size)
-   - Use the same background color as title block in reference, but adapted to product color
-   - Large white bold text inside: ${title ? `"${title}"` : 'product name'}
-   - This is the MOST prominent text element
-
-4. SPEC BADGES (left or right column, stacked vertically):
-   Create professional rounded rectangle badges for each spec:
-${textLines.slice(1).map(t => `   - Badge with text: ${t}`).join('\n')}
-   - Each badge: same style as spec badges in reference image (copy shape, color, font)
-   - Adapt badge color to match product — if product is blue, use blue/dark-blue badges
-   - Numbers should be VERY large, labels smaller below
-
-5. OVERALL FEEL:
-   - Premium, professional, high-converting marketplace card
-   - High contrast, vibrant colors
-   - Clean spacing, not cluttered
-   - Looks like it was designed in Adobe Illustrator by a pro
-
-=== TEXT RULES ===
-Write ONLY these exact texts, letter by letter:
-${textBlock}
-DO NOT add: "гайковёрт", "дрель", watermarks, barcodes, or any text not listed above.
+=== EXACT TEXT TO DISPLAY ===
+${textBlock || '(derive key specs from product characteristics)'}
+FORBIDDEN: text from reference, watermarks, barcodes, or any text not listed above.
 
 ${accessoriesBlock}
-${extraText ? `EXTRA: ${extraText}` : ''}`;
+${extraText ? `\n=== USER REQUEST — HIGHEST PRIORITY ===\n${extraText}` : ''}
+
+=== PRE-GENERATION CHECKLIST ===
+Before finalizing the image, verify each point:
+□ Product shown = user's product from Image 1 ✓
+□ NO product from reference/last image ✓
+□ NO brand or logo from reference ✓
+□ NO text, numbers, specs from reference ✓
+□ Visual style of reference IS applied ✓
+If any box fails → rework the composition.`;
 }
 
 
@@ -454,8 +510,8 @@ async function callFalApi(endpoint, body) {
   return resultJson;
 }
 
-app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
-  const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId } = req.body;
+app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
+  const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId, mode } = req.body;
 
   if (!imageBase64) return res.status(400).json({ error: 'Загрузите фото товара' });
 
@@ -494,7 +550,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
     // Шаг 3: Промпт под модель
     const finalPrompt = buildPrompt(selectedModelId, {
       title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock,
-      hasStyleRef: !!styleImageBase64
+      hasStyleRef: !!styleImageBase64, mode: mode || 'create'
     });
 
     // Шаг 4: Подготавливаем все фото
@@ -588,7 +644,7 @@ app.post('/api/generate-image', authMiddleware, checkSubscription, requirePlan('
   }
 });
 
-app.post('/api/ai', authMiddleware, checkSubscription, async (req, res) => {
+app.post('/api/ai', aiLimiter, authMiddleware, checkSubscription, async (req, res) => {
   const { prompt, feature } = req.body;
   // feature: 'reviews' (start+), 'cards' (pro+), default=reviews
   if (feature === 'cards' || feature === 'seo') {
@@ -758,3 +814,11 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('WBai running on port ' + PORT));
+
+// Глобальный обработчик ошибок — предотвращает краш сервера при unhandled rejection
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[WBai] Unhandled error:', err.message || err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Внутренняя ошибка сервера. Попробуйте снова.' });
+});
