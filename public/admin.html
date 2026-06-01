@@ -115,7 +115,7 @@ tr:hover td { background: rgba(123,47,247,0.04); }
     <div class="table-header">
       <div class="table-title">Пользователи</div>
       <div style="display:flex;gap:10px;align-items:center">
-        <input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button class="refresh-btn" id="refreshBtn">↻ Обновить</button>
       </div>
     </div>
@@ -204,6 +204,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 document.getElementById('refreshBtn').addEventListener('click', loadUsers);
 document.getElementById('searchInput').addEventListener('input', filterUsers);
+// Сбрасываем автозаполнение браузера
+setTimeout(function(){ var s=document.getElementById('searchInput'); if(s) s.value=''; }, 50);
 
 async function loadUsers() {
   const resp = await fetch('/api/admin/users', { headers: { 'x-admin-key': adminKey } });

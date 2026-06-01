@@ -323,7 +323,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="sidebar-close" onclick="closeSidebar()">✕</button>
   </div>
   <div class="sidebar-search">
-    <input placeholder="🔍 Поиск по разделам..." oninput="filterNav(this.value)">
+    <input placeholder="🔍 Поиск по разделам..." oninput="filterNav(this.value)" autocomplete="new-password" id="sidebarSearch">
   </div>
   <div class="sidebar-nav" id="sidebarNav">
     <div class="nav-item active" onclick="showPage('home');closeSidebar()"><span class="nav-icon">🏠</span>Главная</div>
@@ -889,6 +889,9 @@ function showPage(name) {
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('open');
+  // Сбрасываем поиск при открытии
+  var s=document.getElementById('sidebarSearch');
+  if(s){s.value='';filterNav('');}
 }
 function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
