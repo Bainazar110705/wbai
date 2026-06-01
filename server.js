@@ -511,18 +511,22 @@ async function callFalApi(endpoint, body) {
 }
 
 app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
-  const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId, mode } = req.body;
+  const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId, mode, aspectRatio, numImages } = req.body;
 
   if (!imageBase64) return res.status(400).json({ error: 'Загрузите фото товара' });
 
-  // Проверяем кредиты ДО генерации
+  const requestedCount = Math.min(Math.max(parseInt(numImages) || 1, 1), 4);
+  const validRatios = ['3:4', '1:1', '8:5', '4:3', '16:9', '9:16'];
+  const requestedRatio = validRatios.includes(aspectRatio) ? aspectRatio : '3:4';
+
+  // Проверяем кредиты — нужно requestedCount кредитов
   const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
   const credits = userCredits?.photo_credits || 0;
-  if (credits < 1) {
+  if (credits < requestedCount) {
     return res.status(403).json({
-      error: 'Недостаточно фото-кредитов. Пополните баланс у администратора.',
+      error: `Недостаточно кредитов. Нужно ${requestedCount}, у вас ${credits}.`,
       credits_required: true,
-      credits_left: 0
+      credits_left: credits
     });
   }
 
@@ -580,8 +584,8 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
       falBody = {
         prompt: finalPrompt,
         image_urls: editImageUrls,
-        aspect_ratio: '3:4',
-        num_images: 1,
+        aspect_ratio: requestedRatio,
+        num_images: requestedCount,
         safety_tolerance: '5',
       };
     } else if (selectedModelId === 'flux-kontext') {
@@ -619,24 +623,30 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     const result = await callFalApi(model.endpoint, falBody);
 
     console.log('[WBai] fal.ai result keys:', Object.keys(result || {}));
-    const generatedUrl = result?.images?.[0]?.url || result?.image?.url || result?.data?.[0]?.url;
-    if (!generatedUrl) {
-      console.error('[WBai] fal.ai ответ без изображения:', JSON.stringify(result));
+
+    // Собираем все URL из ответа
+    const allUrls = (result?.images || []).map(img => img.url).filter(Boolean);
+    if (result?.image?.url) allUrls.push(result.image.url);
+    if (!allUrls.length) {
+      console.error('[WBai] fal.ai ответ без изображений:', JSON.stringify(result));
       return res.status(500).json({ error: 'Изображение не сгенерировано' });
     }
 
-    // Скачиваем как base64 (нет CORS в расширении)
-    const imgResp = await fetch(generatedUrl);
-    const imgBuffer = await imgResp.arrayBuffer();
-    const imgBase64Out = 'data:image/jpeg;base64,' + Buffer.from(imgBuffer).toString('base64');
+    // Скачиваем все как base64 (нет CORS в расширении)
+    const allBase64 = await Promise.all(allUrls.map(async url => {
+      const imgResp = await fetch(url);
+      const imgBuffer = await imgResp.arrayBuffer();
+      return 'data:image/jpeg;base64,' + Buffer.from(imgBuffer).toString('base64');
+    }));
 
-    // Списываем кредит
-    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - 1) WHERE id = ?', [req.user.id]);
+    // Списываем кредиты (количество реально сгенерированных)
+    const used = allBase64.length;
+    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - ?) WHERE id = ?', [used, req.user.id]);
 
     // Возвращаем остаток кредитов
     const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
-    console.log(`[WBai] Готово! Модель: ${selectedModelId}, кредитов осталось: ${remaining?.photo_credits || 0}`);
-    res.json({ imageBase64: imgBase64Out, credits_left: remaining?.photo_credits || 0, modelUsed: selectedModelId });
+    console.log(`[WBai] Готово! Модель: ${selectedModelId}, изображений: ${used}, кредитов осталось: ${remaining?.photo_credits || 0}`);
+    res.json({ images: allBase64, imageBase64: allBase64[0], credits_left: remaining?.photo_credits || 0, credits_used: used, modelUsed: selectedModelId });
 
   } catch(e) {
     console.error('[WBai] generate-image error:', e.message, e.cause || '');

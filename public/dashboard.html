@@ -154,6 +154,95 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .stats-grid{grid-template-columns:1fr 1fr}
   .videos-grid{grid-template-columns:1fr}
 }
+
+/* ═══ INFOGRAPHIC STUDIO ═══ */
+.inf-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.inf-credits-badge{display:flex;align-items:center;gap:8px;background:var(--p3);border:1px solid rgba(123,47,247,0.3);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--p2)}
+.inf-credits-badge span{font-family:'Unbounded',sans-serif;font-size:18px}
+.inf-studio{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start}
+.inf-panel{display:flex;flex-direction:column;gap:14px}
+.inf-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
+.inf-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.inf-drop{border:2px dashed var(--border);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.inf-drop:hover,.inf-drop.dragover{border-color:var(--p);background:var(--p3)}
+.inf-drop input{display:none}
+.inf-drop-icon{font-size:28px;margin-bottom:8px}
+.inf-drop-text{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.inf-drop-sub{font-size:11px;color:var(--muted)}
+.inf-drop-preview{width:100%;max-height:180px;object-fit:contain;border-radius:8px;display:none}
+.inf-drop-preview.shown{display:block}
+.inf-drop-placeholder{transition:opacity .2s}
+.inf-drop-placeholder.hidden{display:none}
+.inf-drop-remove{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(255,77,106,0.9);border:none;color:#fff;font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;font-weight:700}
+.inf-drop-remove.shown{display:flex}
+.inf-style-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.inf-style-scroll::-webkit-scrollbar{height:4px}
+.inf-style-scroll::-webkit-scrollbar-track{background:transparent}
+.inf-style-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.inf-style-thumb{flex-shrink:0;width:72px;border-radius:8px;border:2px solid var(--border);overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.inf-style-thumb:hover{border-color:var(--p2)}
+.inf-style-thumb.active{border-color:var(--p);box-shadow:0 0 0 2px rgba(123,47,247,0.4)}
+.inf-style-thumb img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.inf-style-thumb span{display:block;font-size:9px;color:var(--muted);text-align:center;padding:3px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inf-style-none{flex-shrink:0;width:72px;border-radius:8px;border:2px dashed var(--border);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px}
+.inf-style-none:hover,.inf-style-none.active{border-color:var(--p2);background:var(--p3)}
+.inf-style-none span{font-size:10px;color:var(--muted);text-align:center;line-height:1.3}
+.inf-extra-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.inf-extra-slot{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;position:relative;transition:border-color .2s}
+.inf-extra-slot:hover{border-color:var(--p2)}
+.inf-extra-slot img{width:100%;height:100%;object-fit:cover;display:none}
+.inf-extra-slot img.shown{display:block}
+.inf-extra-slot .slot-icon{position:absolute;font-size:16px;transition:opacity .2s}
+.inf-extra-slot .slot-rm{position:absolute;inset:0;background:rgba(255,77,106,0.8);display:none;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.inf-extra-slot:hover .slot-rm.shown{display:flex}
+.inf-field{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;background:var(--surface2);color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;resize:vertical}
+.inf-field:focus{border-color:var(--p)}
+.inf-field::placeholder{color:var(--muted)}
+.inf-mode-row{display:flex;gap:6px}
+.inf-mode-btn{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;text-align:center}
+.inf-mode-btn.active{border-color:var(--p);background:var(--p3);color:var(--p2)}
+.inf-model-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.inf-model-card{padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .2s;position:relative}
+.inf-model-card:hover{border-color:rgba(123,47,247,0.4)}
+.inf-model-card.active{border-color:var(--p);background:var(--p3)}
+.inf-model-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.inf-model-desc{font-size:10px;color:var(--muted);line-height:1.4}
+.inf-model-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block}
+.inf-gen-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Unbounded',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.inf-gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(123,47,247,0.4)}
+.inf-gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.inf-canvas{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:600px;display:flex;flex-direction:column}
+.inf-canvas-top{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.inf-canvas-title{font-size:14px;font-weight:700;color:var(--text)}
+.inf-canvas-sub{font-size:12px;color:var(--muted)}
+.inf-canvas-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;position:relative}
+.inf-placeholder{text-align:center;color:var(--muted)}
+.inf-placeholder-icon{font-size:56px;margin-bottom:14px;opacity:.3}
+.inf-placeholder-text{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text);opacity:.4}
+.inf-placeholder-sub{font-size:12px;opacity:.3}
+.inf-result-img{max-width:100%;max-height:560px;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.5);display:none}
+.inf-result-img.shown{display:block}
+.inf-progress{text-align:center;display:none}
+.inf-progress.shown{display:block}
+.inf-spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--p);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.inf-progress-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.inf-progress-sub{font-size:12px;color:var(--muted)}
+.inf-canvas-actions{padding:16px 20px;border-top:1px solid var(--border);display:none;gap:10px}
+.inf-canvas-actions.shown{display:flex}
+.inf-download-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;transition:all .2s}
+.inf-download-btn:hover{opacity:.9}
+.inf-retry-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);font-family:'Inter',sans-serif;transition:all .2s}
+.inf-retry-btn:hover{border-color:var(--p);color:var(--p2)}
+.inf-error{background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);color:#fca5a5;padding:14px 18px;border-radius:10px;font-size:13px;text-align:center;display:none}
+.inf-error.shown{display:block}
+@media(max-width:900px){
+  .inf-studio{grid-template-columns:1fr}
+  .inf-canvas{min-height:400px}
+}
+@media(max-width:640px){
+  .inf-model-grid{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
@@ -189,6 +278,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="nav-item" onclick="showPage('history');closeSidebar()"><span class="nav-icon">📋</span>История запросов</div>
     <div class="nav-item" onclick="showPage('settings');closeSidebar()"><span class="nav-icon">⚙️</span>Настройки</div>
     <div class="nav-item" onclick="showPage('credits');closeSidebar()"><span class="nav-icon">📸</span>Фото-кредиты</div>
+    <div class="nav-item" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon">🎨</span>Студия инфографики</div>
     <div class="nav-item" onclick="showPage('install');closeSidebar()"><span class="nav-icon">🔧</span>Установка расширения</div>
     <div class="nav-item" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon">💬</span>Поддержка</div>
   </div>
@@ -533,8 +623,115 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
-</div>
+  <!-- INFOGRAPHIC STUDIO -->
+  <div class="page" id="page-infographic">
+    <div class="is-header">
+      <div class="page-title" style="margin-bottom:0">🎨 Студия инфографики</div>
+      <div class="is-credits" id="isCreditsBadge" style="display:none">
+        Кредитов: <b id="isCreditsNum">0</b>
+      </div>
+      <div class="is-credits is-no-plan" id="isNoPlanBadge" style="display:none">
+        ❌ Доступно на тарифе Макс
+      </div>
+    </div>
 
+    <div class="is-layout">
+
+      <!-- CONTROLS -->
+      <div class="is-panel">
+
+        <div class="is-sec">
+          <div class="is-label">📤 Фото товара <span style="color:var(--red)">*</span></div>
+          <div class="is-drop" id="isProdDrop" onclick="document.getElementById('isProdFile').click()">
+            <input type="file" id="isProdFile" accept="image/*">
+            <div class="is-ph" id="isProdPh">
+              <div class="is-drop-icon">🖼️</div>
+              <div class="is-drop-text">Нажмите или перетащите</div>
+              <div class="is-drop-sub">JPG, PNG, WEBP · до 10 МБ</div>
+            </div>
+            <img class="is-preview" id="isProdPreview">
+            <button class="is-rm" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')">✕</button>
+          </div>
+        </div>
+
+        <div class="is-sec">
+          <div class="is-label">🎨 Reference (стиль)</div>
+          <div class="is-drop" id="isRefDrop" style="padding:12px" onclick="document.getElementById('isRefFile').click()">
+            <input type="file" id="isRefFile" accept="image/*">
+            <div class="is-ph" id="isRefPh">
+              <div class="is-drop-icon" style="font-size:18px;margin-bottom:4px">📎</div>
+              <div class="is-drop-text" style="font-size:12px">Загрузить референс стиля</div>
+            </div>
+            <img class="is-preview" id="isRefPreview" style="max-height:90px">
+            <button class="is-rm" id="isRefRm" onclick="event.stopPropagation();isRemove('ref')">✕</button>
+          </div>
+        </div>
+
+        <div class="is-sec">
+          <div class="is-label">📝 Описание</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <input class="is-field" id="isName" placeholder="Название товара">
+            <textarea class="is-field" id="isSpecs" rows="4" placeholder="Характеристики (каждая с новой строки)"></textarea>
+            <textarea class="is-field" id="isPrompt" rows="2" placeholder="Доп. пожелания..."></textarea>
+          </div>
+        </div>
+
+        <div class="is-sec">
+          <div class="is-label">📐 Формат</div>
+          <div class="is-row">
+            <button class="is-pill on" id="isR34" onclick="isSetRatio('3:4',this)">3:4</button>
+            <button class="is-pill" id="isR11" onclick="isSetRatio('1:1',this)">1:1</button>
+            <button class="is-pill" id="isR85" onclick="isSetRatio('8:5',this)">800×500</button>
+          </div>
+        </div>
+
+        <div class="is-sec">
+          <div class="is-label">🖼️ Количество фото</div>
+          <div class="is-row">
+            <button class="is-pill on" id="isN1" onclick="isSetCount(1,this)">1<br><span style="font-size:9px;font-weight:400;color:var(--muted)">1 кредит</span></button>
+            <button class="is-pill" id="isN2" onclick="isSetCount(2,this)">2<br><span style="font-size:9px;font-weight:400;color:var(--muted)">2 кредита</span></button>
+            <button class="is-pill" id="isN4" onclick="isSetCount(4,this)">4<br><span style="font-size:9px;font-weight:400;color:var(--muted)">4 кредита</span></button>
+          </div>
+        </div>
+
+        <button class="is-gen" id="isGenBtn" onclick="isGenerate()">✨ Генерировать</button>
+
+      </div>
+
+      <!-- GALLERY -->
+      <div>
+        <div class="is-gallery-tabs">
+          <div class="is-tab on" id="isTabNew" onclick="isShowTab('new')">Генерация</div>
+          <div class="is-tab" id="isTabHist" onclick="isShowTab('hist')">История (<span id="isHistCount">0</span>)</div>
+        </div>
+
+        <div id="isPanelNew">
+          <div class="is-empty" id="isEmptyNew">
+            <div class="is-empty-icon">🎨</div>
+            <div class="is-empty-text">Загрузите фото и нажмите «Генерировать»</div>
+          </div>
+          <div class="is-loading" id="isLoading" style="display:none">
+            <div class="is-spinner"></div>
+            <div class="is-loading-text" id="isLoadText">Генерирую...</div>
+            <div class="is-loading-sub">Обычно 20–60 секунд</div>
+          </div>
+          <div class="is-error" id="isError" style="display:none"></div>
+          <div class="is-grid" id="isNewGrid" style="display:none"></div>
+        </div>
+
+        <div id="isPanelHist" style="display:none">
+          <div class="is-empty" id="isEmptyHist" style="display:none">
+            <div class="is-empty-icon">📂</div>
+            <div class="is-empty-text">История пуста — генерируйте первое фото</div>
+          </div>
+          <div class="is-grid" id="isHistGrid"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
 <script>
 const token = localStorage.getItem('wbai_token');
 if(!token) location.href = '/login';
@@ -626,11 +823,12 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
-  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',settings:'настройки',install:'установка',credits:'кредит'};
+  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',settings:'настройки',install:'установка',credits:'кредит',infographic:'студия'};
   document.querySelectorAll('.nav-item').forEach(n=>{
     if(n.textContent.toLowerCase().includes(map[name]||name)) n.classList.add('active');
   });
   if(name==='history') loadHistory();
+  if(name==='infographic') isInit();
 }
 
 function toggleSidebar(){
@@ -706,6 +904,195 @@ function checkSubExpiry(sub) {
     banner.innerHTML=`⚠️ Подписка истекает через ${daysLeft} дн. — <a href="#" onclick="showPage('subscription')" style="color:#fff;font-weight:700">Продлить →</a>`;
     document.querySelector('.header').after(banner);
   }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INFOGRAPHIC STUDIO
+// ═══════════════════════════════════════════════════════
+var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, generating:false, initialized:false };
+var IS_HIST_KEY = 'wbai_inf_v2';
+
+function isInit() {
+  if(IS.initialized){isRefreshCredits();return;}
+  IS.initialized=true;
+  isSetupDrop('isProdDrop','isProdFile',function(b64){IS.prodB64=b64;isShowPreview('isProdPreview','isProdPh','isProdRm',b64);});
+  isSetupDrop('isRefDrop','isRefFile',function(b64){IS.refB64=b64;isShowPreview('isRefPreview','isRefPh','isRefRm',b64);});
+  isRefreshCredits();
+  isRefreshHistCount();
+}
+
+function isRefreshCredits() {
+  if(!currentUser)return;
+  var ok=currentUser.plan==='max';
+  document.getElementById('isCreditsBadge').style.display=ok?'flex':'none';
+  document.getElementById('isNoPlanBadge').style.display=ok?'none':'flex';
+  document.getElementById('isGenBtn').disabled=!ok;
+  document.getElementById('isCreditsNum').textContent=currentUser.photo_credits||0;
+}
+
+function isSetupDrop(dropId,fileId,cb){
+  var d=document.getElementById(dropId),fi=document.getElementById(fileId);
+  if(!d||!fi)return;
+  d.addEventListener('dragover',function(e){e.preventDefault();d.classList.add('over');});
+  d.addEventListener('dragleave',function(){d.classList.remove('over');});
+  d.addEventListener('drop',function(e){e.preventDefault();d.classList.remove('over');var f=e.dataTransfer.files[0];if(f)isReadFile(f,cb);});
+  fi.onchange=function(e){if(e.target.files[0])isReadFile(e.target.files[0],cb);};
+}
+
+function isReadFile(file,cb){var r=new FileReader();r.onload=function(e){cb(e.target.result);};r.readAsDataURL(file);}
+
+function isShowPreview(pId,phId,rmId,b64){
+  var p=document.getElementById(pId),ph=document.getElementById(phId),rm=document.getElementById(rmId);
+  if(p){p.src=b64;p.classList.add('on');}
+  if(ph)ph.classList.add('off');
+  if(rm)rm.classList.add('on');
+}
+
+function isRemove(type){
+  if(type==='prod'){
+    IS.prodB64=null;
+    var p=document.getElementById('isProdPreview'),ph=document.getElementById('isProdPh'),rm=document.getElementById('isProdRm');
+    if(p){p.src='';p.classList.remove('on');}if(ph)ph.classList.remove('off');if(rm)rm.classList.remove('on');
+    document.getElementById('isProdFile').value='';
+  }else{
+    IS.refB64=null;
+    var p2=document.getElementById('isRefPreview'),ph2=document.getElementById('isRefPh'),rm2=document.getElementById('isRefRm');
+    if(p2){p2.src='';p2.classList.remove('on');}if(ph2)ph2.classList.remove('off');if(rm2)rm2.classList.remove('on');
+    document.getElementById('isRefFile').value='';
+  }
+}
+
+function isSetRatio(r,btn){
+  IS.ratio=r;
+  ['isR34','isR11','isR85'].forEach(function(id){document.getElementById(id).classList.remove('on');});
+  btn.classList.add('on');
+}
+
+function isSetCount(n,btn){
+  IS.count=n;
+  ['isN1','isN2','isN4'].forEach(function(id){document.getElementById(id).classList.remove('on');});
+  btn.classList.add('on');
+}
+
+function isShowTab(tab){
+  var isNew=tab==='new';
+  document.getElementById('isPanelNew').style.display=isNew?'block':'none';
+  document.getElementById('isPanelHist').style.display=isNew?'none':'block';
+  document.getElementById('isTabNew').classList.toggle('on',isNew);
+  document.getElementById('isTabHist').classList.toggle('on',!isNew);
+  if(!isNew)isRenderHistory();
+}
+
+async function isGenerate(){
+  if(IS.generating)return;
+  if(!IS.prodB64){isShowError('Загрузите фото товара');return;}
+  IS.generating=true;
+  document.getElementById('isGenBtn').disabled=true;
+  document.getElementById('isEmptyNew').style.display='none';
+  document.getElementById('isLoading').style.display='flex';
+  document.getElementById('isNewGrid').style.display='none';
+  document.getElementById('isError').style.display='none';
+  isShowTab('new');
+
+  var steps=['Анализирую фото...','Строю композицию...','Генерирую инфографику...','Финальная обработка...'];
+  var si=0,st=setInterval(function(){si=Math.min(si+1,steps.length-1);var el=document.getElementById('isLoadText');if(el)el.textContent=steps[si];},14000);
+
+  try{
+    var body={
+      imageBase64:IS.prodB64,
+      styleImageBase64:IS.refB64||null,
+      productName:document.getElementById('isName').value.trim(),
+      specs:document.getElementById('isSpecs').value.trim(),
+      prompt:document.getElementById('isPrompt').value.trim(),
+      modelId:'nano-banana-2',mode:'create',
+      aspectRatio:IS.ratio,numImages:IS.count
+    };
+    var r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    var data=await r.json();
+    clearInterval(st);
+    if(!r.ok){isShowError(data.error||'Ошибка генерации');return;}
+    var imgs=data.images||[data.imageBase64].filter(Boolean);
+    if(!imgs.length){isShowError('Не удалось получить изображение');return;}
+
+    if(currentUser){
+      currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-IS.count);
+      document.getElementById('isCreditsNum').textContent=currentUser.photo_credits;
+      var sc=document.getElementById('statCredits');if(sc)sc.textContent=currentUser.photo_credits;
+    }
+
+    var userPrompt=[body.productName,body.specs,body.prompt].filter(Boolean).join(' · ').slice(0,100)||'Без описания';
+    var entry={id:Date.now()+'',images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
+    isSaveHistory(entry);
+    isRenderNewGrid(imgs,entry);
+
+  }catch(e){
+    clearInterval(st);
+    isShowError('Ошибка соединения. Попробуйте ещё раз.');
+  }finally{
+    IS.generating=false;
+    document.getElementById('isGenBtn').disabled=currentUser?.plan!=='max';
+  }
+}
+
+function isRenderNewGrid(imgs,entry){
+  document.getElementById('isLoading').style.display='none';
+  var grid=document.getElementById('isNewGrid');
+  grid.style.display='grid';grid.innerHTML='';
+  imgs.forEach(function(b64,i){grid.appendChild(isCard(b64,entry.prompt,entry.id+'_'+i,entry.id));});
+}
+
+function isCard(b64,prompt,cardId,entryId){
+  var wrap=document.createElement('div');
+  wrap.className='is-card';
+  var liked=isIsLiked(entryId);
+  wrap.innerHTML='<img src="'+b64+'" loading="lazy">'+
+    '<div class="is-card-overlay">'+
+      '<div class="is-card-actions">'+
+        '<button class="is-act'+(liked?' liked':'')+'" title="Лайк" onclick="event.stopPropagation();isToggleLike(''+entryId+'',this)">❤</button>'+
+        '<button class="is-act" title="Копировать описание" onclick="event.stopPropagation();isCopyPrompt(''+encodeURIComponent(prompt)+'')">📋</button>'+
+        '<a class="is-act" title="Скачать" href="'+b64+'" download="wbai_'+cardId+'.jpg" onclick="event.stopPropagation()">⬇️</a>'+
+      '</div>'+
+      '<div class="is-card-label">'+prompt+'</div>'+
+    '</div>';
+  return wrap;
+}
+
+function isShowError(msg){
+  document.getElementById('isLoading').style.display='none';
+  document.getElementById('isEmptyNew').style.display='none';
+  var el=document.getElementById('isError');el.textContent='❌ '+msg;el.style.display='block';
+}
+
+function isLoadHistory(){try{return JSON.parse(localStorage.getItem(IS_HIST_KEY)||'[]');}catch(e){return[];}}
+function isSaveHistory(entry){var h=isLoadHistory();h.unshift(entry);if(h.length>50)h=h.slice(0,50);localStorage.setItem(IS_HIST_KEY,JSON.stringify(h));isRefreshHistCount();}
+function isRefreshHistCount(){document.getElementById('isHistCount').textContent=isLoadHistory().length;}
+function isIsLiked(id){var e=isLoadHistory().find(function(x){return x.id===id;});return e?e.liked:false;}
+
+function isToggleLike(entryId,btn){
+  var h=isLoadHistory();
+  var e=h.find(function(x){return x.id===entryId;});
+  if(e){e.liked=!e.liked;localStorage.setItem(IS_HIST_KEY,JSON.stringify(h));}
+  btn.classList.toggle('liked',e?e.liked:false);
+}
+
+function isCopyPrompt(encoded){
+  navigator.clipboard.writeText(decodeURIComponent(encoded)).catch(function(){});
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22d37a;color:#000;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;z-index:9999';
+  t.textContent='✅ Скопировано';document.body.appendChild(t);setTimeout(function(){t.remove();},2000);
+}
+
+function isRenderHistory(){
+  var h=isLoadHistory();isRefreshHistCount();
+  var grid=document.getElementById('isHistGrid'),empty=document.getElementById('isEmptyHist');
+  grid.innerHTML='';
+  if(!h.length){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  h.forEach(function(entry){
+    (entry.images||[entry.imageBase64]).filter(Boolean).forEach(function(b64,i){
+      grid.appendChild(isCard(b64,entry.prompt||'',entry.id+'_'+i,entry.id));
+    });
+  });
 }
 
 init();
