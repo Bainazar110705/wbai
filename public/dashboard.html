@@ -1044,16 +1044,29 @@ function isRenderNewGrid(imgs,entry){
 function isCard(b64,prompt,cardId,entryId){
   var wrap=document.createElement('div');
   wrap.className='is-card';
+  var img=document.createElement('img');
+  img.src=b64;img.loading='lazy';
+  var overlay=document.createElement('div');
+  overlay.className='is-card-overlay';
+  var actions=document.createElement('div');
+  actions.className='is-card-actions';
   var liked=isIsLiked(entryId);
-  wrap.innerHTML='<img src="'+b64+'" loading="lazy">'+
-    '<div class="is-card-overlay">'+
-      '<div class="is-card-actions">'+
-        '<button class="is-act'+(liked?' liked':'')+'" title="Лайк" onclick="event.stopPropagation();isToggleLike(''+entryId+'',this)">❤</button>'+
-        '<button class="is-act" title="Копировать описание" onclick="event.stopPropagation();isCopyPrompt(''+encodeURIComponent(prompt)+'')">📋</button>'+
-        '<a class="is-act" title="Скачать" href="'+b64+'" download="wbai_'+cardId+'.jpg" onclick="event.stopPropagation()">⬇️</a>'+
-      '</div>'+
-      '<div class="is-card-label">'+prompt+'</div>'+
-    '</div>';
+  var likeBtn=document.createElement('button');
+  likeBtn.className='is-act'+(liked?' liked':'');
+  likeBtn.title='Лайк';likeBtn.textContent='❤';
+  likeBtn.onclick=function(e){e.stopPropagation();isToggleLike(entryId,likeBtn);};
+  var copyBtn=document.createElement('button');
+  copyBtn.className='is-act';copyBtn.title='Копировать';copyBtn.textContent='📋';
+  copyBtn.onclick=function(e){e.stopPropagation();isCopyPrompt(prompt);};
+  var dlLink=document.createElement('a');
+  dlLink.className='is-act';dlLink.title='Скачать';dlLink.textContent='📥';
+  dlLink.href=b64;dlLink.download='wbai_'+cardId+'.jpg';
+  dlLink.onclick=function(e){e.stopPropagation();};
+  var label=document.createElement('div');
+  label.className='is-card-label';label.textContent=prompt;
+  actions.appendChild(likeBtn);actions.appendChild(copyBtn);actions.appendChild(dlLink);
+  overlay.appendChild(actions);overlay.appendChild(label);
+  wrap.appendChild(img);wrap.appendChild(overlay);
   return wrap;
 }
 
@@ -1075,8 +1088,8 @@ function isToggleLike(entryId,btn){
   btn.classList.toggle('liked',e?e.liked:false);
 }
 
-function isCopyPrompt(encoded){
-  navigator.clipboard.writeText(decodeURIComponent(encoded)).catch(function(){});
+function isCopyPrompt(text){
+  navigator.clipboard.writeText(text||'').catch(function(){});
   var t=document.createElement('div');
   t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22d37a;color:#000;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;z-index:9999';
   t.textContent='✅ Скопировано';document.body.appendChild(t);setTimeout(function(){t.remove();},2000);
