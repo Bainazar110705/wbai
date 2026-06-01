@@ -796,6 +796,9 @@ app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/privacy.html'));
 });
 
+// Keep-warm endpoint для расширения (пингуем раз в 10 мин)
+app.get('/api/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/login.html'));
 });
@@ -813,7 +816,19 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('WBai running on port ' + PORT));
+app.listen(PORT, () => {
+  console.log('WBai running on port ' + PORT);
+  // Пингуем себя каждые 10 минут — Railway усыпляет после ~15 мин простоя
+  const selfUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/api/ping`
+    : null;
+  if (selfUrl) {
+    setInterval(() => {
+      fetch(selfUrl).catch(() => {});
+    }, 10 * 60 * 1000); // 10 минут
+    console.log('[WBai] Self-ping enabled:', selfUrl);
+  }
+});
 
 // Глобальный обработчик ошибок — предотвращает краш сервера при unhandled rejection
 // eslint-disable-next-line no-unused-vars
