@@ -307,6 +307,115 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .is-pending .is-spinner{width:32px;height:32px;border-width:2px}
 .is-pending-label{font-size:11px;color:var(--muted);text-align:center;padding:0 12px}
 @media(max-width:640px){.is-grid{grid-template-columns:1fr 1fr}}
+/* ═══ TRACKER ═══ */
+.tr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.tr-add-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.tr-add-form .is-field{flex:1;min-width:140px;resize:none}
+.tr-add-btn{padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;font-family:'Inter',sans-serif}
+.tr-add-btn:hover{opacity:.9}
+.tr-add-btn:disabled{opacity:.5;cursor:not-allowed}
+.tr-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.tr-count{font-size:12px;color:var(--muted)}
+.tr-check-all{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;font-family:'Inter',sans-serif}
+.tr-check-all:hover{border-color:var(--p);color:var(--p2)}
+.tr-check-all:disabled{opacity:.5;cursor:not-allowed}
+.tr-table{width:100%;border-collapse:collapse}
+.tr-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tr-table td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.tr-table tr:last-child td{border-bottom:none}
+.tr-table tr:hover td{background:var(--surface2)}
+.tr-kw{font-weight:600;color:var(--text)}
+.tr-art{font-size:11px;color:var(--muted);margin-top:2px}
+.tr-name{font-size:11px;color:var(--muted);margin-top:2px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-pos{font-size:22px;font-weight:800;font-family:'Unbounded',sans-serif}
+.tr-pos.top3{color:#22d37a}
+.tr-pos.top10{color:#3b82f6}
+.tr-pos.top30{color:var(--p2)}
+.tr-pos.low{color:var(--muted)}
+.tr-pos.none{color:var(--muted);font-size:13px;font-weight:400}
+.tr-delta{font-size:11px;font-weight:700;margin-top:2px}
+.tr-delta.up{color:#22d37a}
+.tr-delta.down{color:#ef4444}
+.tr-delta.same{color:var(--muted)}
+.tr-sparkline{height:32px;width:90px}
+.tr-actions{display:flex;gap:6px;align-items:center}
+.tr-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.tr-btn:hover{border-color:var(--p);color:var(--p2)}
+.tr-btn.del:hover{border-color:#ef4444;color:#ef4444}
+.tr-btn:disabled{opacity:.4;cursor:not-allowed}
+.tr-empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.tr-empty-icon{font-size:48px;opacity:.2;margin-bottom:12px}
+.tr-empty-text{font-size:14px;font-weight:600;opacity:.4;margin-bottom:6px}
+.tr-empty-sub{font-size:12px;opacity:.3}
+.tr-error{background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);color:#fca5a5;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:8px}
+/* ═══ COMPETITORS ═══ */
+.cp-layout{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+.cp-groups{display:flex;flex-direction:column;gap:10px}
+.cp-group-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;overflow:hidden}
+.cp-group-card.active{border-color:var(--p);box-shadow:0 0 0 1px var(--p)}
+.cp-group-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;gap:8px}
+.cp-group-kw{font-size:13px;font-weight:700;color:var(--text)}
+.cp-group-cnt{font-size:10px;color:var(--muted)}
+.cp-group-del{width:22px;height:22px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cp-group-del:hover{background:rgba(255,77,106,0.15);color:#ef4444}
+.cp-add-group{background:var(--surface);border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px;display:flex;gap:8px}
+.cp-add-group .is-field{flex:1;font-size:12px;padding:7px 10px}
+.cp-add-group button{padding:7px 12px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.cp-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:200px}
+.cp-panel-top{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cp-panel-kw{font-size:15px;font-weight:700;color:var(--text)}
+.cp-check-btn{padding:8px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.cp-check-btn:disabled{opacity:.5;cursor:not-allowed}
+.cp-add-art{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cp-add-art .is-field{flex:1;min-width:120px;font-size:12px;padding:7px 10px}
+.cp-add-art .tr-add-btn{font-size:12px;padding:8px 14px;border-radius:8px}
+.cp-own-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.cp-own-toggle input{accent-color:var(--p);width:14px;height:14px}
+.cp-grid-wrap{overflow-x:auto}
+.cp-grid{width:100%;border-collapse:collapse;font-size:12px}
+.cp-grid th{background:var(--surface2);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap}
+.cp-grid th.th-art{text-align:left;min-width:200px}
+.cp-grid td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle}
+.cp-grid tr:last-child td{border-bottom:none}
+.cp-grid tr.own-row td{background:rgba(123,47,247,0.05)}
+.cp-art-info{text-align:left}
+.cp-art-num{font-size:12px;font-weight:700;color:var(--text)}
+.cp-art-name{font-size:10px;color:var(--muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cp-own-badge{font-size:9px;font-weight:700;background:var(--p3);color:var(--p2);border:1px solid rgba(123,47,247,0.3);border-radius:4px;padding:1px 5px;display:inline-block;margin-left:4px;vertical-align:middle}
+.cp-pos{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:15px;font-family:'Unbounded',sans-serif}
+.cp-pos.p1{color:#22d37a}.cp-pos.p3{color:#22d37a}.cp-pos.p10{color:#3b82f6}.cp-pos.p30{color:var(--p2)}.cp-pos.plow{color:var(--muted)}.cp-pos.pnone{color:var(--muted);font-size:11px;font-weight:400}
+.cp-pos-del{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700}
+.cp-pos-del.up{color:#22d37a}.cp-pos-del.dn{color:#ef4444}.cp-pos-del.eq{color:var(--muted)}
+.cp-del-art{width:22px;height:22px;border-radius:5px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px}
+.cp-del-art:hover{background:rgba(255,77,106,0.15);color:#ef4444}
+.cp-empty-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);text-align:center}
+.cp-empty-panel .tr-empty-icon{font-size:40px;opacity:.2;margin-bottom:10px}
+.cp-no-group{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;color:var(--muted);text-align:center}
+@media(max-width:900px){.cp-layout{grid-template-columns:1fr}}
+/* ═══ CAMPAIGN STATS ═══ */
+.cs-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.cs-toolbar label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cs-date{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface2);color:var(--text);outline:none;font-family:'Inter',sans-serif}
+.cs-date:focus{border-color:var(--p)}
+.cs-select{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface2);color:var(--text);outline:none;font-family:'Inter',sans-serif;min-width:180px}
+.cs-show-btn{padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.cs-hint{background:rgba(123,47,247,0.08);border:1px solid rgba(123,47,247,0.2);border-radius:12px;padding:16px 20px;margin-bottom:18px;font-size:13px;color:var(--muted);line-height:1.7}
+.cs-hint b{color:var(--text)}
+.cs-totals{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.cs-total-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.cs-total-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.cs-total-val{font-size:20px;font-weight:800;font-family:'Unbounded',sans-serif;color:var(--text)}
+.cs-total-val.accent{color:var(--p2)}
+.cs-table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.cs-table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+.cs-table th{background:var(--surface2);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:9px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+.cs-table th:first-child{text-align:left;padding-left:14px}
+.cs-table td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text)}
+.cs-table td:first-child{text-align:left;padding-left:14px;font-weight:600}
+.cs-table tr:last-child td{border-bottom:none}
+.cs-table tr:hover td{background:var(--surface2)}
+.cs-table tr.total-row td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border)}
+.cs-empty{text-align:center;padding:60px 20px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -343,6 +452,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="nav-item" onclick="showPage('settings');closeSidebar()"><span class="nav-icon">⚙️</span>Настройки</div>
     <div class="nav-item" onclick="showPage('credits');closeSidebar()"><span class="nav-icon">📸</span>Фото-кредиты</div>
     <div class="nav-item" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon">🎨</span>Студия инфографики</div>
+    <div class="nav-item" onclick="showPage('tracker');closeSidebar()"><span class="nav-icon">📈</span>Позиции по ключам</div>
+    <div class="nav-item" onclick="showPage('competitors');closeSidebar()"><span class="nav-icon">🏆</span>Конкуренты</div>
+    <div class="nav-item" onclick="showPage('campstats');closeSidebar()"><span class="nav-icon">📊</span>Статистика РК</div>
     <div class="nav-item" onclick="showPage('install');closeSidebar()"><span class="nav-icon">🔧</span>Установка расширения</div>
     <div class="nav-item" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon">💬</span>Поддержка</div>
   </div>
@@ -799,6 +911,154 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
+  <!-- KEYWORD TRACKER -->
+  <div class="page" id="page-tracker">
+    <div class="tr-header">
+      <div class="page-title" style="margin-bottom:0">📈 Позиции по ключевым словам</div>
+    </div>
+
+    <div class="tr-add-form">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Артикул WB</div>
+        <input class="is-field" id="trArticle" placeholder="123456789" autocomplete="new-password" style="resize:none">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:200px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Ключевое слово</div>
+        <input class="is-field" id="trKeyword" placeholder="болгарка аккумуляторная бесщеточная" autocomplete="new-password" style="resize:none">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:10px;color:transparent">add</div>
+        <button class="tr-add-btn" id="trAddBtn" onclick="trAdd()">+ Добавить</button>
+      </div>
+    </div>
+    <div class="tr-error" id="trAddError" style="display:none;margin-top:-8px;margin-bottom:12px"></div>
+
+    <div class="tr-toolbar">
+      <div class="tr-count" id="trCount">Загрузка...</div>
+      <button class="tr-check-all" id="trCheckAllBtn" onclick="trCheckAll()">🔄 Проверить все</button>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+      <div id="trEmpty" class="tr-empty">
+        <div class="tr-empty-icon">📈</div>
+        <div class="tr-empty-text">Нет отслеживаемых ключей</div>
+        <div class="tr-empty-sub">Введите артикул и ключевое слово выше</div>
+      </div>
+      <table class="tr-table" id="trTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Ключевое слово / Товар</th>
+            <th style="text-align:center">Позиция</th>
+            <th style="text-align:center">Динамика</th>
+            <th>График 30 дн.</th>
+            <th>Обновлено</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="trTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- COMPETITOR POSITIONS -->
+  <div class="page" id="page-competitors">
+    <div class="tr-header">
+      <div class="page-title" style="margin-bottom:0">🏆 Позиции конкурентов</div>
+    </div>
+
+    <div class="cp-layout">
+
+      <!-- LEFT: groups list -->
+      <div class="cp-groups" id="cpGroupsList">
+        <div class="cp-add-group">
+          <input class="is-field" id="cpNewKw" placeholder="Ключевое слово..." autocomplete="new-password">
+          <button onclick="cpAddGroup()">+</button>
+        </div>
+        <div id="cpGroupsItems">
+          <div class="cp-no-group">
+            <div style="font-size:32px;opacity:.2;margin-bottom:8px">🔍</div>
+            <div style="font-size:12px;opacity:.4">Добавьте ключевое слово</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: grid -->
+      <div id="cpRight">
+        <div class="cp-no-group">
+          <div style="font-size:48px;opacity:.15;margin-bottom:12px">🏆</div>
+          <div style="font-size:14px;font-weight:600;opacity:.4;margin-bottom:4px">Выберите ключевое слово</div>
+          <div style="font-size:12px;opacity:.3">или создайте новое слева</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- CAMPAIGN STATS -->
+  <div class="page" id="page-campstats">
+    <div class="tr-header">
+      <div class="page-title" style="margin-bottom:0">📊 Статистика РК по дням</div>
+    </div>
+
+    <div class="cs-hint">
+      <b>Как использовать:</b> Откройте страницу статистики вашей рекламной кампании на
+      <a href="https://seller.wildberries.ru" target="_blank" style="color:var(--p2)">seller.wildberries.ru</a>.
+      Расширение WBai автоматически покажет кнопку <b>«📊 Сохранить в WBai»</b> — нажмите её.
+      Данные появятся здесь.
+    </div>
+
+    <div class="cs-toolbar">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <label>От</label>
+        <input type="date" class="cs-date" id="csFrom">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <label>До</label>
+        <input type="date" class="cs-date" id="csTo">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <label>Кампания</label>
+        <select class="cs-select" id="csCampaign">
+          <option value="">Все кампании</option>
+        </select>
+      </div>
+      <button class="cs-show-btn" onclick="csLoad()">Показать</button>
+    </div>
+
+    <div class="cs-totals" id="csTotals" style="display:none"></div>
+
+    <div class="cs-table-wrap">
+      <div class="cs-empty" id="csEmpty">
+        <div style="font-size:40px;opacity:.2;margin-bottom:10px">📊</div>
+        <div style="font-size:14px;font-weight:600;opacity:.4;margin-bottom:6px">Нет данных</div>
+        <div style="font-size:12px;opacity:.3">Сохраните статистику через расширение</div>
+      </div>
+      <table class="cs-table" id="csTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Показы</th>
+            <th>CPM</th>
+            <th>Переходы</th>
+            <th>CTR%</th>
+            <th>CPC ₽</th>
+            <th>Затраты ₽</th>
+            <th>Корзин</th>
+            <th>CPL ₽</th>
+            <th>Заказы</th>
+            <th>CPO ₽</th>
+            <th>Выручка ₽</th>
+            <th>ДРР%</th>
+          </tr>
+        </thead>
+        <tbody id="csTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+
 </div>
 <script>
 const token = localStorage.getItem('wbai_token');
@@ -897,6 +1157,9 @@ function showPage(name) {
   });
   if(name==='history') loadHistory();
   if(name==='infographic') isInit();
+  if(name==='tracker') trLoad();
+  if(name==='competitors') cpLoad();
+  if(name==='campstats') csInit();
 }
 
 function toggleSidebar(){
@@ -1246,6 +1509,534 @@ function isRenderHistory(){
     });
   });
 }
+
+// ═══════════════════════════════════════════════════
+//  KEYWORD POSITION TRACKER
+// ═══════════════════════════════════════════════════
+var TR = { trackers: [], checking: false };
+
+async function trLoad() {
+  try {
+    const r = await fetch('/api/tracker', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    TR.trackers = d.trackers || [];
+    trRender();
+  } catch(e) {
+    document.getElementById('trCount').textContent = 'Ошибка загрузки';
+  }
+}
+
+function trRender() {
+  const tbody = document.getElementById('trTbody');
+  const empty = document.getElementById('trEmpty');
+  const table = document.getElementById('trTable');
+  const count = document.getElementById('trCount');
+
+  count.textContent = TR.trackers.length
+    ? TR.trackers.length + ' ключ' + (TR.trackers.length === 1 ? '' : TR.trackers.length < 5 ? 'а' : 'ей') + ' отслеживается'
+    : '0 ключей';
+
+  if (!TR.trackers.length) {
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'table';
+
+  tbody.innerHTML = '';
+  TR.trackers.forEach(function(t) {
+    const pos = t.position;
+    const prev = t.prev_position;
+
+    // Цвет позиции
+    var posClass = pos === null ? 'none' : pos <= 3 ? 'top3' : pos <= 10 ? 'top10' : pos <= 30 ? 'top30' : 'low';
+    var posText = pos === null ? 'не в топ 200' : '#' + pos;
+
+    // Динамика
+    var deltaHtml = '<span class="tr-delta same">—</span>';
+    if (pos !== null && prev !== null) {
+      var diff = prev - pos; // положительный = улучшение (позиция уменьшилась)
+      if (diff > 0) deltaHtml = '<span class="tr-delta up">▲ +' + diff + '</span>';
+      else if (diff < 0) deltaHtml = '<span class="tr-delta down">▼ ' + diff + '</span>';
+      else deltaHtml = '<span class="tr-delta same">→ 0</span>';
+    }
+
+    // Дата обновления
+    var updText = t.checked_at ? new Date(t.checked_at).toLocaleString('ru', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' +
+        '<div class="tr-kw">' + escapeHtml(t.keyword) + '</div>' +
+        '<div class="tr-art">Артикул: ' + escapeHtml(t.article) + '</div>' +
+        (t.product_name ? '<div class="tr-name">' + escapeHtml(t.product_name) + '</div>' : '') +
+      '</td>' +
+      '<td style="text-align:center"><div class="tr-pos ' + posClass + '">' + posText + '</div></td>' +
+      '<td style="text-align:center">' + deltaHtml + '</td>' +
+      '<td><canvas class="tr-sparkline" id="spark-' + t.id + '"></canvas></td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + updText + '</td>' +
+      '<td><div class="tr-actions">' +
+        '<button class="tr-btn" title="Проверить сейчас" onclick="trCheckOne(' + t.id + ',this)">🔄</button>' +
+        '<button class="tr-btn del" title="Удалить" onclick="trDelete(' + t.id + ',this)">🗑</button>' +
+      '</div></td>';
+    tbody.appendChild(tr);
+
+    // Загружаем историю для sparkline
+    trLoadSparkline(t.id);
+  });
+}
+
+async function trLoadSparkline(trackerId) {
+  try {
+    const r = await fetch('/api/tracker/history/' + trackerId, { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    const canvas = document.getElementById('spark-' + trackerId);
+    if (!canvas || !d.history?.length) return;
+    trDrawSparkline(canvas, d.history.map(function(h) { return h.position; }).filter(Boolean));
+  } catch(e) {}
+}
+
+function trDrawSparkline(canvas, positions) {
+  if (!positions.length) return;
+  var ctx = canvas.getContext('2d');
+  var W = 90, H = 32;
+  canvas.width = W; canvas.height = H;
+  var min = Math.min.apply(null, positions);
+  var max = Math.max.apply(null, positions);
+  var range = max - min || 1;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.beginPath();
+  ctx.strokeStyle = '#7b2ff7';
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  positions.forEach(function(p, i) {
+    // Инвертируем: меньше позиция = выше на графике
+    var x = i / Math.max(positions.length - 1, 1) * (W - 4) + 2;
+    var y = (1 - (max - p) / range) * (H - 6) + 3;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Последняя точка
+  var lastX = W - 2;
+  var lastY = (1 - (max - positions[positions.length - 1]) / range) * (H - 6) + 3;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#7b2ff7';
+  ctx.fill();
+}
+
+async function trAdd() {
+  var article = document.getElementById('trArticle').value.trim();
+  var keyword = document.getElementById('trKeyword').value.trim();
+  var errEl = document.getElementById('trAddError');
+  errEl.style.display = 'none';
+
+  if (!article || !keyword) {
+    errEl.textContent = 'Введите артикул и ключевое слово';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('trAddBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Проверяю...';
+
+  try {
+    var r = await fetch('/api/tracker/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ article, keyword })
+    });
+    var d = await r.json();
+    if (!r.ok) {
+      errEl.textContent = d.error || 'Ошибка';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('trArticle').value = '';
+    document.getElementById('trKeyword').value = '';
+    await trLoad();
+  } catch(e) {
+    errEl.textContent = 'Ошибка соединения';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '+ Добавить';
+  }
+}
+
+async function trDelete(id, btn) {
+  if (!confirm('Удалить отслеживание?')) return;
+  btn.disabled = true;
+  try {
+    await fetch('/api/tracker/' + id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+    await trLoad();
+  } catch(e) { btn.disabled = false; }
+}
+
+async function trCheckOne(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    await fetch('/api/tracker/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ id })
+    });
+    await trLoad();
+  } catch(e) {
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄';
+  }
+}
+
+async function trCheckAll() {
+  if (TR.checking) return;
+  TR.checking = true;
+  var btn = document.getElementById('trCheckAllBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Проверяю...';
+  try {
+    await fetch('/api/tracker/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({})
+    });
+    await trLoad();
+  } catch(e) {
+  } finally {
+    TR.checking = false;
+    btn.disabled = false;
+    btn.textContent = '🔄 Проверить все';
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════
+//  COMPETITOR POSITIONS
+// ═══════════════════════════════════════════════════
+var CP = { groups: [], activeGroupId: null, checking: false };
+
+async function cpLoad() {
+  try {
+    const r = await fetch('/api/comp/groups', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    CP.groups = d.groups || [];
+    cpRenderGroups();
+    if (CP.activeGroupId) cpShowGroup(CP.activeGroupId);
+    else if (CP.groups.length) cpShowGroup(CP.groups[0].id);
+  } catch(e) {}
+}
+
+function cpRenderGroups() {
+  var container = document.getElementById('cpGroupsItems');
+  if (!CP.groups.length) {
+    container.innerHTML = '<div class="cp-no-group"><div style="font-size:32px;opacity:.2;margin-bottom:8px">🔍</div><div style="font-size:12px;opacity:.4">Добавьте ключевое слово</div></div>';
+    return;
+  }
+  container.innerHTML = '';
+  CP.groups.forEach(function(g) {
+    var card = document.createElement('div');
+    card.className = 'cp-group-card' + (g.id === CP.activeGroupId ? ' active' : '');
+    card.onclick = function() { cpShowGroup(g.id); };
+    card.innerHTML =
+      '<div class="cp-group-head">' +
+        '<div>' +
+          '<div class="cp-group-kw">' + escapeHtml(g.keyword) + '</div>' +
+          '<div class="cp-group-cnt">' + (g.articles ? g.articles.length : 0) + ' артикулов</div>' +
+        '</div>' +
+        '<button class="cp-group-del" title="Удалить группу" onclick="event.stopPropagation();cpDelGroup(' + g.id + ')">🗑</button>' +
+      '</div>';
+    container.appendChild(card);
+  });
+}
+
+async function cpAddGroup() {
+  var kw = document.getElementById('cpNewKw').value.trim();
+  if (!kw) return;
+  var btn = document.querySelector('.cp-add-group button');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    var r = await fetch('/api/comp/group', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ keyword: kw })
+    });
+    var d = await r.json();
+    if (!r.ok) { alert(d.error); return; }
+    document.getElementById('cpNewKw').value = '';
+    CP.activeGroupId = d.id;
+    await cpLoad();
+  } finally { btn.disabled = false; btn.textContent = '+'; }
+}
+
+async function cpDelGroup(id) {
+  if (!confirm('Удалить группу и все данные по ней?')) return;
+  await fetch('/api/comp/group/' + id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+  if (CP.activeGroupId === id) { CP.activeGroupId = null; document.getElementById('cpRight').innerHTML = cpEmptyRight(); }
+  await cpLoad();
+}
+
+function cpEmptyRight() {
+  return '<div class="cp-no-group"><div style="font-size:48px;opacity:.15;margin-bottom:12px">🏆</div><div style="font-size:14px;font-weight:600;opacity:.4;margin-bottom:4px">Выберите ключевое слово</div><div style="font-size:12px;opacity:.3">или создайте новое слева</div></div>';
+}
+
+async function cpShowGroup(id) {
+  CP.activeGroupId = id;
+  // Подсвечиваем активную группу
+  document.querySelectorAll('.cp-group-card').forEach(function(c) { c.classList.remove('active'); });
+  var cards = document.querySelectorAll('.cp-group-card');
+  CP.groups.forEach(function(g, i) { if (g.id === id && cards[i]) cards[i].classList.add('active'); });
+
+  var right = document.getElementById('cpRight');
+  right.innerHTML = '<div class="cp-empty-panel"><div class="tr-empty-icon">⏳</div><div style="font-size:13px;opacity:.4">Загрузка...</div></div>';
+
+  try {
+    var r = await fetch('/api/comp/history/' + id, { headers: { Authorization: 'Bearer ' + token } });
+    var d = await r.json();
+    right.innerHTML = cpBuildPanel(d);
+  } catch(e) {
+    right.innerHTML = '<div class="cp-empty-panel"><div class="tr-empty-icon">❌</div><div style="font-size:13px;color:#fca5a5">Ошибка загрузки</div></div>';
+  }
+}
+
+function cpBuildPanel(data) {
+  var g = data.group;
+  var dates = data.dates || [];
+  var rows = data.rows || [];
+
+  // Форматируем даты
+  function fmtDate(d) {
+    if (!d) return '—';
+    var dt = new Date(d);
+    return dt.toLocaleDateString('ru', { day: '2-digit', month: 'short' });
+  }
+
+  var html = '<div class="cp-panel">';
+  html += '<div class="cp-panel-top">';
+  html += '<div class="cp-panel-kw">🔍 ' + escapeHtml(g.keyword) + '</div>';
+  html += '<button class="cp-check-btn" id="cpCheckBtn_' + g.id + '" onclick="cpCheckGroup(' + g.id + ')">🔄 Проверить позиции</button>';
+  html += '</div>';
+
+  // Форма добавления артикула
+  html += '<div class="cp-add-art">';
+  html += '<input class="is-field" id="cpArtInput_' + g.id + '" placeholder="Артикул WB" autocomplete="new-password">';
+  html += '<label class="cp-own-toggle"><input type="checkbox" id="cpArtOwn_' + g.id + '"> Мой товар</label>';
+  html += '<button class="tr-add-btn" onclick="cpAddArt(' + g.id + ')">+ Добавить</button>';
+  html += '</div>';
+  html += '<div id="cpArtError_' + g.id + '" class="tr-error" style="display:none;margin:0 18px 10px"></div>';
+
+  if (!rows.length) {
+    html += '<div class="cp-empty-panel"><div class="tr-empty-icon">📦</div><div style="font-size:13px;font-weight:600;opacity:.4;margin-bottom:4px">Добавьте артикулы для отслеживания</div><div style="font-size:11px;opacity:.3">Свои и конкурентов</div></div>';
+    html += '</div>';
+    return html;
+  }
+
+  html += '<div class="cp-grid-wrap"><table class="cp-grid"><thead><tr>';
+  html += '<th class="th-art">Артикул / Товар</th>';
+  html += '<th>Сейчас</th>';
+  // Даты по убыванию (первая = самая свежая)
+  dates.forEach(function(d) { html += '<th>' + fmtDate(d) + '</th>'; });
+  html += '<th></th></tr></thead><tbody>';
+
+  rows.forEach(function(row) {
+    var currentPos = row.position;
+    var posClass = !currentPos ? 'pnone' : currentPos <= 3 ? 'p3' : currentPos <= 10 ? 'p10' : currentPos <= 30 ? 'p30' : 'plow';
+    var posText = currentPos ? '#' + currentPos : '> 200';
+
+    html += '<tr class="' + (row.is_own ? 'own-row' : '') + '">';
+    html += '<td class="cp-art-info">';
+    html += '<div class="cp-art-num">' + escapeHtml(row.article);
+    if (row.is_own) html += '<span class="cp-own-badge">МОЙ</span>';
+    html += '</div>';
+    if (row.product_name) html += '<div class="cp-art-name">' + escapeHtml(row.product_name) + '</div>';
+    html += '</td>';
+
+    // Текущая позиция
+    html += '<td><span class="cp-pos ' + posClass + '">🚀 ' + posText + '</span></td>';
+
+    // История по датам
+    dates.forEach(function(d) {
+      var p = row.positions[d];
+      var pClass = !p ? 'pnone' : p <= 3 ? 'p3' : p <= 10 ? 'p10' : p <= 30 ? 'p30' : 'plow';
+      var pText = p ? '#' + p : '—';
+      html += '<td><span class="cp-pos ' + pClass + '" style="font-size:12px">' + pText + '</span></td>';
+    });
+
+    html += '<td><button class="cp-del-art" onclick="cpDelArt(' + row.id + ',' + g.id + ')" title="Удалить">✕</button></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+async function cpAddArt(groupId) {
+  var artInput = document.getElementById('cpArtInput_' + groupId);
+  var ownCb = document.getElementById('cpArtOwn_' + groupId);
+  var errEl = document.getElementById('cpArtError_' + groupId);
+  var article = artInput ? artInput.value.trim() : '';
+  errEl.style.display = 'none';
+  if (!article) { errEl.textContent = 'Введите артикул'; errEl.style.display = 'block'; return; }
+  var btn = document.querySelector('[onclick="cpAddArt(' + groupId + ')"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    var r = await fetch('/api/comp/article', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ groupId: groupId, article: article, isOwn: ownCb ? ownCb.checked : false })
+    });
+    var d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error || 'Ошибка'; errEl.style.display = 'block'; return; }
+    if (artInput) artInput.value = '';
+    if (ownCb) ownCb.checked = false;
+    await cpShowGroup(groupId);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '+ Добавить'; }
+  }
+}
+
+async function cpDelArt(artId, groupId) {
+  await fetch('/api/comp/article/' + artId, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+  await cpShowGroup(groupId);
+}
+
+async function cpCheckGroup(groupId) {
+  if (CP.checking) return;
+  CP.checking = true;
+  var btn = document.getElementById('cpCheckBtn_' + groupId);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Проверяю...'; }
+  try {
+    await fetch('/api/comp/check/' + groupId, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+    await cpShowGroup(groupId);
+    await cpLoad();
+  } finally {
+    CP.checking = false;
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Проверить позиции'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  CAMPAIGN STATISTICS
+// ═══════════════════════════════════════════════════
+var CS = { initialized: false };
+
+function csInit() {
+  if (!CS.initialized) {
+    CS.initialized = true;
+    // Дефолтный диапазон: последние 30 дней
+    var now = new Date();
+    var from = new Date(now); from.setDate(from.getDate() - 30);
+    document.getElementById('csFrom').value = from.toISOString().slice(0,10);
+    document.getElementById('csTo').value = now.toISOString().slice(0,10);
+  }
+  csLoadCampaigns();
+  csLoad();
+}
+
+async function csLoadCampaigns() {
+  try {
+    var r = await fetch('/api/campaign-stats', { headers: { Authorization: 'Bearer ' + token } });
+    var d = await r.json();
+    var sel = document.getElementById('csCampaign');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">Все кампании</option>';
+    (d.campaigns || []).forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      if (c === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function csLoad() {
+  var from = document.getElementById('csFrom').value;
+  var to = document.getElementById('csTo').value;
+  var campaign = document.getElementById('csCampaign').value;
+  var params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (campaign) params.set('campaign', campaign);
+
+  try {
+    var r = await fetch('/api/campaign-stats?' + params, { headers: { Authorization: 'Bearer ' + token } });
+    var d = await r.json();
+    csRender(d.rows || []);
+  } catch(e) {}
+}
+
+function csRender(rows) {
+  var empty = document.getElementById('csEmpty');
+  var table = document.getElementById('csTable');
+  var totals = document.getElementById('csTotals');
+
+  if (!rows.length) {
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    totals.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'table';
+  totals.style.display = 'grid';
+
+  // Итого
+  var T = { shows:0, clicks:0, spend:0, baskets:0, orders:0, revenue:0 };
+  rows.forEach(function(r) {
+    T.shows += +r.shows||0; T.clicks += +r.clicks||0; T.spend += +r.spend||0;
+    T.baskets += +r.baskets||0; T.orders += +r.orders||0; T.revenue += +r.revenue||0;
+  });
+  var avgCtr = T.shows ? (T.clicks/T.shows*100).toFixed(2) : '0';
+  var avgCpc = T.clicks ? (T.spend/T.clicks).toFixed(0) : '0';
+  var avgDrr = T.revenue ? (T.spend/T.revenue*100).toFixed(2) : '0';
+
+  totals.innerHTML = [
+    ['Показы', csFmt(T.shows), ''],
+    ['Переходы', csFmt(T.clicks), ''],
+    ['CTR', avgCtr + '%', ''],
+    ['Затраты', csFmt(T.spend) + ' ₽', 'accent'],
+    ['Корзин', csFmt(T.baskets), ''],
+    ['Заказы', csFmt(T.orders), ''],
+    ['Выручка', csFmt(T.revenue) + ' ₽', 'accent'],
+    ['ДРР', avgDrr + '%', ''],
+  ].map(function(item) {
+    return '<div class="cs-total-card"><div class="cs-total-label">' + item[0] + '</div>' +
+           '<div class="cs-total-val ' + item[2] + '">' + item[1] + '</div></div>';
+  }).join('');
+
+  var tbody = document.getElementById('csTbody');
+  tbody.innerHTML = '';
+  rows.forEach(function(row) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = [
+      row.date,
+      csFmt(row.shows),
+      csFmtDec(row.cpm),
+      csFmt(row.clicks),
+      csFmtDec(row.ctr) + '%',
+      csFmtDec(row.cpc),
+      csFmt(row.spend),
+      csFmt(row.baskets),
+      csFmtDec(row.cpl),
+      csFmt(row.orders),
+      csFmtDec(row.cpo),
+      csFmt(row.revenue),
+      csFmtDec(row.drr) + '%',
+    ].map(function(v,i) { return '<td>' + v + '</td>'; }).join('');
+    tbody.appendChild(tr);
+  });
+}
+
+function csFmt(n) { return Math.round(+n||0).toLocaleString('ru'); }
+function csFmtDec(n) { return (+n||0).toLocaleString('ru', {minimumFractionDigits:0,maximumFractionDigits:2}); }
 
 init();
 </script>
