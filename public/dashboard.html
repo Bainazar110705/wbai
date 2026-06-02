@@ -45,6 +45,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .sidebar-search input:focus{border-color:var(--p)}
 .sidebar-search input::placeholder{color:var(--muted)}
 .sidebar-nav{padding:8px 0}
+.nav-section-header{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:14px 20px 5px;opacity:.5}
 .nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer;font-size:14px;font-weight:500;color:var(--muted);transition:all .15s}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:var(--p3);color:var(--p2)}
@@ -445,19 +446,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="sidebar-nav" id="sidebarNav">
     <div class="nav-item active" onclick="showPage('home');closeSidebar()"><span class="nav-icon">🏠</span>Главная</div>
+
+    <div class="nav-section-header">Мой аккаунт</div>
     <div class="nav-item" onclick="showPage('subscription');closeSidebar()"><span class="nav-icon">💳</span>Подписка</div>
-    <div class="nav-item" onclick="showPage('templates');closeSidebar()"><span class="nav-icon">📦</span>Шаблоны товаров</div>
-    <div class="nav-item" onclick="showPage('videos');closeSidebar()"><span class="nav-icon">🎥</span>Видео обзор</div>
-    <div class="nav-item" onclick="showPage('history');closeSidebar()"><span class="nav-icon">📋</span>История запросов</div>
-    <div class="nav-item" onclick="showPage('settings');closeSidebar()"><span class="nav-icon">⚙️</span>Настройки</div>
     <div class="nav-item" onclick="showPage('credits');closeSidebar()"><span class="nav-icon">📸</span>Фото-кредиты</div>
+    <div class="nav-item" onclick="showPage('settings');closeSidebar()"><span class="nav-icon">⚙️</span>Настройки</div>
+
+    <div class="nav-section-header">AI Инструменты</div>
     <div class="nav-item" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon">🎨</span>Студия инфографики</div>
-    <div class="nav-item" onclick="showPage('tracker');closeSidebar()"><span class="nav-icon">📈</span>Позиции по ключам</div>
-    <div class="nav-item" onclick="showPage('competitors');closeSidebar()"><span class="nav-icon">🏆</span>Конкуренты</div>
-    <div class="nav-item" onclick="showPage('campstats');closeSidebar()"><span class="nav-icon">📊</span>Статистика РК</div>
-    <div class="nav-item" onclick="showPage('install');closeSidebar()"><span class="nav-icon">🔧</span>Установка расширения</div>
+
+    <div class="nav-section-header">Контент</div>
+    <div class="nav-item" onclick="showPage('templates');closeSidebar()"><span class="nav-icon">📦</span>Мои шаблоны</div>
+    <div class="nav-item" onclick="showPage('history');closeSidebar()"><span class="nav-icon">📋</span>История запросов</div>
+
+    <div class="nav-section-header">Расширение</div>
+    <div class="nav-item" onclick="showPage('install');closeSidebar()"><span class="nav-icon">🔧</span>Установка</div>
+    <div class="nav-item" onclick="showPage('videos');closeSidebar()"><span class="nav-icon">🎬</span>Видео обзор</div>
     <div class="nav-item" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon">💬</span>Поддержка</div>
-  </div>
 </div>
 
 <!-- PROFILE DROPDOWN -->
@@ -1157,9 +1162,6 @@ function showPage(name) {
   });
   if(name==='history') loadHistory();
   if(name==='infographic') isInit();
-  if(name==='tracker') trLoad();
-  if(name==='competitors') cpLoad();
-  if(name==='campstats') csInit();
 }
 
 function toggleSidebar(){
