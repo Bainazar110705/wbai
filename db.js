@@ -70,6 +70,75 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  // Campaign statistics (imported from WB via extension)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS campaign_stats (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      campaign_name VARCHAR(500) DEFAULT '',
+      source_url TEXT DEFAULT '',
+      date VARCHAR(20) NOT NULL,
+      shows NUMERIC DEFAULT 0,
+      cpm NUMERIC DEFAULT 0,
+      clicks NUMERIC DEFAULT 0,
+      ctr NUMERIC DEFAULT 0,
+      cpc NUMERIC DEFAULT 0,
+      spend NUMERIC DEFAULT 0,
+      baskets NUMERIC DEFAULT 0,
+      cpl NUMERIC DEFAULT 0,
+      orders NUMERIC DEFAULT 0,
+      cpo NUMERIC DEFAULT 0,
+      revenue NUMERIC DEFAULT 0,
+      drr NUMERIC DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, campaign_name, date)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comp_groups (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      keyword VARCHAR(500) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comp_articles (
+      id SERIAL PRIMARY KEY,
+      group_id INTEGER REFERENCES comp_groups(id) ON DELETE CASCADE,
+      article VARCHAR(50) NOT NULL,
+      product_name VARCHAR(500) DEFAULT '',
+      is_own BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comp_positions (
+      id SERIAL PRIMARY KEY,
+      article_id INTEGER REFERENCES comp_articles(id) ON DELETE CASCADE,
+      position INTEGER,
+      checked_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS keyword_trackers (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      article VARCHAR(50) NOT NULL,
+      product_name VARCHAR(500) DEFAULT '',
+      keyword VARCHAR(500) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS keyword_positions (
+      id SERIAL PRIMARY KEY,
+      tracker_id INTEGER REFERENCES keyword_trackers(id) ON DELETE CASCADE,
+      position INTEGER,
+      total INTEGER DEFAULT 0,
+      checked_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
   console.log('[WBai] Database ready');
 }
 
