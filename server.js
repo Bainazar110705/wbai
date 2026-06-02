@@ -862,11 +862,36 @@ async function fetchWB(path, wbToken, retries = 2) {
         headers: { Authorization: wbToken }
       });
       if (r.status === 429) { await new Promise(res => setTimeout(res, 60000)); continue; }
-      if (!r.ok) throw new Error('WB API error ' + r.status);
+      if (r.status === 401) throw new Error('Токен недействителен (401). Создайте новый в WB.');
+      if (r.status === 403) throw new Error('Нет прав доступа (403). Токен должен иметь право «Статистика».');
+      if (!r.ok) throw new Error('WB API ошибка ' + r.status);
       return await r.json();
     } catch(e) { if (i === retries) throw e; await new Promise(res => setTimeout(res, 2000)); }
   }
 }
+
+// GET /api/wb-test — тест подключения к WB API
+app.get('/api/wb-test', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен не сохранён', noToken: true });
+  const wbToken = u.wb_api_token;
+  try {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const dateFrom = yesterday.toISOString().slice(0,10);
+    const r = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/orders?dateFrom=${dateFrom}`, {
+      headers: { Authorization: wbToken }
+    });
+    if (r.status === 401) return res.status(401).json({ error: 'Токен недействителен или истёк. Создайте новый в WB.' });
+    if (r.status === 403) return res.status(403).json({ error: 'Нет прав доступа. Убедитесь что у токена есть права «Статистика».' });
+    if (r.status === 429) return res.json({ ok: true, warning: 'Лимит запросов WB API. Данные загрузятся через минуту.', count: 0 });
+    if (!r.ok) return res.status(r.status).json({ error: `WB API вернул ошибку ${r.status}` });
+    const data = await r.json();
+    const count = Array.isArray(data) ? data.length : 0;
+    res.json({ ok: true, count, message: `Соединение успешно. Найдено ${count} заказов за вчера.` });
+  } catch(e) {
+    res.status(500).json({ error: 'Ошибка сети: ' + e.message });
+  }
+});
 
 app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const { period, from, to } = req.query;
@@ -877,10 +902,10 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const { dateFrom, dateTo } = wbDateRange(period, from, to);
 
   try {
-    // 1. Заказы — количество и сумма по дням
+    // 1. Заказы и продажи — с защитой от ошибок
     const [ordersRaw, salesRaw] = await Promise.all([
-      fetchWB(`/api/v1/supplier/orders?dateFrom=${dateFrom}`, wbToken),
-      fetchWB(`/api/v1/supplier/sales?dateFrom=${dateFrom}`, wbToken),
+      fetchWB(`/api/v1/supplier/orders?dateFrom=${dateFrom}`, wbToken).catch(e => { throw new Error('Ошибка получения заказов: ' + e.message); }),
+      fetchWB(`/api/v1/supplier/sales?dateFrom=${dateFrom}`, wbToken).catch(() => []),
     ]);
 
     // Финансовый отчёт — для ppvz_for_pay (прибыль к перечислению)
