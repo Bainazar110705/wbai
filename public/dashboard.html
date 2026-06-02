@@ -1186,13 +1186,13 @@ function filterNav(q){
     n.style.display=n.textContent.toLowerCase().includes(q.toLowerCase())?'flex':'none';
   });
 }
-function logout(){
+async function logout(){
   localStorage.removeItem('wbai_token');
   localStorage.removeItem('wbai_user');
   location.href='/';
 }
 
-async function loadHistory() {
+async async function loadHistory() {
   try {
     const r = await fetch('/api/history', {headers:{'Authorization':'Bearer '+token}});
     const d = await r.json();
