@@ -803,6 +803,189 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════
+//  WB API TOKEN
+// ═══════════════════════════════════════════════════
+
+// POST /api/wb-token — сохранить токен
+app.post('/api/wb-token', authMiddleware, async (req, res) => {
+  const { token: wbToken } = req.body;
+  if (!wbToken?.trim()) return res.status(400).json({ error: 'Токен не может быть пустым' });
+  // Проверяем токен запросом к WB
+  try {
+    const test = await fetch('https://statistics-api.wildberries.ru/api/v1/supplier/sales?dateFrom=' + new Date(Date.now()-86400000).toISOString().slice(0,10), {
+      headers: { Authorization: wbToken.trim() }
+    });
+    if (test.status === 401) return res.status(400).json({ error: 'Неверный токен. Проверьте и попробуйте снова.' });
+    if (!test.ok && test.status !== 429) return res.status(400).json({ error: 'Ошибка проверки токена (код ' + test.status + ')' });
+  } catch(e) { /* network error - save anyway */ }
+  await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [wbToken.trim(), req.user.id]);
+  res.json({ ok: true });
+});
+
+// DELETE /api/wb-token — удалить токен
+app.delete('/api/wb-token', authMiddleware, async (req, res) => {
+  await db.runAsync('UPDATE users SET wb_api_token=NULL WHERE id=?', [req.user.id]);
+  res.json({ ok: true });
+});
+
+// GET /api/wb-token/status — проверить наличие токена
+app.get('/api/wb-token/status', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  res.json({ hasToken: !!u?.wb_api_token, tokenPreview: u?.wb_api_token ? '****' + u.wb_api_token.slice(-6) : null });
+});
+
+// ═══════════════════════════════════════════════════
+//  WB ANALYTICS (через WB Statistics API)
+// ═══════════════════════════════════════════════════
+
+function wbDateRange(period, from, to) {
+  const now = new Date();
+  if (from && to) return { dateFrom: from, dateTo: to };
+  const d = new Date(now);
+  switch(period) {
+    case 'today':    return { dateFrom: now.toISOString().slice(0,10), dateTo: now.toISOString().slice(0,10) };
+    case 'week':     d.setDate(d.getDate()-7); break;
+    case '2weeks':   d.setDate(d.getDate()-14); break;
+    case 'month':    d.setMonth(d.getMonth()-1); break;
+    case '3months':  d.setMonth(d.getMonth()-3); break;
+    case 'halfyear': d.setMonth(d.getMonth()-6); break;
+    case 'year':     d.setFullYear(d.getFullYear()-1); break;
+    default:         d.setDate(d.getDate()-7);
+  }
+  return { dateFrom: d.toISOString().slice(0,10), dateTo: now.toISOString().slice(0,10) };
+}
+
+async function fetchWB(path, wbToken, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const r = await fetch('https://statistics-api.wildberries.ru' + path, {
+        headers: { Authorization: wbToken }
+      });
+      if (r.status === 429) { await new Promise(res => setTimeout(res, 60000)); continue; }
+      if (!r.ok) throw new Error('WB API error ' + r.status);
+      return await r.json();
+    } catch(e) { if (i === retries) throw e; await new Promise(res => setTimeout(res, 2000)); }
+  }
+}
+
+app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
+  const { period, from, to } = req.query;
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+
+  const wbToken = u.wb_api_token;
+  const { dateFrom, dateTo } = wbDateRange(period, from, to);
+
+  try {
+    // 1. Заказы — количество и сумма по дням
+    const [ordersRaw, salesRaw] = await Promise.all([
+      fetchWB(`/api/v1/supplier/orders?dateFrom=${dateFrom}`, wbToken),
+      fetchWB(`/api/v1/supplier/sales?dateFrom=${dateFrom}`, wbToken),
+    ]);
+
+    // Финансовый отчёт — для ppvz_for_pay (прибыль к перечислению)
+    // WB финотчёт доступен только за завершённые недели, берём чуть шире
+    const reportFrom = new Date(dateFrom); reportFrom.setDate(reportFrom.getDate() - 7);
+    let reportRaw = [];
+    try {
+      reportRaw = await fetchWB(`/api/v1/supplier/reportDetailByPeriod?dateFrom=${reportFrom.toISOString().slice(0,10)}&dateTo=${dateTo}&rrdid=0`, wbToken);
+      if (!Array.isArray(reportRaw)) reportRaw = [];
+    } catch(e) { reportRaw = []; }
+
+    // Фильтруем по периоду
+    const inRange = date => date >= dateFrom && date <= dateTo;
+
+    // Группируем заказы по дням
+    const ordersByDay = {};
+    (Array.isArray(ordersRaw) ? ordersRaw : []).forEach(o => {
+      const day = (o.date || o.lastChangeDate || '').slice(0,10);
+      if (!day || !inRange(day)) return;
+      if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0 };
+      ordersByDay[day].count++;
+      ordersByDay[day].sum += Math.round((o.priceWithDisc || o.totalPrice || 0));
+    });
+
+    // Продажи (только выкупленные) по дням
+    const salesByDay = {};
+    (Array.isArray(salesRaw) ? salesRaw : []).forEach(s => {
+      if (s.saleID?.startsWith('R')) return; // возвраты
+      const day = (s.date || '').slice(0,10);
+      if (!day || !inRange(day)) return;
+      if (!salesByDay[day]) salesByDay[day] = { count: 0, sum: 0 };
+      salesByDay[day].count++;
+      salesByDay[day].sum += Math.round((s.priceWithDisc || s.forPay || 0));
+    });
+
+    // Прибыль (ppvz_for_pay) из финотчёта по дням
+    const profitByDay = {};
+    reportRaw.forEach(r => {
+      const day = (r.rr_dt || r.create_dt || '').slice(0,10);
+      if (!day || !inRange(day)) return;
+      if (!profitByDay[day]) profitByDay[day] = 0;
+      profitByDay[day] += Math.round(r.ppvz_for_pay || 0);
+    });
+
+    // Собираем все даты в диапазоне
+    const allDays = [];
+    const cur = new Date(dateFrom);
+    const end = new Date(dateTo);
+    while (cur <= end) {
+      const day = cur.toISOString().slice(0,10);
+      const o = ordersByDay[day] || { count:0, sum:0 };
+      const s = salesByDay[day] || { count:0, sum:0 };
+      allDays.push({
+        date: day,
+        orders: o.count,
+        revenue: o.sum,
+        sales: s.count,
+        salesRevenue: s.sum,
+        profit: profitByDay[day] || 0,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    // Итого
+    const sum = (arr, key) => arr.reduce((a,b) => a+(b[key]||0), 0);
+    const totals = { orders: sum(allDays,'orders'), revenue: sum(allDays,'revenue'), sales: sum(allDays,'sales'), profit: sum(allDays,'profit') };
+
+    // Предыдущий период для сравнения
+    const diffMs = new Date(dateTo) - new Date(dateFrom);
+    const prevTo = new Date(new Date(dateFrom).getTime() - 86400000).toISOString().slice(0,10);
+    const prevFrom = new Date(new Date(dateFrom).getTime() - diffMs - 86400000).toISOString().slice(0,10);
+
+    const [prevOrdersRaw, prevSalesRaw] = await Promise.all([
+      fetchWB(`/api/v1/supplier/orders?dateFrom=${prevFrom}`, wbToken).catch(() => []),
+      fetchWB(`/api/v1/supplier/sales?dateFrom=${prevFrom}`, wbToken).catch(() => []),
+    ]);
+
+    const prevInRange = d => d >= prevFrom && d <= prevTo;
+    let prevOrders=0, prevRevenue=0, prevSales=0;
+    (Array.isArray(prevOrdersRaw)?prevOrdersRaw:[]).forEach(o=>{
+      const d=(o.date||o.lastChangeDate||'').slice(0,10);
+      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.priceWithDisc||0);}
+    });
+    (Array.isArray(prevSalesRaw)?prevSalesRaw:[]).forEach(s=>{
+      if(s.saleID?.startsWith('R')) return;
+      const d=(s.date||'').slice(0,10);
+      if(prevInRange(d)){prevSales++;}
+    });
+
+    let prevReport = [];
+    try { prevReport = await fetchWB(`/api/v1/supplier/reportDetailByPeriod?dateFrom=${prevFrom}&dateTo=${prevTo}&rrdid=0`, wbToken).catch(()=>[]); } catch(e){}
+    const prevProfit = (Array.isArray(prevReport)?prevReport:[]).filter(r => {
+      const d=(r.rr_dt||r.create_dt||'').slice(0,10); return prevInRange(d);
+    }).reduce((a,r)=>a+Math.round(r.ppvz_for_pay||0),0);
+
+    const prevTotals = { orders: prevOrders, revenue: prevRevenue, sales: prevSales, profit: prevProfit };
+
+    res.json({ rows: allDays, totals, prevTotals, dateFrom, dateTo, prevFrom, prevTo });
+  } catch(e) {
+    console.error('[WBai] WB Analytics error:', e.message);
+    res.status(500).json({ error: 'Ошибка получения данных от WB: ' + e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════
 //  АНАЛИТИКА
 // ═══════════════════════════════════════════════════
 

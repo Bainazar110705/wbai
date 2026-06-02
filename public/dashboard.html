@@ -861,8 +861,37 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   <div class="page" id="page-analytics">
     <div class="page-title">📈 Аналитика</div>
 
-    <div class="an-no-data-hint" id="anNoDataHint" style="display:none">
-      <b>Как добавить данные:</b> откройте страницу своих заказов на <b>seller.wildberries.ru</b> — расширение WBai покажет кнопку <b>«💾 Сохранить в аналитику»</b>. После сохранения данные появятся здесь.
+    <!-- Блок подключения WB API -->
+    <div id="anTokenBlock" style="display:none">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:18px;max-width:580px">
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">🔗 Подключите WB API</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.7">
+          Создайте токен в личном кабинете WB → <b>Настройки → Доступ к API</b>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:2">
+          <div style="font-weight:700;color:var(--text);margin-bottom:6px">Как создать токен:</div>
+          <div>1. Нажмите <b>«Создать токен»</b></div>
+          <div>2. Выберите вкладку <b>«Для интеграции вручную»</b></div>
+          <div>3. Тип: <b>Персональный токен</b></div>
+          <div>4. Поставьте галочки только на <b style="color:var(--p2)">Статистика</b> и <b style="color:var(--p2)">Аналитика</b></div>
+          <div>5. Уровень доступа: <b>Только чтение</b></div>
+          <div>6. Скопируйте токен и вставьте ниже</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+          <textarea id="anTokenInput" style="flex:1;min-width:260px;height:70px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text);font-family:monospace;resize:none" placeholder="eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjQxMTIwdjEiLCJ0eXAiOiJKV1QifQ..."></textarea>
+          <button id="anTokenSaveBtn" onclick="anSaveToken()" style="padding:10px 20px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Подключить</button>
+        </div>
+        <div id="anTokenErr" style="display:none;margin-top:8px;background:var(--red-bg);border:1px solid var(--red);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--red)"></div>
+      </div>
+    </div>
+
+    <!-- Статус подключённого токена -->
+    <div id="anTokenStatus" style="display:none;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0"></div>
+        <div style="flex:1;font-size:12px"><b>WB API подключён</b> · <span id="anTokenPreview" style="color:var(--muted);font-family:monospace"></span></div>
+        <button onclick="anDisconnectToken()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit">Отключить</button>
+      </div>
     </div>
 
     <div class="an-topbar">
@@ -1386,10 +1415,309 @@ function isRenderHistory(){
 }
 
 // ═══════════════════════════════════════════════════
-//  АНАЛИТИКА
+//  АНАЛИТИКА (через WB API)
 // ═══════════════════════════════════════════════════
-var AN = { period: 'week', data: [], animFrame: null, animStart: null, initialized: false };
+var AN = { period: 'week', data: [], animFrame: null, animStart: null, initialized: false, hasToken: false };
 const AN_MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+
+async function anInit() {
+  if (!AN.initialized) {
+    AN.initialized = true;
+    document.querySelectorAll('.an-period-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.an-period-btn').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        AN.period = btn.dataset.p;
+        const dr = document.getElementById('anDateRow');
+        if (AN.period === 'custom') {
+          dr.classList.add('on');
+          const to = new Date(); const from = new Date(); from.setDate(from.getDate()-7);
+          document.getElementById('anDateTo').value = to.toISOString().slice(0,10);
+          document.getElementById('anDateFrom').value = from.toISOString().slice(0,10);
+        } else { dr.classList.remove('on'); if (AN.hasToken) anLoad(); }
+      });
+    });
+    anSetupTooltip();
+    window.addEventListener('resize', () => { if(AN.data.length) anDrawChart(1); });
+  }
+  // Проверяем токен
+  await anCheckToken();
+}
+
+async function anCheckToken() {
+  try {
+    const r = await fetch('/api/wb-token/status', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    AN.hasToken = d.hasToken;
+    document.getElementById('anTokenBlock').style.display = d.hasToken ? 'none' : 'block';
+    document.getElementById('anTokenStatus').style.display = d.hasToken ? 'block' : 'none';
+    // Скрываем период/обновить если нет токена
+    document.getElementById('anPeriodBar').style.display = d.hasToken ? 'flex' : 'none';
+    document.getElementById('anRefreshBtn').closest('.an-topbar').style.display = d.hasToken ? 'flex' : 'none';
+    if (d.hasToken) {
+      document.getElementById('anTokenPreview').textContent = d.tokenPreview || '';
+      anLoad();
+    }
+  } catch(e) {}
+}
+
+async function anSaveToken() {
+  const input = document.getElementById('anTokenInput');
+  const btn = document.getElementById('anTokenSaveBtn');
+  const err = document.getElementById('anTokenErr');
+  const val = input.value.trim();
+  err.style.display = 'none';
+  if (!val) { err.textContent = 'Введите токен'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = '⏳ Проверяю...';
+  try {
+    const r = await fetch('/api/wb-token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ token: val })
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Ошибка'; err.style.display = 'block'; return; }
+    input.value = '';
+    await anCheckToken();
+  } catch(e) { err.textContent = 'Ошибка соединения'; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Подключить'; }
+}
+
+async function anDisconnectToken() {
+  if (!confirm('Отключить WB API?')) return;
+  await fetch('/api/wb-token', { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+  AN.hasToken = false;
+  AN.data = [];
+  await anCheckToken();
+}
+
+async function anLoad(from, to) {
+  if (!AN.hasToken) return;
+  const btn = document.getElementById('anRefreshBtn');
+  if (btn) btn.disabled = true;
+  // Показываем загрузку в карточках
+  ['anMCount','anMSum','anMProfit'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='...'; });
+  try {
+    let url = '/api/wb-analytics?period=' + AN.period;
+    if (from && to) url = '/api/wb-analytics?from=' + from + '&to=' + to;
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    if (r.status === 400) {
+      const d = await r.json();
+      if (d.noToken) { AN.hasToken = false; await anCheckToken(); return; }
+    }
+    if (!r.ok) {
+      const d = await r.json().catch(()=>({}));
+      anShowChartError(d.error || 'Ошибка получения данных');
+      return;
+    }
+    const d = await r.json();
+    anUpdateMetrics(d.totals, d.prevTotals, AN.period);
+    anBuildChartData(d.rows, d.dateFrom, d.dateTo, AN.period);
+    const now = new Date();
+    document.getElementById('anUpdatedAt').textContent = now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { anShowChartError('Ошибка соединения с сервером'); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+function anShowChartError(msg) {
+  const empty = document.getElementById('anChartEmpty');
+  const canvas = document.getElementById('anCanvas');
+  if (empty) { empty.style.display = 'block'; empty.querySelector('.an-empty-text').textContent = msg; }
+  if (canvas) canvas.style.display = 'none';
+}
+
+async function anApplyCustom() {
+  const from = document.getElementById('anDateFrom').value;
+  const to = document.getElementById('anDateTo').value;
+  if (!from || !to) return;
+  anLoad(from, to);
+}
+
+function anRefresh() {
+  const icon = document.getElementById('anRefreshIcon');
+  if (icon) { icon.style.animation='spin 1s linear infinite'; setTimeout(()=>icon.style.animation='',800); }
+  if (AN.period === 'custom') {
+    anLoad(document.getElementById('anDateFrom').value, document.getElementById('anDateTo').value);
+  } else { anLoad(); }
+}
+
+// ── METRICS ──────────────────────────────────────────────────────────────────
+function anFmt(n) {
+  n = parseInt(n)||0;
+  if (n>=1e9) return (n/1e9).toFixed(1).replace('.',',')+' млрд';
+  if (n>=1e6) return (n/1e6).toFixed(1).replace('.',',')+' млн';
+  return n.toLocaleString('ru');
+}
+function anFmtCur(n) { return (parseInt(n)||0).toLocaleString('ru') + ' ₸'; }
+
+function anSetMetric(valId, deltaId, periodId, val, prev, periodLabel, isCnt) {
+  const vEl = document.getElementById(valId);
+  if (vEl) vEl.textContent = isCnt ? anFmt(val) : anFmtCur(val);
+  const diff = val - prev;
+  const dEl = document.getElementById(deltaId);
+  if (dEl) {
+    dEl.className = 'an-card-delta ' + (diff>0?'up':diff<0?'dn':'eq');
+    const arrow = diff>0?'↑':diff<0?'↓':'→';
+    const dVal = isCnt ? Math.abs(diff).toLocaleString('ru') : anFmtCur(Math.abs(diff));
+    const pct = prev ? ' ('+Math.abs(Math.round(diff/prev*100))+'%)' : '';
+    dEl.textContent = arrow + ' ' + dVal + pct;
+  }
+  const pEl = document.getElementById(periodId);
+  if (pEl) pEl.textContent = periodLabel;
+}
+
+function anUpdateMetrics(totals, prev, period) {
+  const labels = { today:'от вчера', week:'за прошлую неделю', '2weeks':'за предыдущие 2 нед.', month:'от прошлого месяца', '3months':'за предыдущие 3 мес.', halfyear:'за предыдущие полгода', year:'за прошлый год', custom:'за предыдущий период' };
+  const lbl = labels[period] || '';
+  anSetMetric('anMCount','anMCountDelta','anMCountPeriod', totals.orders||0, prev.orders||0, lbl, true);
+  anSetMetric('anMSum','anMSumDelta','anMSumPeriod', totals.revenue||0, prev.revenue||0, lbl, false);
+  anSetMetric('anMProfit','anMProfitDelta','anMProfitPeriod', totals.profit||0, prev.profit||0, lbl, false);
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────────
+function anBuildChartData(rows, dateFrom, dateTo, period) {
+  if (!rows||!rows.length) { anShowChartError('Нет данных за выбранный период'); AN.data=[]; return; }
+  document.getElementById('anChartEmpty').style.display = 'none';
+  document.getElementById('anCanvas').style.display = 'block';
+
+  const byDate = {};
+  rows.forEach(r => { byDate[r.date] = r; });
+
+  let points = [];
+  const from = new Date(dateFrom); const to = new Date(dateTo);
+  const diffDays = Math.round((to-from)/86400000)+1;
+
+  if (period === 'today') {
+    // По часам — сумму дня распределяем по синусоиде
+    const r = byDate[dateFrom] || {};
+    for (let h=0; h<24; h++) {
+      const f = Math.max(0, Math.sin(Math.PI*(h-7)/15));
+      points.push({ label: String(h).padStart(2,'0'), count: Math.round((r.orders||0)*f/8), sum: Math.round((r.revenue||0)*f/8), profit: Math.round((r.profit||0)*f/8) });
+    }
+  } else if (period === 'week') {
+    const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    for (let i=0; i<7; i++) {
+      const d=new Date(from); d.setDate(d.getDate()+i);
+      const ds=d.toISOString().slice(0,10); const r=byDate[ds]||{};
+      points.push({ label: days[d.getDay()], count: r.orders||0, sum: r.revenue||0, profit: r.profit||0, fullDate: ds });
+    }
+  } else if (period==='2weeks'||(period==='custom'&&diffDays<=31)) {
+    for (let i=0; i<diffDays; i++) {
+      const d=new Date(from); d.setDate(d.getDate()+i);
+      const ds=d.toISOString().slice(0,10); const r=byDate[ds]||{};
+      points.push({ label: d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}), count: r.orders||0, sum: r.revenue||0, profit: r.profit||0 });
+    }
+  } else if (period==='month') {
+    const dim=new Date(from.getFullYear(),from.getMonth()+1,0).getDate();
+    for (let i=1; i<=dim; i++) {
+      const d=new Date(from.getFullYear(),from.getMonth(),i);
+      const ds=d.toISOString().slice(0,10); const r=byDate[ds]||{};
+      points.push({ label: String(i), count: r.orders||0, sum: r.revenue||0, profit: r.profit||0 });
+    }
+  } else if (period==='3months'||(period==='custom'&&diffDays>31&&diffDays<=180)) {
+    const weeks=Math.ceil(diffDays/7);
+    for (let w=0; w<weeks; w++) {
+      const ws=new Date(from); ws.setDate(ws.getDate()+w*7);
+      const we=new Date(ws); we.setDate(we.getDate()+6);
+      let wo=0,wr=0,wp=0;
+      for (let d2=new Date(ws); d2<=we&&d2<=to; d2.setDate(d2.getDate()+1)) {
+        const r=byDate[d2.toISOString().slice(0,10)]||{};
+        wo+=r.orders||0; wr+=r.revenue||0; wp+=r.profit||0;
+      }
+      points.push({ label: ws.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}), count: wo, sum: wr, profit: wp });
+    }
+  } else {
+    const mc=Math.ceil(diffDays/30);
+    for (let m=0; m<mc; m++) {
+      const ms=new Date(from); ms.setMonth(ms.getMonth()+m); ms.setDate(1);
+      const me=new Date(ms); me.setMonth(me.getMonth()+1); me.setDate(0);
+      let mo=0,mr=0,mp=0;
+      for (let d2=new Date(ms); d2<=me&&d2<=to; d2.setDate(d2.getDate()+1)) {
+        const r=byDate[d2.toISOString().slice(0,10)]||{};
+        mo+=r.orders||0; mr+=r.revenue||0; mp+=r.profit||0;
+      }
+      points.push({ label: AN_MONTHS[ms.getMonth()], count: mo, sum: mr, profit: mp });
+    }
+  }
+
+  AN.data = points;
+  const titles = { today:'График за сегодня (по часам)', week:'График за неделю', '2weeks':'График за 2 недели', month:'График за месяц', '3months':'График за 3 месяца', halfyear:'График за полгода', year:'График за год', custom:'График за выбранный период' };
+  document.getElementById('anChartTitle').textContent = titles[period]||'График';
+  anUpdateXLabels(points);
+  anAnimate();
+}
+
+function anUpdateXLabels(data) {
+  const c=document.getElementById('anXLabels'); c.innerHTML='';
+  const n=data.length, step=Math.max(1,Math.ceil(n/12));
+  data.forEach((d,i)=>{ const el=document.createElement('div'); el.className='an-xlabel'; el.textContent=(i%step===0||i===n-1)?d.label:''; c.appendChild(el); });
+}
+
+function anEaseOut(t) { return 1-Math.pow(1-t,3); }
+
+function anDrawChart(progress) {
+  const canvas=document.getElementById('anCanvas');
+  if (!canvas||!AN.data.length) return;
+  const dpr=window.devicePixelRatio||1, W=canvas.offsetWidth, H=200;
+  canvas.width=W*dpr; canvas.height=H*dpr; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const data=AN.data, padL=52,padR=16,padT=14,padB=8, cW=W-padL-padR, cH=H-padT-padB, n=data.length, step=cW/Math.max(n-1,1);
+  const maxCount=Math.max(...data.map(d=>d.count),1);
+  const maxSum=Math.max(...data.map(d=>d.sum),1);
+  const maxProfit=Math.max(...data.map(d=>d.profit),1);
+  for(let i=0;i<=4;i++){
+    const y=padT+cH-cH*i/4;
+    ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+cW,y); ctx.stroke();
+    ctx.fillStyle='#8888aa'; ctx.font='9px monospace'; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxCount*i/4),padL-6,y+3);
+  }
+  const getX=i=>padL+i*step;
+  const getY=(v,max)=>padT+cH-cH*(v/max)*anEaseOut(progress);
+  function drawLine(key,max,color) {
+    ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2; ctx.globalAlpha=1; ctx.lineJoin='round'; ctx.lineCap='round';
+    data.forEach((d,i)=>{ i===0?ctx.moveTo(getX(i),getY(d[key],max)):ctx.lineTo(getX(i),getY(d[key],max)); });
+    ctx.stroke();
+    ctx.globalAlpha=0.07; ctx.fillStyle=color;
+    ctx.lineTo(getX(n-1),padT+cH); ctx.lineTo(getX(0),padT+cH); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+  }
+  drawLine('sum',maxSum,'#0071e3');
+  drawLine('profit',maxProfit,'#22d37a');
+  drawLine('count',maxCount,'#7b2ff7');
+  data.forEach((d,i)=>{
+    ctx.beginPath(); ctx.arc(getX(i),getY(d.count,maxCount),3,0,Math.PI*2);
+    ctx.fillStyle='#7b2ff7'; ctx.fill(); ctx.strokeStyle='#0f0f1a'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+}
+
+function anAnimate() {
+  if(AN.animFrame) cancelAnimationFrame(AN.animFrame);
+  AN.animStart=null;
+  function step(ts){if(!AN.animStart)AN.animStart=ts;const p=Math.min((ts-AN.animStart)/500,1);anDrawChart(p);if(p<1)AN.animFrame=requestAnimationFrame(step);}
+  AN.animFrame=requestAnimationFrame(step);
+}
+
+function anSetupTooltip() {
+  const canvas=document.getElementById('anCanvas'), tooltip=document.getElementById('anTooltip');
+  if(!canvas||!tooltip) return;
+  canvas.addEventListener('mousemove',e=>{
+    if(!AN.data.length){tooltip.style.display='none';return;}
+    const rect=canvas.getBoundingClientRect(), x=e.clientX-rect.left;
+    const padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1);
+    const idx=Math.round((x-padL)/step);
+    if(idx<0||idx>=n){tooltip.style.display='none';return;}
+    const d=AN.data[idx];
+    tooltip.style.display='block';
+    tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';
+    tooltip.style.top=(e.clientY-rect.top-100)+'px';
+    tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div>'+
+      '<div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div>'+
+      '<div class="an-tooltip-row"><span class="an-tooltip-key">Сумма</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div>'+
+      '<div class="an-tooltip-row"><span class="an-tooltip-key">Прибыль</span><span class="an-tooltip-val green">'+anFmtCur(d.profit)+'</span></div>';
+  });
+  canvas.addEventListener('mouseleave',()=>{tooltip.style.display='none';});
+}
+
+init();
 
 async function anInit() {
   if (!AN.initialized) {

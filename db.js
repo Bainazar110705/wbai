@@ -60,6 +60,7 @@ async function init() {
   // Новые поля для планов и кредитов
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(20) DEFAULT 'start'`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_credits INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS wb_api_token TEXT DEFAULT NULL`);
   // Таблица транзакций кредитов
   await pool.query(`
     CREATE TABLE IF NOT EXISTS credit_transactions (
