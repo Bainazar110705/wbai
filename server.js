@@ -802,6 +802,357 @@ app.get('/api/admin/users', async (req, res) => {
   res.json({ users });
 });
 
+// ═══════════════════════════════════════════════════
+//  CAMPAIGN STATISTICS
+// ═══════════════════════════════════════════════════
+
+// POST /api/campaign-stats — сохранить статистику (из расширения)
+app.post('/api/campaign-stats', authMiddleware, async (req, res) => {
+  const { campaignName, rows, sourceUrl } = req.body;
+  if (!rows?.length) return res.status(400).json({ error: 'Нет данных' });
+  let saved = 0;
+  for (const row of rows) {
+    try {
+      await db.runAsync(`
+        INSERT INTO campaign_stats
+          (user_id, campaign_name, source_url, date, shows, cpm, clicks, ctr, cpc, spend, baskets, cpl, orders, cpo, revenue, drr)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT (user_id, campaign_name, date) DO UPDATE SET
+          shows=EXCLUDED.shows, cpm=EXCLUDED.cpm, clicks=EXCLUDED.clicks,
+          ctr=EXCLUDED.ctr, cpc=EXCLUDED.cpc, spend=EXCLUDED.spend,
+          baskets=EXCLUDED.baskets, cpl=EXCLUDED.cpl, orders=EXCLUDED.orders,
+          cpo=EXCLUDED.cpo, revenue=EXCLUDED.revenue, drr=EXCLUDED.drr
+      `, [req.user.id, campaignName||'', sourceUrl||'', row.date,
+          row.shows||0, row.cpm||0, row.clicks||0, row.ctr||0, row.cpc||0,
+          row.spend||0, row.baskets||0, row.cpl||0, row.orders||0,
+          row.cpo||0, row.revenue||0, row.drr||0]);
+      saved++;
+    } catch(e) { /* skip duplicates */ }
+  }
+  res.json({ ok: true, saved });
+});
+
+// GET /api/campaign-stats — получить статистику с фильтрами
+app.get('/api/campaign-stats', authMiddleware, async (req, res) => {
+  const { from, to, campaign } = req.query;
+  let where = 'user_id = ?';
+  const params = [req.user.id];
+  if (from)     { where += ' AND date >= ?'; params.push(from); }
+  if (to)       { where += ' AND date <= ?'; params.push(to); }
+  if (campaign) { where += ' AND campaign_name = ?'; params.push(campaign); }
+  try {
+    const rows = await db.allAsync(
+      `SELECT * FROM campaign_stats WHERE ${where} ORDER BY date DESC LIMIT 200`,
+      params
+    );
+    const campaigns = await db.allAsync(
+      'SELECT DISTINCT campaign_name FROM campaign_stats WHERE user_id = ? ORDER BY campaign_name',
+      [req.user.id]
+    );
+    res.json({ rows, campaigns: campaigns.map(c => c.campaign_name) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════
+//  COMPETITOR POSITION MONITORING
+// ═══════════════════════════════════════════════════
+
+// GET /api/comp/groups — все группы пользователя с артикулами и последними позициями
+app.get('/api/comp/groups', authMiddleware, async (req, res) => {
+  try {
+    const groups = await db.allAsync(
+      `SELECT * FROM comp_groups WHERE user_id = ? ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    for (const g of groups) {
+      g.articles = await db.allAsync(
+        `SELECT ca.*, cp.position, cp.checked_at
+         FROM comp_articles ca
+         LEFT JOIN comp_positions cp ON cp.id = (
+           SELECT id FROM comp_positions WHERE article_id = ca.id ORDER BY checked_at DESC LIMIT 1
+         )
+         WHERE ca.group_id = ? ORDER BY ca.is_own DESC, ca.created_at ASC`,
+        [g.id]
+      );
+    }
+    res.json({ groups });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/comp/group — создать группу (ключевое слово)
+app.post('/api/comp/group', authMiddleware, async (req, res) => {
+  const { keyword } = req.body;
+  if (!keyword?.trim()) return res.status(400).json({ error: 'Введите ключевое слово' });
+  try {
+    const cnt = await db.getAsync('SELECT COUNT(*) as c FROM comp_groups WHERE user_id = ?', [req.user.id]);
+    if (parseInt(cnt?.c) >= 20) return res.status(400).json({ error: 'Максимум 20 групп' });
+    const r = await db.runAsync(
+      'INSERT INTO comp_groups (user_id, keyword) VALUES (?, ?) RETURNING id',
+      [req.user.id, keyword.trim()]
+    );
+    res.json({ ok: true, id: r.lastID });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/comp/group/:id
+app.delete('/api/comp/group/:id', authMiddleware, async (req, res) => {
+  try {
+    await db.runAsync('DELETE FROM comp_groups WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/comp/article — добавить артикул в группу
+app.post('/api/comp/article', authMiddleware, async (req, res) => {
+  const { groupId, article, isOwn } = req.body;
+  if (!groupId || !article) return res.status(400).json({ error: 'Нужен groupId и артикул' });
+  try {
+    // Проверяем что группа принадлежит юзеру
+    const grp = await db.getAsync('SELECT id FROM comp_groups WHERE id = ? AND user_id = ?', [groupId, req.user.id]);
+    if (!grp) return res.status(404).json({ error: 'Группа не найдена' });
+    // Дубликат?
+    const ex = await db.getAsync('SELECT id FROM comp_articles WHERE group_id = ? AND article = ?', [groupId, String(article).trim()]);
+    if (ex) return res.status(400).json({ error: 'Артикул уже добавлен' });
+    // Лимит
+    const cnt = await db.getAsync('SELECT COUNT(*) as c FROM comp_articles WHERE group_id = ?', [groupId]);
+    if (parseInt(cnt?.c) >= 15) return res.status(400).json({ error: 'Максимум 15 артикулов в группе' });
+
+    // Название товара
+    let productName = '';
+    try {
+      const cr = await fetch(`https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&nm=${article}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://www.wildberries.ru' }
+      });
+      const cd = await cr.json();
+      productName = cd?.data?.products?.[0]?.name || '';
+    } catch(e) {}
+
+    const r = await db.runAsync(
+      'INSERT INTO comp_articles (group_id, article, product_name, is_own) VALUES (?, ?, ?, ?) RETURNING id',
+      [groupId, String(article).trim(), productName, isOwn ? true : false]
+    );
+    // Сразу проверяем позицию
+    const grpData = await db.getAsync('SELECT keyword FROM comp_groups WHERE id = ?', [groupId]);
+    const pos = grpData ? await findPosition(article, grpData.keyword) : null;
+    if (pos !== null) {
+      await db.runAsync('INSERT INTO comp_positions (article_id, position) VALUES (?, ?)', [r.lastID, pos]);
+    }
+    res.json({ ok: true, id: r.lastID, productName, position: pos });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/comp/article/:id
+app.delete('/api/comp/article/:id', authMiddleware, async (req, res) => {
+  try {
+    // Проверяем через join что принадлежит юзеру
+    await db.runAsync(
+      `DELETE FROM comp_articles WHERE id = ? AND group_id IN (SELECT id FROM comp_groups WHERE user_id = ?)`,
+      [req.params.id, req.user.id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/comp/check/:groupId — проверить все позиции в группе
+app.post('/api/comp/check/:groupId', authMiddleware, async (req, res) => {
+  try {
+    const grp = await db.getAsync('SELECT * FROM comp_groups WHERE id = ? AND user_id = ?', [req.params.groupId, req.user.id]);
+    if (!grp) return res.status(404).json({ error: 'Группа не найдена' });
+    const articles = await db.allAsync('SELECT * FROM comp_articles WHERE group_id = ?', [grp.id]);
+    const results = [];
+    for (const a of articles) {
+      const pos = await findPosition(a.article, grp.keyword);
+      await db.runAsync('INSERT INTO comp_positions (article_id, position) VALUES (?, ?)', [a.id, pos]);
+      results.push({ article: a.article, position: pos });
+      await new Promise(r => setTimeout(r, 350));
+    }
+    res.json({ ok: true, results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/comp/history/:groupId — история позиций по датам (последние 7 дней)
+app.get('/api/comp/history/:groupId', authMiddleware, async (req, res) => {
+  try {
+    const grp = await db.getAsync('SELECT * FROM comp_groups WHERE id = ? AND user_id = ?', [req.params.groupId, req.user.id]);
+    if (!grp) return res.status(404).json({ error: 'Не найдена' });
+    const articles = await db.allAsync('SELECT * FROM comp_articles WHERE group_id = ? ORDER BY is_own DESC, created_at ASC', [grp.id]);
+    // Уникальные даты (до 10 последних)
+    const allDates = await db.allAsync(
+      `SELECT DISTINCT DATE(cp.checked_at) as d
+       FROM comp_positions cp
+       JOIN comp_articles ca ON ca.id = cp.article_id
+       WHERE ca.group_id = ?
+       ORDER BY d DESC LIMIT 10`,
+      [grp.id]
+    );
+    const dates = allDates.map(r => r.d);
+    // Позиции по каждому артикулу по каждой дате
+    const rows = [];
+    for (const a of articles) {
+      const positions = {};
+      for (const d of dates) {
+        const p = await db.getAsync(
+          `SELECT position FROM comp_positions WHERE article_id = ? AND DATE(checked_at) = ? ORDER BY checked_at DESC LIMIT 1`,
+          [a.id, d]
+        );
+        positions[d] = p?.position ?? null;
+      }
+      rows.push({ ...a, positions });
+    }
+    res.json({ group: grp, dates, rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════
+//  KEYWORD POSITION TRACKER
+// ═══════════════════════════════════════════════════
+
+// Поиск позиции артикула по ключевому слову (до 200 позиций = 2 страницы WB)
+async function findPosition(article, keyword) {
+  const artStr = String(article).trim();
+  for (let page = 1; page <= 2; page++) {
+    try {
+      const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?appType=1&curr=rub&dest=-1257786&query=${encodeURIComponent(keyword)}&resultset=catalog&limit=100&page=${page}&sort=popular`;
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Origin': 'https://www.wildberries.ru',
+          'Referer': 'https://www.wildberries.ru/',
+        }
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const products = data?.data?.products || [];
+      if (!products.length) break;
+      const idx = products.findIndex(p => String(p.id) === artStr);
+      if (idx !== -1) return (page - 1) * 100 + idx + 1;
+    } catch(e) { continue; }
+  }
+  return null; // не найден в топ 200
+}
+
+// GET /api/tracker — список всех трекеров пользователя с последней позицией
+app.get('/api/tracker', authMiddleware, async (req, res) => {
+  try {
+    const trackers = await db.allAsync(`
+      SELECT kt.id, kt.article, kt.product_name, kt.keyword, kt.created_at,
+        kp.position, kp.total, kp.checked_at,
+        (SELECT kp2.position FROM keyword_positions kp2 WHERE kp2.tracker_id = kt.id ORDER BY kp2.checked_at DESC OFFSET 1 LIMIT 1) as prev_position
+      FROM keyword_trackers kt
+      LEFT JOIN keyword_positions kp ON kp.id = (
+        SELECT id FROM keyword_positions WHERE tracker_id = kt.id ORDER BY checked_at DESC LIMIT 1
+      )
+      WHERE kt.user_id = ?
+      ORDER BY kt.created_at DESC
+    `, [req.user.id]);
+    res.json({ trackers });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/tracker/add — добавить ключевое слово
+app.post('/api/tracker/add', authMiddleware, async (req, res) => {
+  const { article, keyword } = req.body;
+  if (!article || !keyword) return res.status(400).json({ error: 'Нужен артикул и ключевое слово' });
+
+  try {
+    // Проверяем лимит (50 трекеров на пользователя)
+    const count = await db.getAsync('SELECT COUNT(*) as c FROM keyword_trackers WHERE user_id = ?', [req.user.id]);
+    if (parseInt(count?.c || 0) >= 50) return res.status(400).json({ error: 'Максимум 50 ключей на аккаунт' });
+
+    // Дубликат?
+    const exists = await db.getAsync(
+      'SELECT id FROM keyword_trackers WHERE user_id = ? AND article = ? AND keyword = ?',
+      [req.user.id, String(article).trim(), keyword.trim()]
+    );
+    if (exists) return res.status(400).json({ error: 'Этот ключ уже отслеживается' });
+
+    // Получаем название товара
+    let productName = '';
+    try {
+      const cardResp = await fetch(`https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&nm=${article}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://www.wildberries.ru' }
+      });
+      const cardData = await cardResp.json();
+      productName = cardData?.data?.products?.[0]?.name || '';
+    } catch(e) {}
+
+    const result = await db.runAsync(
+      'INSERT INTO keyword_trackers (user_id, article, product_name, keyword) VALUES (?, ?, ?, ?) RETURNING id',
+      [req.user.id, String(article).trim(), productName, keyword.trim()]
+    );
+
+    const trackerId = result.lastID;
+
+    // Сразу проверяем позицию
+    const position = await findPosition(article, keyword);
+    if (position !== null) {
+      await db.runAsync(
+        'INSERT INTO keyword_positions (tracker_id, position) VALUES (?, ?)',
+        [trackerId, position]
+      );
+    }
+
+    res.json({ ok: true, id: trackerId, productName, position });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/tracker/:id — удалить трекер
+app.delete('/api/tracker/:id', authMiddleware, async (req, res) => {
+  try {
+    await db.runAsync(
+      'DELETE FROM keyword_trackers WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/tracker/check — проверить позиции (все или один)
+app.post('/api/tracker/check', authMiddleware, async (req, res) => {
+  const { id } = req.body; // если id — проверяем один, иначе все
+  try {
+    const where = id ? 'kt.id = ? AND kt.user_id = ?' : 'kt.user_id = ?';
+    const params = id ? [id, req.user.id] : [req.user.id];
+    const trackers = await db.allAsync(
+      `SELECT * FROM keyword_trackers kt WHERE ${where}`, params
+    );
+
+    const results = [];
+    for (const t of trackers) {
+      const position = await findPosition(t.article, t.keyword);
+      await db.runAsync(
+        'INSERT INTO keyword_positions (tracker_id, position) VALUES (?, ?)',
+        [t.id, position]
+      );
+      results.push({ id: t.id, position });
+      // небольшая пауза чтобы не спамить WB
+      await new Promise(r => setTimeout(r, 300));
+    }
+    res.json({ ok: true, results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/tracker/history/:id — история позиций за 30 дней
+app.get('/api/tracker/history/:id', authMiddleware, async (req, res) => {
+  try {
+    // Проверяем что трекер принадлежит пользователю
+    const tracker = await db.getAsync(
+      'SELECT * FROM keyword_trackers WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!tracker) return res.status(404).json({ error: 'Не найден' });
+
+    const history = await db.allAsync(
+      `SELECT position, checked_at FROM keyword_positions
+       WHERE tracker_id = ? ORDER BY checked_at ASC
+       LIMIT 30`,
+      [req.params.id]
+    );
+    res.json({ tracker, history });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/privacy.html'));
 });
