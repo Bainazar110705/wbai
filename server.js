@@ -920,25 +920,27 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     // Фильтруем по периоду
     const inRange = date => date >= dateFrom && date <= dateTo;
 
-    // Группируем заказы по дням
+    // Группируем заказы по дням (только не отменённые)
     const ordersByDay = {};
     (Array.isArray(ordersRaw) ? ordersRaw : []).forEach(o => {
-      const day = (o.date || o.lastChangeDate || '').slice(0,10);
+      if (o.isCancel) return; // исключаем отменённые заказы
+      // Используем дату создания заказа (date), не дату последнего изменения
+      const day = (o.date || '').slice(0,10);
       if (!day || !inRange(day)) return;
       if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0 };
       ordersByDay[day].count++;
-      ordersByDay[day].sum += Math.round((o.priceWithDisc || o.totalPrice || 0));
+      ordersByDay[day].sum += Math.round(o.priceWithDisc || o.finishedPrice || 0);
     });
 
-    // Продажи (только выкупленные) по дням
+    // Продажи (выкупы — только не возвраты) по дням
     const salesByDay = {};
     (Array.isArray(salesRaw) ? salesRaw : []).forEach(s => {
-      if (s.saleID?.startsWith('R')) return; // возвраты
+      if (s.saleID?.startsWith('R')) return; // пропускаем возвраты
       const day = (s.date || '').slice(0,10);
       if (!day || !inRange(day)) return;
       if (!salesByDay[day]) salesByDay[day] = { count: 0, sum: 0 };
       salesByDay[day].count++;
-      salesByDay[day].sum += Math.round((s.priceWithDisc || s.forPay || 0));
+      salesByDay[day].sum += Math.round(s.priceWithDisc || s.forPay || 0);
     });
 
     // Прибыль (ppvz_for_pay) из финотчёта по дням
@@ -986,8 +988,9 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const prevInRange = d => d >= prevFrom && d <= prevTo;
     let prevOrders=0, prevRevenue=0, prevSales=0;
     (Array.isArray(prevOrdersRaw)?prevOrdersRaw:[]).forEach(o=>{
-      const d=(o.date||o.lastChangeDate||'').slice(0,10);
-      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.priceWithDisc||0);}
+      if (o.isCancel) return; // исключаем отменённые
+      const d=(o.date||'').slice(0,10);
+      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.priceWithDisc||o.finishedPrice||0);}
     });
     (Array.isArray(prevSalesRaw)?prevSalesRaw:[]).forEach(s=>{
       if(s.saleID?.startsWith('R')) return;

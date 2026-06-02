@@ -1534,8 +1534,19 @@ async function anLoad(from, to) {
   if (!AN.hasToken) return;
   const btn = document.getElementById('anRefreshBtn');
   if (btn) btn.disabled = true;
-  // Показываем загрузку
-  ['anMCount','anMSum','anMProfit'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='...'; });
+  // Сбрасываем ВСЕ показатели в состояние загрузки
+  ['anMCount','anMSum','anMProfit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '...';
+  });
+  ['anMCountDelta','anMSumDelta','anMProfitDelta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'an-card-delta eq'; }
+  });
+  ['anMCountPeriod','anMSumPeriod','anMProfitPeriod'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
   document.getElementById('anChartEmpty').style.display = 'none';
   document.getElementById('anCanvas').style.display = 'block';
   try {
