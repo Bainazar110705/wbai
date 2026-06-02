@@ -929,6 +929,11 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const wbToken = u.wb_api_token;
   const { dateFrom, dateTo } = wbDateRange(period, from, to);
 
+  // Рассчитываем предыдущий период ДО запросов
+  const diffMs = new Date(dateTo) - new Date(dateFrom);
+  const prevTo   = new Date(new Date(dateFrom).getTime() - 86400000).toISOString().slice(0,10);
+  const prevFrom = new Date(new Date(dateFrom).getTime() - diffMs - 86400000).toISOString().slice(0,10);
+
   try {
     // Последовательные запросы с задержкой — избегаем rate limit 429
     // 1. Заказы текущего периода
@@ -1010,12 +1015,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const sum = (arr, key) => arr.reduce((a,b) => a+(b[key]||0), 0);
     const totals = { orders: sum(allDays,'orders'), revenue: sum(allDays,'revenue'), sales: sum(allDays,'sales'), profit: sum(allDays,'profit') };
 
-    // Предыдущий период для сравнения
-    const diffMs = new Date(dateTo) - new Date(dateFrom);
-    const prevTo = new Date(new Date(dateFrom).getTime() - 86400000).toISOString().slice(0,10);
-    const prevFrom = new Date(new Date(dateFrom).getTime() - diffMs - 86400000).toISOString().slice(0,10);
-
-    // Предыдущий период — уже загружен выше (prevOrdersRaw)
+    // Предыдущий период — уже загружен выше (prevOrdersRaw), prevFrom/prevTo уже определены
     const prevInRange = d => d >= prevFrom && d <= prevTo;
     let prevOrders=0, prevRevenue=0;
     (Array.isArray(prevOrdersRaw)?prevOrdersRaw:[]).forEach(o=>{

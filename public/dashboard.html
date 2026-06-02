@@ -1300,7 +1300,8 @@ async function isGenerate(){
 
   try{
     var r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
-    var data=await r.json();
+    var data={};
+    try{ data=await r.json(); }catch(je){ data={error:'Ошибка сервера (код '+r.status+')'}; }
     if(!r.ok){
       // Replace placeholders with error
       for(var ei=0;ei<IS.count;ei++){
