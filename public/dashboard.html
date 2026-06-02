@@ -297,6 +297,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .is-empty-text{font-size:14px;opacity:.4}
 .is-error{background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);color:#fca5a5;padding:14px;border-radius:10px;font-size:13px;margin:12px 0}
 @media(max-width:900px){.is-layout{grid-template-columns:1fr}}
+.is-angle-slot{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;position:relative;transition:border-color .2s;background:var(--surface2)}
+.is-angle-slot:hover{border-color:var(--p2)}
+.is-angle-slot img{width:100%;height:100%;object-fit:cover;display:none}
+.is-angle-slot img.on{display:block}
+.is-angle-slot .slot-rm{position:absolute;inset:0;background:rgba(255,77,106,0.8);display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+.is-angle-slot:hover .slot-rm.on{display:flex}
+.is-pending{border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;gap:10px;opacity:.7}
+.is-pending .is-spinner{width:32px;height:32px;border-width:2px}
+.is-pending-label{font-size:11px;color:var(--muted);text-align:center;padding:0 12px}
 @media(max-width:640px){.is-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -701,11 +710,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
             <input type="file" id="isProdFile" accept="image/*">
             <div class="is-ph" id="isProdPh">
               <div class="is-drop-icon">🖼️</div>
-              <div class="is-drop-text">Нажмите или перетащите</div>
+              <div class="is-drop-text">Главное фото</div>
               <div class="is-drop-sub">JPG, PNG, WEBP · до 10 МБ</div>
             </div>
             <img class="is-preview" id="isProdPreview">
             <button class="is-rm" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')">✕</button>
+          </div>
+          <div style="margin-top:8px">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📷 ЕЩЁ РАКУРСЫ (необязательно)</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px" id="isAnglesGrid"></div>
           </div>
         </div>
 
@@ -967,7 +980,7 @@ function checkSubExpiry(sub) {
 // ═══════════════════════════════════════════════════════
 //  INFOGRAPHIC STUDIO
 // ═══════════════════════════════════════════════════════
-var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, generating:false, initialized:false };
+var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, activeJobs:0, initialized:false, angleB64:[] };
 var IS_HIST_KEY = 'wbai_inf_v2';
 
 function isInit() {
@@ -977,6 +990,42 @@ function isInit() {
   isSetupDrop('isRefDrop','isRefFile',function(b64){IS.refB64=b64;isShowPreview('isRefPreview','isRefPh','isRefRm',b64);});
   isRefreshCredits();
   isRefreshHistCount();
+  // Build angle slots
+  var ag = document.getElementById('isAnglesGrid');
+  if(ag && ag.children.length === 0) {
+    for(var i=0;i<4;i++){
+      (function(idx){
+        var slot = document.createElement('div');
+        slot.className='is-angle-slot';
+        slot.id='isAngle'+idx;
+        slot.innerHTML='<span style="color:var(--muted)">+</span><img id="isAngleImg'+idx+'"><div class="slot-rm" id="isAngleRm'+idx+'">✕</div>';
+        slot.onclick=function(){ if(!IS.angleB64[idx]) document.getElementById('isAngleFile'+idx).click(); };
+        ag.appendChild(slot);
+        var fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.style.display='none';fi.id='isAngleFile'+idx;
+        fi.onchange=function(e){if(e.target.files[0])isReadFile(e.target.files[0],function(b64){
+          IS.angleB64[idx]=b64;
+          var img=document.getElementById('isAngleImg'+idx);
+          var rm=document.getElementById('isAngleRm'+idx);
+          var icon=document.querySelector('#isAngle'+idx+' > span');
+          if(img){img.src=b64;img.classList.add('on');}
+          if(rm)rm.classList.add('on');
+          if(icon)icon.style.display='none';
+        });};
+        document.body.appendChild(fi);
+        document.getElementById('isAngleRm'+idx).onclick=function(e){
+          e.stopPropagation();
+          IS.angleB64[idx]=null;
+          var img=document.getElementById('isAngleImg'+idx);
+          var rm=document.getElementById('isAngleRm'+idx);
+          var icon=document.querySelector('#isAngle'+idx+' > span');
+          if(img){img.src='';img.classList.remove('on');}
+          if(rm)rm.classList.remove('on');
+          if(icon)icon.style.display='';
+          document.getElementById('isAngleFile'+idx).value='';
+        };
+      })(i);
+    }
+  }
 }
 
 function isRefreshCredits() {
@@ -1042,54 +1091,86 @@ function isShowTab(tab){
 }
 
 async function isGenerate(){
-  if(IS.generating)return;
   if(!IS.prodB64){isShowError('Загрузите фото товара');return;}
-  IS.generating=true;
-  document.getElementById('isGenBtn').disabled=true;
+  if(!currentUser||currentUser.plan!=='max')return;
+
+  // Parallel: each job gets unique id, no blocking
+  var jobId='job_'+Date.now();
+  IS.activeJobs++;
+  isUpdateGenBtn();
+
+  // Show grid, hide empty/error
   document.getElementById('isEmptyNew').style.display='none';
-  document.getElementById('isLoading').style.display='flex';
-  document.getElementById('isNewGrid').style.display='none';
   document.getElementById('isError').style.display='none';
+  var grid=document.getElementById('isNewGrid');
+  grid.style.display='grid';
   isShowTab('new');
 
-  var steps=['Анализирую фото...','Строю композицию...','Генерирую инфографику...','Финальная обработка...'];
-  var si=0,st=setInterval(function(){si=Math.min(si+1,steps.length-1);var el=document.getElementById('isLoadText');if(el)el.textContent=steps[si];},14000);
+  // Create pending placeholder cards (one per requested image)
+  var refLabel=IS.refB64?'со стилем':'авто';
+  for(var pi=0;pi<IS.count;pi++){
+    var ph=document.createElement('div');
+    ph.className='is-pending';
+    ph.id=jobId+'_'+pi;
+    ph.innerHTML='<div class="is-spinner"></div><div class="is-pending-label">'+IS.ratio+' · '+refLabel+'</div>';
+    grid.insertBefore(ph,grid.firstChild);
+  }
+
+  var extraAngles=IS.angleB64.filter(Boolean);
+  var body={
+    imageBase64:IS.prodB64,
+    styleImageBase64:IS.refB64||null,
+    extraImages:extraAngles.length?extraAngles:null,
+    productName:document.getElementById('isName').value.trim(),
+    specs:document.getElementById('isSpecs').value.trim(),
+    prompt:document.getElementById('isPrompt').value.trim(),
+    modelId:'nano-banana-2',mode:'create',
+    aspectRatio:IS.ratio,numImages:IS.count
+  };
 
   try{
-    var body={
-      imageBase64:IS.prodB64,
-      styleImageBase64:IS.refB64||null,
-      productName:document.getElementById('isName').value.trim(),
-      specs:document.getElementById('isSpecs').value.trim(),
-      prompt:document.getElementById('isPrompt').value.trim(),
-      modelId:'nano-banana-2',mode:'create',
-      aspectRatio:IS.ratio,numImages:IS.count
-    };
     var r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
     var data=await r.json();
-    clearInterval(st);
-    if(!r.ok){isShowError(data.error||'Ошибка генерации');return;}
+    if(!r.ok){
+      // Replace placeholders with error
+      for(var ei=0;ei<IS.count;ei++){
+        var ep=document.getElementById(jobId+'_'+ei);
+        if(ep){ep.style.border='1px solid rgba(255,77,106,0.4)';ep.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:12px;text-align:center">❌ '+(data.error||'Ошибка')+'</div>';}
+      }
+      return;
+    }
     var imgs=data.images||[data.imageBase64].filter(Boolean);
-    if(!imgs.length){isShowError('Не удалось получить изображение');return;}
-
     if(currentUser){
       currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-IS.count);
       document.getElementById('isCreditsNum').textContent=currentUser.photo_credits;
       var sc=document.getElementById('statCredits');if(sc)sc.textContent=currentUser.photo_credits;
     }
-
     var userPrompt=[body.productName,body.specs,body.prompt].filter(Boolean).join(' · ').slice(0,100)||'Без описания';
-    var entry={id:Date.now()+'',images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
+    var entry={id:jobId,images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
     isSaveHistory(entry);
-    isRenderNewGrid(imgs,entry);
-
+    // Replace placeholders with real images
+    imgs.forEach(function(b64,i){
+      var ph2=document.getElementById(jobId+'_'+i);
+      var card=isCard(b64,userPrompt,jobId+'_'+i,jobId);
+      if(ph2&&ph2.parentNode) ph2.parentNode.replaceChild(card,ph2);
+    });
   }catch(e){
-    clearInterval(st);
-    isShowError('Ошибка соединения. Попробуйте ещё раз.');
+    for(var ei2=0;ei2<IS.count;ei2++){
+      var ep2=document.getElementById(jobId+'_'+ei2);
+      if(ep2){ep2.style.border='1px solid rgba(255,77,106,0.4)';ep2.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:12px;text-align:center">❌ Ошибка соединения</div>';}
+    }
   }finally{
-    IS.generating=false;
-    document.getElementById('isGenBtn').disabled=currentUser?.plan!=='max';
+    IS.activeJobs=Math.max(0,IS.activeJobs-1);
+    isUpdateGenBtn();
   }
+}
+
+function isUpdateGenBtn(){
+  var btn=document.getElementById('isGenBtn');
+  if(!btn)return;
+  var ok=currentUser&&currentUser.plan==='max';
+  btn.disabled=!ok;
+  btn.textContent=IS.activeJobs>0?'✨ Ещё генерацию ('+(IS.activeJobs+' активно)'):'✨ Генерировать';
 }
 
 function isRenderNewGrid(imgs,entry){
