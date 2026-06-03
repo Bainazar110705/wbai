@@ -517,6 +517,7 @@ ${textLines.slice(1).map(t => `   - "${t.replace(/^"|"$/g, '')}"`).join('\n') ||
 === EXACT TEXT TO DISPLAY ===
 ${textBlock || '(derive key specs from product characteristics)'}
 FORBIDDEN: text from reference, watermarks, barcodes, or any text not listed above.
+FORBIDDEN: repeating the same spec or text more than once — each item appears exactly ONE time.
 
 ${accessoriesBlock}
 ${extraText ? `\n=== USER REQUEST — HIGHEST PRIORITY ===\n${extraText}` : ''}
