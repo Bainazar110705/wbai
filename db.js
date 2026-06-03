@@ -71,21 +71,6 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
-  // Аналитика — сохранённые данные из расширения
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS analytics_data (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      date DATE NOT NULL,
-      orders INTEGER DEFAULT 0,
-      revenue BIGINT DEFAULT 0,
-      profit BIGINT DEFAULT 0,
-      source VARCHAR(100) DEFAULT 'manual',
-      created_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(user_id, date)
-    )
-  `);
-
   console.log('[WBai] Database ready');
 }
 
