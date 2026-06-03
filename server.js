@@ -32,6 +32,7 @@ const imageLimiter = rateLimit({
   message: { error: 'Максимум 3 генерации в минуту.' }
 });
 
+app.set('trust proxy', 1); // Railway runs behind a proxy
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
