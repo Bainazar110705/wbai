@@ -248,19 +248,23 @@ async function analyzeStyleWithClaude(styleImageBase64) {
       headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
+        max_tokens: 800,
         messages: [{
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
-            { type: 'text', text: `Analyze this Wildberries product infographic for an AI image generator. Describe ONLY the visual design, ignore the products shown. Include:
-1. BACKGROUND: exact colors, gradient direction, any split/diagonal patterns
-2. COLOR PALETTE: list all colors used (use hex codes if visible, or precise color names like "deep yellow #FFD700", "near-black #1A1A1A")
-3. TEXT BLOCK STYLE: color of text, background of spec blocks (rounded rects? what fill color?), any borders/glows
-4. TITLE AREA: position, style, colors
-5. DECORATIVE ELEMENTS: shapes, icons, dividers, badges — describe exactly
-6. OVERALL MOOD: dark/light/colorful/minimal
-Be specific and detailed — this will be given to an AI image generator.` }
+            { type: 'text', text: `Analyze this product infographic style for an AI image generator. Describe ONLY visual design — NOT the product or text content. Be very specific:
+
+1. BACKGROUND: exact colors (hex), gradient direction, diagonal splits, patterns, texture
+2. COLOR PALETTE: every color used — bg, text, badges, accents, glows (e.g. "navy #0A1628", "cyan #00D4FF")
+3. SPEC BADGE STYLE (critical): shape (pill/rounded-square/circle), fill color, border (color+thickness), glow/shadow, inner layout (icon+number+label arrangement)
+4. ICON STYLE: outline or filled? line weight? colored or monochrome? any icons inside badges?
+5. TYPOGRAPHY: font weight, size hierarchy, letter spacing, any italic or condensed
+6. PRODUCT LIGHTING: direction, rim light color, shadow softness
+7. DECORATIVE ELEMENTS: dividers, shapes, overlays, shields, corner elements
+8. THEME: dark/light, warm/cool, contrast level
+
+Be concise bullet list. This goes directly into an AI image generator prompt.` }
           ]
         }]
       })
@@ -545,10 +549,9 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
   try {
-    // Шаг 1: Claude анализирует стиль только для FLUX моделей
-    // Nano Banana получает референс напрямую как изображение
+    // Шаг 1: Claude анализирует стиль для ВСЕХ моделей — описание иконок критично
     let styleAnalysis = null;
-    if (styleImageBase64 && !selectedModelId.startsWith('nano-banana')) {
+    if (styleImageBase64) {
       styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
     }
 
