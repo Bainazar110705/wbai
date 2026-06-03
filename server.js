@@ -998,61 +998,70 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   }
 });
 
-// ── POST /api/generate-series — обрабатывает до 5 страниц параллельно ─────────
+// ── POST /api/generate-series — обрабатывает до 5 страниц последовательно ─────
 app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
-  const { pages, styleImageBase64, aspectRatio } = req.body;
-  if (!pages?.length) return res.status(400).json({ error: 'Нет страниц для обработки' });
-  if (!styleImageBase64) return res.status(400).json({ error: 'Загрузите референс стиля' });
+  try {
+    const { pages, styleImageBase64, aspectRatio } = req.body;
+    if (!pages?.length) return res.status(400).json({ error: 'Нет страниц для обработки' });
+    if (!styleImageBase64) return res.status(400).json({ error: 'Загрузите референс стиля' });
 
-  const pageList = pages.slice(0, 5).filter(Boolean);
-  const requestedRatio = ['3:4','1:1','8:5','4:3','16:9'].includes(aspectRatio) ? aspectRatio : '3:4';
+    const pageList = pages.slice(0, 5).filter(Boolean);
+    const requestedRatio = ['3:4','1:1','8:5','4:3','16:9'].includes(aspectRatio) ? aspectRatio : '3:4';
 
-  // Проверяем кредиты
-  const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
-  const credits = userCredits?.photo_credits || 0;
-  if (credits < pageList.length) {
-    return res.status(403).json({ error: `Нужно ${pageList.length} кредитов, у вас ${credits}`, credits_required: true });
+    // Проверяем кредиты
+    const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+    const credits = userCredits?.photo_credits || 0;
+    if (credits < pageList.length) {
+      return res.status(403).json({ error: `Нужно ${pageList.length} кредитов, у вас ${credits}`, credits_required: true });
+    }
+
+    // Claude анализирует стиль один раз
+    let styleAnalysis = null;
+    try {
+      if (CLAUDE_API_KEY) styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
+    } catch(e) { console.error('[WBai] Series Claude error:', e.message); }
+    const seriesPrompt = buildStyleTransferPrompt(styleAnalysis);
+
+    console.log(`[WBai] Серия: ${pageList.length} страниц`);
+
+    // Обрабатываем страницы последовательно с паузой — надёжнее чем параллельно
+    const output = [];
+    let succeeded = 0;
+
+    for (let idx = 0; idx < pageList.length; idx++) {
+      try {
+        const falBody = {
+          prompt: seriesPrompt,
+          image_urls: [prepareImageForFal(pageList[idx]), prepareImageForFal(styleImageBase64)],
+          aspect_ratio: requestedRatio,
+          num_images: 1,
+          safety_tolerance: '5',
+        };
+        const result = await callFalApi('fal-ai/nano-banana-2/edit', falBody);
+        const urls = (result?.images || []).map(img => img.url).filter(Boolean);
+        if (!urls.length) throw new Error('Нет изображения');
+
+        // Списываем кредит сразу после успешной генерации
+        await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - 1) WHERE id = ?', [req.user.id]);
+        succeeded++;
+        output.push({ idx, url: urls[0], error: null });
+        console.log(`[WBai] Серия стр.${idx+1} готова (${succeeded}/${pageList.length})`);
+
+        // Пауза между запросами чтобы не перегружать fal.ai
+        if (idx < pageList.length - 1) await new Promise(r => setTimeout(r, 500));
+      } catch(e) {
+        console.error(`[WBai] Серия стр.${idx+1} ошибка:`, e.message);
+        output.push({ idx, url: null, error: e.message || 'Ошибка генерации' });
+      }
+    }
+
+    const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+    res.json({ results: output, credits_left: remaining?.photo_credits || 0, credits_used: succeeded });
+
+  } catch(e) {
+    console.error('[WBai] generate-series fatal:', e.message);
+    res.status(500).json({ error: 'Ошибка сервера: ' + e.message });
   }
-
-  // Claude анализирует стиль один раз для всех страниц
-  let styleAnalysis = null;
-  if (CLAUDE_API_KEY) {
-    styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
-  }
-  const seriesPrompt = buildStyleTransferPrompt(styleAnalysis);
-
-  console.log(`[WBai] Серия: ${pageList.length} страниц параллельно`);
-
-  // Параллельная генерация всех страниц
-  const results = await Promise.allSettled(pageList.map(async (pageB64, idx) => {
-    const falBody = {
-      prompt: seriesPrompt,
-      image_urls: [prepareImageForFal(pageB64), prepareImageForFal(styleImageBase64)],
-      aspect_ratio: requestedRatio,
-      num_images: 1,
-      safety_tolerance: '5',
-    };
-    const result = await callFalApi('fal-ai/nano-banana-2/edit', falBody);
-    const urls = (result?.images || []).map(img => img.url).filter(Boolean);
-    if (!urls.length) throw new Error('Нет результата для стр.' + (idx+1));
-    console.log(`[WBai] Серия стр.${idx+1} готова`);
-    return { idx, url: urls[0] };
-  }));
-
-  // Считаем успешные и списываем кредиты
-  const succeeded = results.filter(r => r.status === 'fulfilled').length;
-  if (succeeded > 0) {
-    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - ?) WHERE id = ?', [succeeded, req.user.id]);
-  }
-  const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
-
-  const output = results.map((r, idx) => ({
-    idx,
-    url: r.status === 'fulfilled' ? r.value.url : null,
-    error: r.status === 'rejected' ? r.reason?.message : null
-  }));
-
-  res.json({ results: output, credits_left: remaining?.photo_credits || 0, credits_used: succeeded });
 });
 
 app.get('/privacy', (req, res) => {

@@ -1012,6 +1012,11 @@ async function init() {
     checkSubExpiry(d.subscription);
     if(d.subscription?.active) loadTemplates();
     else document.getElementById('templatesContent').innerHTML='<div class="empty-state">📦 Шаблоны доступны после активации подписки.</div>';
+    // Восстанавливаем последнюю открытую страницу
+    const lastPage = localStorage.getItem('wbai_last_page');
+    if(lastPage && lastPage !== 'home' && document.getElementById('page-'+lastPage)) {
+      showPage(lastPage);
+    }
   } catch(e){ console.error(e); }
 }
 
@@ -1087,10 +1092,11 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
-  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',settings:'настройки',install:'установка',credits:'кредит',infographic:'студия'};
+  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',settings:'настройки',install:'установка',credits:'кредит',infographic:'студия',analytics:'аналитика'};
   document.querySelectorAll('.nav-item').forEach(n=>{
     if(n.textContent.toLowerCase().includes(map[name]||name)) n.classList.add('active');
   });
+  localStorage.setItem('wbai_last_page', name);
   if(name==='history') loadHistory();
   if(name==='infographic') isInit();
   if(name==='analytics') anInit();
