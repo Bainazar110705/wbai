@@ -1274,14 +1274,39 @@ function isPasteSetHighlight(zone) {
 function isPasteImage(b64) {
   if(!b64) return;
   if(IS.clipFocus) {
-    // Paste directly to focused zone
     isPasteToZone(IS.clipFocus, b64);
     IS.clipFocus = null;
     isPasteSetHighlight(null);
-  } else {
-    // No zone selected — show popup to choose
-    isPasteShowPopup(b64, null);
+    return;
   }
+  // Авто-маршрут: заполняем слоты по порядку
+  if(!IS.prodB64) {
+    isPasteToZone('prod', b64);
+  } else {
+    // Ищем первый пустой слот ракурсов
+    var filled = false;
+    for(var i=0; i<4; i++) {
+      if(!IS.angleB64[i]) {
+        isSetAngleSlot(i, b64);
+        filled = true;
+        break;
+      }
+    }
+    if(!filled) {
+      // Все слоты заняты — показываем попап
+      isPasteShowPopup(b64, null);
+    }
+  }
+}
+
+function isSetAngleSlot(idx, b64) {
+  IS.angleB64[idx] = b64;
+  var img  = document.getElementById('isAngleImg'+idx);
+  var rm   = document.getElementById('isAngleRm'+idx);
+  var icon = document.querySelector('#isAngle'+idx+' > span');
+  if(img){img.src=b64;img.classList.add('on');}
+  if(rm) rm.classList.add('on');
+  if(icon) icon.style.display='none';
 }
 
 var _pasteB64Pending = null;
@@ -1337,60 +1362,69 @@ async function isGenerateSeries() {
   var btn = document.getElementById('isGenBtn');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Генерирую '+pages.length+' стр...'; }
 
-  // Create placeholders for all pages
+  // Создаём плейсхолдеры
   var panel = document.getElementById('isPanelNew');
   if(panel) panel.innerHTML = '';
   var grid = document.createElement('div');
   grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px';
   if(panel) panel.appendChild(grid);
 
-  var jobIds = pages.map(function(){ return 'ser_'+Date.now()+'_'+Math.random().toString(36).slice(2); });
-  jobIds.forEach(function(jid, i){
+  var jobId = 'ser_'+Date.now();
+  pages.forEach(function(_,i){
     var ph=document.createElement('div');
-    ph.id=jid+'_0'; ph.className='is-placeholder';
+    ph.id=jobId+'_'+i; ph.className='is-placeholder';
     ph.innerHTML='<div class="is-spinner"></div><div class="is-pending-label">Стр. '+(i+1)+' · '+IS.ratio+'</div>';
     grid.appendChild(ph);
   });
 
-  // Fire all requests in parallel
-  var promises = pages.map(function(pageB64, i) {
-    var body = {
-      imageBase64: pageB64,
-      styleImageBase64: IS.refB64,
-      productName: document.getElementById('isName').value.trim(),
-      specs: document.getElementById('isSpecs').value.trim(),
-      prompt: document.getElementById('isPrompt').value.trim(),
-      modelId:'nano-banana-2', mode:'redesign',
-      aspectRatio: IS.ratio, numImages: 1
-    };
-    return fetch('/api/generate-image', {
+  try {
+    var r = await fetch('/api/generate-series', {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify(body)
-    }).then(function(r){
-      var d={};
-      return r.json().then(function(j){d=j;}).catch(function(){d={error:'Ошибка '+r.status};}).then(function(){
-        var ph = document.getElementById(jobIds[i]+'_0');
-        if(!r.ok || !d.imageUrls && !d.images && !d.imageBase64) {
-          if(ph){ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(d.error||'Ошибка')+'</div>';}
-          return;
-        }
-        var imgs = d.imageUrls||d.images||[d.imageBase64].filter(Boolean);
-        if(currentUser&&d.credits_left!=null) { currentUser.photo_credits=d.credits_left; document.getElementById('isCreditsNum').textContent=d.credits_left; }
-        var userPrompt = 'Серия стр.'+(i+1);
-        var entry={id:jobIds[i],images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
-        isSaveHistory(entry);
-        if(ph && ph.parentNode) ph.parentNode.replaceChild(isCard(imgs[0], userPrompt, jobIds[i]+'_0', jobIds[i]), ph);
-      });
-    }).catch(function(e){
-      var ph=document.getElementById(jobIds[i]+'_0');
-      if(ph)ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(e.message||'Ошибка')+'</div>';
+      body: JSON.stringify({
+        pages: pages,
+        styleImageBase64: IS.refB64,
+        aspectRatio: IS.ratio
+      })
     });
-  });
+    var data={};
+    try{ data=await r.json(); }catch(e){ data={error:'Ошибка сервера '+r.status}; }
 
-  await Promise.allSettled(promises);
-  if(btn){btn.disabled=false;btn.textContent='✨ Запустить серию';}
-  isRefreshHistCount();
+    if(!r.ok) {
+      pages.forEach(function(_,i){
+        var ph=document.getElementById(jobId+'_'+i);
+        if(ph) ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(data.error||'Ошибка')+'</div>';
+      });
+      return;
+    }
+
+    if(currentUser && data.credits_left != null) {
+      currentUser.photo_credits = data.credits_left;
+      document.getElementById('isCreditsNum').textContent = data.credits_left;
+      var sc=document.getElementById('statCredits'); if(sc) sc.textContent=data.credits_left;
+    }
+
+    (data.results||[]).forEach(function(res){
+      var ph = document.getElementById(jobId+'_'+res.idx);
+      if(!ph) return;
+      if(res.error || !res.url) {
+        ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(res.error||'Ошибка')+'</div>';
+        return;
+      }
+      var label='Серия стр.'+(res.idx+1);
+      var entry={id:jobId+'_'+res.idx,images:[res.url],prompt:label,ratio:IS.ratio,ts:Date.now(),liked:false};
+      isSaveHistory(entry);
+      ph.parentNode.replaceChild(isCard(res.url, label, jobId+'_'+res.idx, jobId+'_'+res.idx), ph);
+    });
+    isRefreshHistCount();
+  } catch(e) {
+    pages.forEach(function(_,i){
+      var ph=document.getElementById(jobId+'_'+i);
+      if(ph) ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(e.message||'Ошибка')+'</div>';
+    });
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='✨ Запустить серию'; }
+  }
 }
 
 function isInit() {

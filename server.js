@@ -28,7 +28,7 @@ const aiLimiter = rateLimit({
 });
 const imageLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 3,
+  max: 6,
   message: { error: 'Максимум 3 генерации в минуту.' }
 });
 
@@ -361,6 +361,47 @@ app.get('/api/models', authMiddleware, (req, res) => {
 });
 
 // Построитель промптов под каждую модель
+
+// ── Промпт для STYLE TRANSFER (Редизайн + Серия) ─────────────────────────────
+// Сохраняет ВСЁ содержимое, меняет ТОЛЬКО визуальный стиль
+function buildStyleTransferPrompt(styleAnalysis) {
+  return `TASK: PURE STYLE TRANSFER. Do NOT recreate. Do NOT redesign.
+
+════════════════════════════════════════════════
+IMAGE 1 = SOURCE PAGE (content is sacred)
+LAST IMAGE = STYLE REFERENCE (design only)
+════════════════════════════════════════════════
+
+FROM IMAGE 1 — PRESERVE EXACTLY (do not change):
+✅ Product: exact position, angle, size, lighting
+✅ All text: every word, number, label — exactly as shown
+✅ Layout: where each element is placed on the page
+✅ Badge positions: exact same locations
+✅ Icon positions: exact same locations
+✅ Spacing and proportions between elements
+
+FROM LAST IMAGE — APPLY TO IMAGE 1:
+🎨 Background: colors, gradient, pattern, diagonal splits
+🎨 Badge fill colors and border style
+🎨 Text colors (titles, labels, numbers)
+🎨 Icon visual style (outline/filled, color)
+🎨 Decorative elements style (dividers, shapes, glows)
+🎨 Overall color palette and mood
+
+FORBIDDEN:
+❌ Moving any element from its position
+❌ Changing any text or number
+❌ Changing product angle or size
+❌ Adding new elements not in Image 1
+❌ Removing elements that exist in Image 1
+❌ Using product from last image
+
+${styleAnalysis ? `STYLE DETAILS FROM ANALYSIS:
+${styleAnalysis}` : ''}
+
+RESULT: Image 1 content + Last image visual style = final output.`;
+}
+
 function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef, mode }) {
   const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
   const isRedesign = mode === 'redesign';
@@ -563,11 +604,16 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     const extraText = prompt || '';
     const accessoriesBlock = buildAccessoriesInstructions(productName, specs);
 
-    // Шаг 3: Промпт под модель
-    const finalPrompt = buildPrompt(selectedModelId, {
-      title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock,
-      hasStyleRef: !!styleImageBase64, mode: mode || 'create'
-    });
+    // Шаг 3: Промпт под модель — для редизайна используем style transfer промпт
+    let finalPrompt;
+    if (mode === 'redesign') {
+      finalPrompt = buildStyleTransferPrompt(styleAnalysis);
+    } else {
+      finalPrompt = buildPrompt(selectedModelId, {
+        title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock,
+        hasStyleRef: !!styleImageBase64, mode: mode || 'create'
+      });
+    }
 
     // Шаг 4: Подготавливаем все фото
     let imageUrl = null;
@@ -950,6 +996,63 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     console.error('[WBai] wb-analytics error:', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── POST /api/generate-series — обрабатывает до 5 страниц параллельно ─────────
+app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
+  const { pages, styleImageBase64, aspectRatio } = req.body;
+  if (!pages?.length) return res.status(400).json({ error: 'Нет страниц для обработки' });
+  if (!styleImageBase64) return res.status(400).json({ error: 'Загрузите референс стиля' });
+
+  const pageList = pages.slice(0, 5).filter(Boolean);
+  const requestedRatio = ['3:4','1:1','8:5','4:3','16:9'].includes(aspectRatio) ? aspectRatio : '3:4';
+
+  // Проверяем кредиты
+  const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+  const credits = userCredits?.photo_credits || 0;
+  if (credits < pageList.length) {
+    return res.status(403).json({ error: `Нужно ${pageList.length} кредитов, у вас ${credits}`, credits_required: true });
+  }
+
+  // Claude анализирует стиль один раз для всех страниц
+  let styleAnalysis = null;
+  if (CLAUDE_API_KEY) {
+    styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
+  }
+  const seriesPrompt = buildStyleTransferPrompt(styleAnalysis);
+
+  console.log(`[WBai] Серия: ${pageList.length} страниц параллельно`);
+
+  // Параллельная генерация всех страниц
+  const results = await Promise.allSettled(pageList.map(async (pageB64, idx) => {
+    const falBody = {
+      prompt: seriesPrompt,
+      image_urls: [prepareImageForFal(pageB64), prepareImageForFal(styleImageBase64)],
+      aspect_ratio: requestedRatio,
+      num_images: 1,
+      safety_tolerance: '5',
+    };
+    const result = await callFalApi('fal-ai/nano-banana-2/edit', falBody);
+    const urls = (result?.images || []).map(img => img.url).filter(Boolean);
+    if (!urls.length) throw new Error('Нет результата для стр.' + (idx+1));
+    console.log(`[WBai] Серия стр.${idx+1} готова`);
+    return { idx, url: urls[0] };
+  }));
+
+  // Считаем успешные и списываем кредиты
+  const succeeded = results.filter(r => r.status === 'fulfilled').length;
+  if (succeeded > 0) {
+    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - ?) WHERE id = ?', [succeeded, req.user.id]);
+  }
+  const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+
+  const output = results.map((r, idx) => ({
+    idx,
+    url: r.status === 'fulfilled' ? r.value.url : null,
+    error: r.status === 'rejected' ? r.reason?.message : null
+  }));
+
+  res.json({ results: output, credits_left: remaining?.photo_credits || 0, credits_used: succeeded });
 });
 
 app.get('/privacy', (req, res) => {
