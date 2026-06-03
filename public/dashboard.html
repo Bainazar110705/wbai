@@ -1295,7 +1295,7 @@ async function isGenerate(){
       }
       return;
     }
-    var imgs=data.images||[data.imageBase64].filter(Boolean);
+    var imgs = data.imageUrls || data.images || [data.imageBase64].filter(Boolean);
     if(currentUser){
       currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-IS.count);
       document.getElementById('isCreditsNum').textContent=currentUser.photo_credits;

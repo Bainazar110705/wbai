@@ -633,21 +633,15 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
       return res.status(500).json({ error: 'Изображение не сгенерировано' });
     }
 
-    // Скачиваем все как base64 (нет CORS в расширении)
-    const allBase64 = await Promise.all(allUrls.map(async url => {
-      const imgResp = await fetch(url);
-      const imgBuffer = await imgResp.arrayBuffer();
-      return 'data:image/jpeg;base64,' + Buffer.from(imgBuffer).toString('base64');
-    }));
-
-    // Списываем кредиты (количество реально сгенерированных)
-    const used = allBase64.length;
+    // Списываем кредиты сразу (не ждём скачивания)
+    const used = allUrls.length;
     await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits - ?) WHERE id = ?', [used, req.user.id]);
-
-    // Возвращаем остаток кредитов
     const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+
     console.log(`[WBai] Готово! Модель: ${selectedModelId}, изображений: ${used}, кредитов осталось: ${remaining?.photo_credits || 0}`);
-    res.json({ images: allBase64, imageBase64: allBase64[0], credits_left: remaining?.photo_credits || 0, credits_used: used, modelUsed: selectedModelId });
+
+    // Возвращаем URL напрямую — клиент грузит сам (быстро, без скачивания на сервере)
+    res.json({ imageUrls: allUrls, images: allUrls, imageBase64: allUrls[0], credits_left: remaining?.photo_credits || 0, credits_used: used, modelUsed: selectedModelId });
 
   } catch(e) {
     console.error('[WBai] generate-image error:', e.message, e.cause || '');
