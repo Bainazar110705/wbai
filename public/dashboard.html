@@ -361,6 +361,31 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-input:focus{outline:none;border-color:var(--p)}
 .an-btn{padding:9px 18px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .an-err{background:var(--red-bg);border:1px solid var(--red);border-radius:7px;padding:7px 10px;color:var(--red);font-size:12px;margin-top:8px;display:none}
+
+/* ── Paste button & popup ── */
+.is-paste-btn{position:absolute;top:6px;right:36px;width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .15s}
+.is-paste-btn:hover{background:var(--p3);border-color:var(--p);color:var(--p2)}
+#isPastePopup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:180px}
+#isPastePopup .pp-title{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+#isPastePopup button{display:block;width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;transition:background .1s}
+#isPastePopup button:hover{background:var(--p3);border-color:var(--p);color:var(--p2)}
+#isPastePopup button:last-child{margin-bottom:0}
+/* ── Mode buttons ── */
+.is-mode-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:2px}
+.is-mode-btn{padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+.is-mode-btn.on{background:var(--p);border-color:var(--p);color:#fff}
+.is-mode-hint{font-size:11px;color:var(--p2);margin-top:5px;min-height:16px}
+/* ── Series slots ── */
+.is-series-wrap{display:none}
+.is-series-wrap.on{display:block}
+.is-series-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.is-series-slot{aspect-ratio:3/4;border:1.5px dashed var(--border);border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
+.is-series-slot:hover{border-color:var(--p)}
+.is-series-slot.has-img{border-style:solid;border-color:var(--p)}
+.is-series-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:6px}
+.is-series-slot .sl-rm{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.is-series-slot.has-img .sl-rm{display:flex}
+.is-series-slot .sl-plus{font-size:18px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -759,6 +784,15 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <!-- CONTROLS -->
       <div class="is-panel">
 
+        <div class="is-sec" style="padding-bottom:2px">
+          <div class="is-mode-row">
+            <button class="is-mode-btn on" id="isModeCreate" onclick="isSetMode('create',this)">📸 Новая инфографика</button>
+            <button class="is-mode-btn" id="isModeRedesign" onclick="isSetMode('redesign',this)">🔄 Редизайн карточки</button>
+            <button class="is-mode-btn" id="isModeSeries" onclick="isSetMode('series',this)">📚 Серия страниц</button>
+          </div>
+          <div class="is-mode-hint" id="isModeHint">Загрузите фото товара — AI создаст инфографику с нуля.</div>
+        </div>
+
         <div class="is-sec">
           <div class="is-label">📤 Фото товара <span style="color:var(--red)">*</span></div>
           <div class="is-drop" id="isProdDrop" onclick="document.getElementById('isProdFile').click()">
@@ -770,6 +804,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
             </div>
             <img class="is-preview" id="isProdPreview">
             <button class="is-rm" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')">✕</button>
+            <button class="is-paste-btn" onclick="event.stopPropagation();isPasteBtn('prod',event)" title="Вставить (Ctrl+V)">📋</button>
           </div>
           <div style="margin-top:8px">
             <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📷 ЕЩЁ РАКУРСЫ (необязательно)</div>
@@ -787,7 +822,15 @@ canvas.an-canvas{width:100%;height:200px;display:block}
             </div>
             <img class="is-preview" id="isRefPreview" style="max-height:90px">
             <button class="is-rm" id="isRefRm" onclick="event.stopPropagation();isRemove('ref')">✕</button>
+            <button class="is-paste-btn" onclick="event.stopPropagation();isPasteBtn('ref',event)" title="Вставить (Ctrl+V)">📋</button>
           </div>
+        </div>
+
+
+        <!-- СЕРИЯ — скрыто по умолчанию -->
+        <div class="is-sec is-series-wrap" id="isSeriesWrap">
+          <div class="is-label">🖼️ Страницы для обработки <span style="color:var(--muted);font-weight:400">(до 5)</span></div>
+          <div class="is-series-grid" id="isSeriesGrid"></div>
         </div>
 
         <div class="is-sec">
@@ -808,8 +851,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           </div>
         </div>
 
-        <div class="is-sec">
-          <div class="is-label">🖼️ Количество фото</div>
+        <div class="is-sec" id="isCountSec">
           <div class="is-row">
             <button class="is-pill on" id="isN1" onclick="isSetCount(1,this)">1<br><span style="font-size:9px;font-weight:400;color:var(--muted)">1 кредит</span></button>
             <button class="is-pill" id="isN2" onclick="isSetCount(2,this)">2<br><span style="font-size:9px;font-weight:400;color:var(--muted)">2 кредита</span></button>
@@ -1135,8 +1177,190 @@ function checkSubExpiry(sub) {
 // ═══════════════════════════════════════════════════════
 //  INFOGRAPHIC STUDIO
 // ═══════════════════════════════════════════════════════
-var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, activeJobs:0, initialized:false, angleB64:[] };
+var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, activeJobs:0, initialized:false, angleB64:[], mode:'create', seriesPages:[null,null,null,null,null], clipFocus:null };
 var IS_HIST_KEY = 'wbai_inf_v2';
+
+// ── Mode switching ────────────────────────────────────────────────────────────
+var IS_MODE_HINTS = {
+  create:  'Загрузите фото товара — AI создаст инфографику с нуля.',
+  redesign:'Загрузите готовую карточку — AI применит стиль референса.',
+  series:  'Загрузите референс стиля + до 5 страниц — AI обработает все одновременно.'
+};
+function isSetMode(mode, btn) {
+  IS.mode = mode;
+  ['isModeCreate','isModeRedesign','isModeSeries'].forEach(function(id){
+    var el=document.getElementById(id); if(el)el.classList.remove('on');
+  });
+  if(btn) btn.classList.add('on');
+  var hint = document.getElementById('isModeHint');
+  if(hint) hint.textContent = IS_MODE_HINTS[mode]||'';
+  // Show/hide series section
+  var sw = document.getElementById('isSeriesWrap');
+  if(sw) sw.classList.toggle('on', mode==='series');
+  // Show/hide count selector (not relevant for series)
+  var countSec = document.getElementById('isCountSec');
+  if(countSec) countSec.style.display = mode==='series'?'none':'block';
+  // Update button
+  var btn2 = document.getElementById('isGenBtn');
+  if(btn2) btn2.textContent = mode==='series' ? '✨ Запустить серию' : '✨ Генерировать';
+}
+
+// ── Series page slots ─────────────────────────────────────────────────────────
+function isSetSeriesPage(idx, b64) {
+  IS.seriesPages[idx] = b64;
+  var img = document.getElementById('isSeriesImg'+idx);
+  var slot = document.getElementById('isSeriesSlot'+idx);
+  var plus = slot ? slot.querySelector('.sl-plus') : null;
+  if(b64) {
+    if(img){img.src=b64;img.style.display='block';}
+    if(slot)slot.classList.add('has-img');
+    if(plus)plus.style.display='none';
+  } else {
+    if(img){img.src='';img.style.display='none';}
+    if(slot)slot.classList.remove('has-img');
+    if(plus)plus.style.display='';
+  }
+}
+
+// ── Paste / 📋 ────────────────────────────────────────────────────────────────
+function isPasteBtn(zone, evt) {
+  IS.clipFocus = zone;
+  isPasteImage(null, true, evt); // trigger popup at button position
+}
+
+function isPasteImage(b64, forcePopup, evt) {
+  if(!b64 && !forcePopup) return;
+  // If we have a focused zone and an image, paste directly
+  if(IS.clipFocus && b64) {
+    isPasteToZone(IS.clipFocus, b64);
+    IS.clipFocus = null;
+    return;
+  }
+  if(b64 && !IS.clipFocus) {
+    // Show popup to choose zone
+    isPasteShowPopup(b64, null);
+    return;
+  }
+  if(forcePopup) {
+    isPasteShowPopup(null, evt);
+  }
+}
+
+var _pasteB64Pending = null;
+function isPasteShowPopup(b64, evt) {
+  _pasteB64Pending = b64;
+  var popup = document.getElementById('isPastePopup');
+  if(!popup) return;
+  popup.style.display = 'block';
+  var x=200, y=200;
+  if(evt) { x=evt.clientX; y=evt.clientY; }
+  // Keep in viewport
+  var pw=180;
+  x = Math.min(x, window.innerWidth - pw - 10);
+  y = Math.min(y, window.innerHeight - 130);
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+  // Close on outside click
+  setTimeout(function(){
+    document.addEventListener('click', isPasteCloseOnBlur, {once:true});
+  }, 10);
+}
+
+function isPasteCloseOnBlur(e) {
+  var popup = document.getElementById('isPastePopup');
+  if(popup && !popup.contains(e.target)) {
+    popup.style.display = 'none';
+    _pasteB64Pending = null;
+  }
+}
+
+function isPasteConfirm(zone) {
+  var popup = document.getElementById('isPastePopup');
+  if(popup) popup.style.display = 'none';
+  if(zone === 'cancel') { _pasteB64Pending=null; IS.clipFocus=null; return; }
+  var b64 = _pasteB64Pending;
+  _pasteB64Pending = null;
+  IS.clipFocus = null;
+  if(b64) isPasteToZone(zone, b64);
+  else IS.clipFocus = zone;
+}
+
+function isPasteToZone(zone, b64) {
+  if(zone === 'prod') {
+    IS.prodB64 = b64;
+    isShowPreview('isProdPreview','isProdPh','isProdRm', b64);
+  } else if(zone === 'ref') {
+    IS.refB64 = b64;
+    isShowPreview('isRefPreview','isRefPh','isRefRm', b64);
+  }
+}
+
+// ── Series generate ───────────────────────────────────────────────────────────
+async function isGenerateSeries() {
+  if(!IS.refB64) { isShowError('Загрузите референс стиля'); return; }
+  var pages = IS.seriesPages.filter(Boolean);
+  if(!pages.length) { isShowError('Добавьте хотя бы одну страницу'); return; }
+  var credits = currentUser ? (currentUser.photo_credits||0) : 0;
+  if(credits < pages.length) { isShowError('Нужно '+pages.length+' кредитов, у вас '+credits); return; }
+
+  var btn = document.getElementById('isGenBtn');
+  if(btn) { btn.disabled=true; btn.textContent='⏳ Генерирую '+pages.length+' стр...'; }
+
+  // Create placeholders for all pages
+  var panel = document.getElementById('isPanelNew');
+  if(panel) panel.innerHTML = '';
+  var grid = document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px';
+  if(panel) panel.appendChild(grid);
+
+  var jobIds = pages.map(function(){ return 'ser_'+Date.now()+'_'+Math.random().toString(36).slice(2); });
+  jobIds.forEach(function(jid, i){
+    var ph=document.createElement('div');
+    ph.id=jid+'_0'; ph.className='is-placeholder';
+    ph.innerHTML='<div class="is-spinner"></div><div class="is-pending-label">Стр. '+(i+1)+' · '+IS.ratio+'</div>';
+    grid.appendChild(ph);
+  });
+
+  // Fire all requests in parallel
+  var promises = pages.map(function(pageB64, i) {
+    var body = {
+      imageBase64: pageB64,
+      styleImageBase64: IS.refB64,
+      productName: document.getElementById('isName').value.trim(),
+      specs: document.getElementById('isSpecs').value.trim(),
+      prompt: document.getElementById('isPrompt').value.trim(),
+      modelId:'nano-banana-2', mode:'redesign',
+      aspectRatio: IS.ratio, numImages: 1
+    };
+    return fetch('/api/generate-image', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify(body)
+    }).then(function(r){
+      var d={};
+      return r.json().then(function(j){d=j;}).catch(function(){d={error:'Ошибка '+r.status};}).then(function(){
+        var ph = document.getElementById(jobIds[i]+'_0');
+        if(!r.ok || !d.imageUrls && !d.images && !d.imageBase64) {
+          if(ph){ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(d.error||'Ошибка')+'</div>';}
+          return;
+        }
+        var imgs = d.imageUrls||d.images||[d.imageBase64].filter(Boolean);
+        if(currentUser&&d.credits_left!=null) { currentUser.photo_credits=d.credits_left; document.getElementById('isCreditsNum').textContent=d.credits_left; }
+        var userPrompt = 'Серия стр.'+(i+1);
+        var entry={id:jobIds[i],images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
+        isSaveHistory(entry);
+        if(ph && ph.parentNode) ph.parentNode.replaceChild(isCard(imgs[0], userPrompt, jobIds[i]+'_0', jobIds[i]), ph);
+      });
+    }).catch(function(e){
+      var ph=document.getElementById(jobIds[i]+'_0');
+      if(ph)ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+(e.message||'Ошибка')+'</div>';
+    });
+  });
+
+  await Promise.allSettled(promises);
+  if(btn){btn.disabled=false;btn.textContent='✨ Запустить серию';}
+  isRefreshHistCount();
+}
 
 function isInit() {
   if(IS.initialized){isRefreshCredits();return;}
@@ -1145,6 +1369,38 @@ function isInit() {
   isSetupDrop('isRefDrop','isRefFile',function(b64){IS.refB64=b64;isShowPreview('isRefPreview','isRefPh','isRefRm',b64);});
   isRefreshCredits();
   isRefreshHistCount();
+  // Build series slots
+  var sg = document.getElementById('isSeriesGrid');
+  if(sg && sg.children.length === 0) {
+    for(var si=0; si<5; si++) {
+      (function(idx) {
+        var slot = document.createElement('div');
+        slot.className = 'is-series-slot';
+        slot.id = 'isSeriesSlot'+idx;
+        slot.innerHTML = '<span class="sl-plus">+</span><img id="isSeriesImg'+idx+'" style="display:none"><div class="sl-rm" id="isSeriesRm'+idx+'">✕</div>';
+        slot.onclick = function() { if(!IS.seriesPages[idx]) document.getElementById('isSeriesFile'+idx).click(); };
+        sg.appendChild(slot);
+        var sfi = document.createElement('input'); sfi.type='file'; sfi.accept='image/*'; sfi.style.display='none'; sfi.id='isSeriesFile'+idx;
+        sfi.onchange = function(e) { if(e.target.files[0]) isReadFile(e.target.files[0], function(b64) { isSetSeriesPage(idx, b64); }); };
+        document.body.appendChild(sfi);
+        document.getElementById('isSeriesRm'+idx).onclick = function(e) {
+          e.stopPropagation(); isSetSeriesPage(idx, null);
+          document.getElementById('isSeriesFile'+idx).value = '';
+        };
+      })(si);
+    }
+  }
+  // Ctrl+V paste handler
+  document.addEventListener('paste', function(e) {
+    var items = (e.clipboardData||e.originalEvent.clipboardData).items;
+    for(var i=0; i<items.length; i++) {
+      if(items[i].type.indexOf('image') !== -1) {
+        var blob = items[i].getAsFile();
+        isReadFile(blob, function(b64) { isPasteImage(b64); });
+        e.preventDefault(); return;
+      }
+    }
+  });
   // Build angle slots
   var ag = document.getElementById('isAnglesGrid');
   if(ag && ag.children.length === 0) {
@@ -1246,6 +1502,7 @@ function isShowTab(tab){
 }
 
 async function isGenerate(){
+  if(IS.mode==='series'){isGenerateSeries();return;}
   if(!IS.prodB64){isShowError('Загрузите фото товара');return;}
   if(!currentUser||currentUser.plan!=='max')return;
 
@@ -1279,7 +1536,7 @@ async function isGenerate(){
     productName:document.getElementById('isName').value.trim(),
     specs:document.getElementById('isSpecs').value.trim(),
     prompt:document.getElementById('isPrompt').value.trim(),
-    modelId:'nano-banana-2',mode:'create',
+    modelId:'nano-banana-2',mode:IS.mode==='redesign'?'redesign':'create',
     aspectRatio:IS.ratio,numImages:IS.count
   };
 
@@ -1611,5 +1868,13 @@ function anSetupTooltip(){
 
 init();
 </script>
+
+<!-- PASTE POPUP -->
+<div id="isPastePopup" style="display:none">
+  <div class="pp-title">Куда вставить?</div>
+  <button onclick="isPasteConfirm('prod')">🖼️ Фото товара</button>
+  <button onclick="isPasteConfirm('ref')">🎨 Стиль (reference)</button>
+  <button onclick="isPasteConfirm('cancel')" style="color:var(--muted)">Отмена</button>
+</div>
 </body>
 </html>

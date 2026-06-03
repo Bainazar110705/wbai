@@ -434,6 +434,7 @@ Create a premium Wildberries infographic: diagonal yellow/color split background
 cinematic product lighting, high contrast, professional marketplace card aesthetic.`;
 
   return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
+IMAGE ROLES: Image 1 = PRODUCT (copy shape/brand/color ONLY from this). Last image = STYLE ONLY (copy design/colors/layout, NOT the product shown in it).
 ${imageRolesBlock}
 ${scenarioBlock}
 
