@@ -420,17 +420,24 @@ Bold design: diagonal color split or gradient background, strong typography, col
 
   // ── Style instructions ──────────────────────────────────────────────────
   const styleInstructions = (hasStyleRef || styleAnalysis)
-    ? `=== DESIGN TEMPLATE (from LAST image) ===
-Copy PIXEL-PERFECTLY from the reference:
-- Background: exact colors, gradients, diagonal splits, patterns — do NOT change to match product
-- Badge/block style: exact shapes, rounded corners, border colors
-- Typography: font weights, size hierarchy (large number + small label below)
-- Layout positions: title top, specs left/right, product centered
-- Icons style: copy guarantee shield, feature icons exactly
-- Decorative elements: dividers, overlays, glow, shadows
-${styleAnalysis ? `\nStyle analysis notes: ${styleAnalysis}` : ''}`
+    ? `=== DESIGN TEMPLATE (LAST image) — COPY ALL OF THESE EXACTLY ===
+✅ Background: exact colors, gradient direction, diagonal splits, geometric patterns
+✅ Color palette: every accent color, badge fill color, text color, glow color
+✅ Typography: font weight (bold/thin), font size hierarchy, letter spacing, text positioning
+✅ Icon style: outline/filled/colored — copy the exact icon visual style and shapes
+✅ Lighting & shadows: same product lighting direction, same drop shadow style and intensity
+✅ Spec badge design: exact shape (rounded/sharp), fill color, border, inner layout
+✅ Layout composition: title position, spec column position, product placement
+✅ Decorative elements: all dividers, shapes, overlays, glows, corner elements
+✅ Visual mood: dark/light theme, contrast level, color temperature
+${styleAnalysis ? `Style analysis: ${styleAnalysis}` : ''}
+
+DO NOT copy from reference:
+❌ Product — use ONLY product from Image 1
+❌ Brand/logo — use ONLY brand from Image 1  
+❌ Specific text/numbers — use ONLY text provided in this prompt`
     : `=== DESIGN ===
-Create a premium Wildberries infographic: diagonal yellow/color split background, bold spec badges,
+Create a premium Wildberries infographic: diagonal color split background, bold spec badges,
 cinematic product lighting, high contrast, professional marketplace card aesthetic.`;
 
   return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.

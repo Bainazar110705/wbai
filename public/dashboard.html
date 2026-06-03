@@ -793,7 +793,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="is-mode-hint" id="isModeHint">Загрузите фото товара — AI создаст инфографику с нуля.</div>
         </div>
 
-        <div class="is-sec">
+        <div class="is-sec" id="isProdSec">
           <div class="is-label">📤 Фото товара <span style="color:var(--red)">*</span></div>
           <div class="is-drop" id="isProdDrop" onclick="document.getElementById('isProdFile').click()">
             <input type="file" id="isProdFile" accept="image/*">
@@ -806,7 +806,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
             <button class="is-rm" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')">✕</button>
             <button class="is-paste-btn" onclick="event.stopPropagation();isPasteBtn('prod',event)" title="Вставить (Ctrl+V)">📋</button>
           </div>
-          <div style="margin-top:8px">
+          <div style="margin-top:8px" id="isAnglesSec">
             <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📷 ЕЩЁ РАКУРСЫ (необязательно)</div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px" id="isAnglesGrid"></div>
           </div>
@@ -833,7 +833,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="is-series-grid" id="isSeriesGrid"></div>
         </div>
 
-        <div class="is-sec">
+        <div class="is-sec" id="isDescSec">
           <div class="is-label">📝 Описание</div>
           <div style="display:flex;flex-direction:column;gap:7px">
             <input class="is-field" id="isName" placeholder="Название товара">
@@ -1194,15 +1194,35 @@ function isSetMode(mode, btn) {
   if(btn) btn.classList.add('on');
   var hint = document.getElementById('isModeHint');
   if(hint) hint.textContent = IS_MODE_HINTS[mode]||'';
-  // Show/hide series section
-  var sw = document.getElementById('isSeriesWrap');
-  if(sw) sw.classList.toggle('on', mode==='series');
-  // Show/hide count selector (not relevant for series)
-  var countSec = document.getElementById('isCountSec');
-  if(countSec) countSec.style.display = mode==='series'?'none':'block';
-  // Update button
-  var btn2 = document.getElementById('isGenBtn');
-  if(btn2) btn2.textContent = mode==='series' ? '✨ Запустить серию' : '✨ Генерировать';
+
+  var prodSec    = document.getElementById('isProdSec');
+  var anglesSec  = document.getElementById('isAnglesSec');
+  var descSec    = document.getElementById('isDescSec');
+  var seriesWrap = document.getElementById('isSeriesWrap');
+  var countSec   = document.getElementById('isCountSec');
+  var genBtn     = document.getElementById('isGenBtn');
+
+  if(mode === 'create') {
+    if(prodSec)    prodSec.style.display    = 'block';
+    if(anglesSec)  anglesSec.style.display  = 'block';
+    if(descSec)    descSec.style.display    = 'block';
+    if(seriesWrap) seriesWrap.classList.remove('on');
+    if(countSec)   countSec.style.display   = 'block';
+    if(genBtn)     genBtn.textContent = '✨ Генерировать';
+  } else if(mode === 'redesign') {
+    if(prodSec)    prodSec.style.display    = 'block';
+    if(anglesSec)  anglesSec.style.display  = 'none';  // 1 фото только
+    if(descSec)    descSec.style.display    = 'block';
+    if(seriesWrap) seriesWrap.classList.remove('on');
+    if(countSec)   countSec.style.display   = 'block';
+    if(genBtn)     genBtn.textContent = '✨ Генерировать';
+  } else if(mode === 'series') {
+    if(prodSec)    prodSec.style.display    = 'none';  // не нужен
+    if(descSec)    descSec.style.display    = 'none';  // не нужен
+    if(seriesWrap) seriesWrap.classList.add('on');
+    if(countSec)   countSec.style.display   = 'none';
+    if(genBtn)     genBtn.textContent = '✨ Запустить серию';
+  }
 }
 
 // ── Series page slots ─────────────────────────────────────────────────────────
@@ -1223,26 +1243,44 @@ function isSetSeriesPage(idx, b64) {
 }
 
 // ── Paste / 📋 ────────────────────────────────────────────────────────────────
+// 📋 click → mark zone as active target (visual highlight) → next Ctrl+V pastes there
+// Ctrl+V without focus → show popup to choose zone
+
 function isPasteBtn(zone, evt) {
+  evt.stopPropagation();
+  // Toggle focus: click same button again = cancel
+  if(IS.clipFocus === zone) {
+    IS.clipFocus = null;
+    isPasteSetHighlight(null);
+    return;
+  }
   IS.clipFocus = zone;
-  isPasteImage(null, true, evt); // trigger popup at button position
+  isPasteSetHighlight(zone);
+  // Show brief hint
+  var hint = document.createElement('div');
+  hint.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;z-index:9999;pointer-events:none';
+  hint.textContent = 'Нажмите Ctrl+V чтобы вставить в «' + (zone==='prod'?'Фото товара':'Стиль') + '»';
+  document.body.appendChild(hint);
+  setTimeout(function(){ if(hint.parentNode) hint.parentNode.removeChild(hint); }, 2500);
 }
 
-function isPasteImage(b64, forcePopup, evt) {
-  if(!b64 && !forcePopup) return;
-  // If we have a focused zone and an image, paste directly
-  if(IS.clipFocus && b64) {
+function isPasteSetHighlight(zone) {
+  var prodDrop = document.getElementById('isProdDrop');
+  var refDrop  = document.getElementById('isRefDrop');
+  if(prodDrop) prodDrop.style.outline = zone==='prod' ? '2px solid var(--p)' : '';
+  if(refDrop)  refDrop.style.outline  = zone==='ref'  ? '2px solid var(--p)' : '';
+}
+
+function isPasteImage(b64) {
+  if(!b64) return;
+  if(IS.clipFocus) {
+    // Paste directly to focused zone
     isPasteToZone(IS.clipFocus, b64);
     IS.clipFocus = null;
-    return;
-  }
-  if(b64 && !IS.clipFocus) {
-    // Show popup to choose zone
+    isPasteSetHighlight(null);
+  } else {
+    // No zone selected — show popup to choose
     isPasteShowPopup(b64, null);
-    return;
-  }
-  if(forcePopup) {
-    isPasteShowPopup(null, evt);
   }
 }
 
@@ -1252,15 +1290,10 @@ function isPasteShowPopup(b64, evt) {
   var popup = document.getElementById('isPastePopup');
   if(!popup) return;
   popup.style.display = 'block';
-  var x=200, y=200;
-  if(evt) { x=evt.clientX; y=evt.clientY; }
-  // Keep in viewport
-  var pw=180;
-  x = Math.min(x, window.innerWidth - pw - 10);
-  y = Math.min(y, window.innerHeight - 130);
-  popup.style.left = x + 'px';
-  popup.style.top  = y + 'px';
-  // Close on outside click
+  // Center in viewport
+  var pw = 180, ph = 130;
+  popup.style.left = Math.round((window.innerWidth - pw)/2) + 'px';
+  popup.style.top  = Math.round((window.innerHeight - ph)/2) + 'px';
   setTimeout(function(){
     document.addEventListener('click', isPasteCloseOnBlur, {once:true});
   }, 10);
@@ -1277,12 +1310,10 @@ function isPasteCloseOnBlur(e) {
 function isPasteConfirm(zone) {
   var popup = document.getElementById('isPastePopup');
   if(popup) popup.style.display = 'none';
-  if(zone === 'cancel') { _pasteB64Pending=null; IS.clipFocus=null; return; }
+  if(zone === 'cancel') { _pasteB64Pending=null; return; }
   var b64 = _pasteB64Pending;
   _pasteB64Pending = null;
-  IS.clipFocus = null;
   if(b64) isPasteToZone(zone, b64);
-  else IS.clipFocus = zone;
 }
 
 function isPasteToZone(zone, b64) {
