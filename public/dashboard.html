@@ -1285,7 +1285,8 @@ async function isGenerate(){
 
   try{
     var r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
-    var data=await r.json();
+    var data={};
+    try{ data=await r.json(); }catch(je){ data={error:'Ошибка сервера ('+r.status+')'}; }
     if(!r.ok){
       // Replace placeholders with error
       for(var ei=0;ei<IS.count;ei++){
@@ -1310,9 +1311,11 @@ async function isGenerate(){
       if(ph2&&ph2.parentNode) ph2.parentNode.replaceChild(card,ph2);
     });
   }catch(e){
+    var errMsg = (e&&e.message)||'';
+    var dispMsg = errMsg.includes('timeout')||errMsg.includes('abort') ? 'Таймаут (сервер не ответил за 60с)' : errMsg||'Ошибка соединения';
     for(var ei2=0;ei2<IS.count;ei2++){
       var ep2=document.getElementById(jobId+'_'+ei2);
-      if(ep2){ep2.style.border='1px solid rgba(255,77,106,0.4)';ep2.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:12px;text-align:center">❌ Ошибка соединения</div>';}
+      if(ep2){ep2.style.border='1px solid rgba(255,77,106,0.4)';ep2.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">❌ '+dispMsg+'</div>';}
     }
   }finally{
     IS.activeJobs=Math.max(0,IS.activeJobs-1);
