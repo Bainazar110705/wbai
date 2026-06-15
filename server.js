@@ -959,7 +959,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       if (!day||!inRange(day)) return;
       if (!ordersByDay[day]) ordersByDay[day]={count:0,sum:0};
       ordersByDay[day].count++;
-      ordersByDay[day].sum += Math.round(o.finishedPrice||o.priceWithDisc||0);
+      ordersByDay[day].sum += Math.round(o.priceWithDisc||o.totalPrice||0); // priceWithDisc = как в портале WB
     });
 
     // Прибыль из финотчёта
@@ -988,7 +988,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     (Array.isArray(prevOrdersRaw)?prevOrdersRaw:[]).forEach(o=>{
       if(o.isCancel) return;
       const d=(o.date||'').slice(0,10);
-      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.finishedPrice||o.priceWithDisc||0);}
+      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.priceWithDisc||o.totalPrice||0);}
     });
     const prevProfit = reportRaw.filter(r=>prevInRange((r.rr_dt||r.create_dt||'').slice(0,10))).reduce((a,r)=>a+Math.round(r.ppvz_for_pay||0),0);
     const prevTotals = { orders:prevOrders, revenue:prevRevenue, profit:prevProfit };
