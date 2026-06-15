@@ -14,6 +14,37 @@ const FAL_KEY = process.env.FAL_KEY || '';
 // ADMIN_KEY: если задана переменная окружения — используем её, иначе дефолт
 const ADMIN_KEY = (process.env.ADMIN_KEY || '').trim() || 'wbai-admin-2024';
 
+// ── Курс RUB → KZT (WB Statistics API всегда в рублях) ───────────────────────
+// Кэш: обновляем курс раз в 4 часа с Нацбанка Казахстана (NBK)
+let rubKztCache = { rate: 6.5, fetchedAt: 0 };
+
+async function getRubKztRate() {
+  const FOUR_HOURS = 4 * 60 * 60 * 1000;
+  if (Date.now() - rubKztCache.fetchedAt < FOUR_HOURS) return rubKztCache.rate;
+  try {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    const url = `https://nationalbank.kz/rss/get_rates.cfm?fdate=${dd}.${mm}.${yyyy}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const xml = await r.text();
+    // <description>5.71</description><quant>1</quant><index>RUB</index>
+    const match = xml.match(/<description>([\d.]+)<\/description>[\s\S]*?<quant>(\d+)<\/quant>[\s\S]*?<index>RUB<\/index>/);
+    if (match) {
+      const rate = parseFloat(match[1]) / parseInt(match[2]);
+      if (rate > 0) {
+        rubKztCache = { rate, fetchedAt: Date.now() };
+        console.log(`[WBai] RUB→KZT rate: ${rate.toFixed(4)} (NBK)`);
+        return rate;
+      }
+    }
+  } catch(e) {
+    console.warn('[WBai] getRubKztRate failed:', e.message, '— cached:', rubKztCache.rate);
+  }
+  return rubKztCache.rate;
+}
+
 // Безопасное логирование — никогда не выводим значение ключа
 console.log('[WBai] ADMIN_KEY source:', process.env.ADMIN_KEY ? 'ENV (Railway)' : 'DEFAULT');
 console.log('[WBai] CLAUDE_API_KEY set:', !!CLAUDE_API_KEY);
@@ -993,7 +1024,14 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const prevProfit = reportRaw.filter(r=>prevInRange((r.rr_dt||r.create_dt||'').slice(0,10))).reduce((a,r)=>a+Math.round(r.ppvz_for_pay||0),0);
     const prevTotals = { orders:prevOrders, revenue:prevRevenue, profit:prevProfit };
 
-    res.json({ rows:allDays, totals, prevTotals, dateFrom, dateTo, prevFrom, prevTo });
+    // WB Statistics API возвращает суммы в рублях (RUB) — конвертируем в тенге (KZT)
+    const rubKzt = await getRubKztRate();
+    const toKzt = v => Math.round((v || 0) * rubKzt);
+    const kztRows = allDays.map(r => ({ ...r, revenue: toKzt(r.revenue), profit: toKzt(r.profit) }));
+    const kztTotals    = { orders: totals.orders,    revenue: toKzt(totals.revenue),    profit: toKzt(totals.profit)    };
+    const kztPrevTotals= { orders: prevTotals.orders, revenue: toKzt(prevTotals.revenue), profit: toKzt(prevTotals.profit) };
+
+    res.json({ rows: kztRows, totals: kztTotals, prevTotals: kztPrevTotals, dateFrom, dateTo, prevFrom, prevTo, rubKztRate: rubKzt });
   } catch(e) {
     console.error('[WBai] wb-analytics error:', e.message);
     res.status(500).json({ error: e.message });
