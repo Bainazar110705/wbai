@@ -361,6 +361,44 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-input:focus{outline:none;border-color:var(--p)}
 .an-btn{padding:9px 18px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .an-err{background:var(--red-bg);border:1px solid var(--red);border-radius:7px;padding:7px 10px;color:var(--red);font-size:12px;margin-top:8px;display:none}
+/* WEEKLY REPORTS */
+.an-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.an-tab{padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif}
+.an-tab:hover{color:var(--text)}
+.an-tab.on{color:var(--p2);border-bottom-color:var(--p)}
+.an-tab-panel{display:none}
+.an-tab-panel.on{display:block}
+.wr-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:4px}
+.wr-table{width:100%;border-collapse:collapse}
+.wr-table th{background:var(--surface2);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.wr-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.wr-table tr:last-child td{border-bottom:none}
+.wr-table tr:hover td{background:var(--surface2)}
+.wr-table .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.wr-table .pos{color:var(--green);font-weight:600}
+.wr-table .neg{color:var(--red);font-weight:600}
+.wr-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.wr-badge.paid{background:var(--green-bg);color:var(--green)}
+.wr-badge.pending{background:rgba(251,191,36,0.12);color:#fbbf24}
+.wr-badge.new{background:var(--p3);color:var(--p2)}
+.wr-load-btn{padding:7px 18px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.wr-load-btn:hover{border-color:var(--p);color:var(--p2)}
+.wr-empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px}
+.wr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.wr-scard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.wr-scard-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.wr-scard-val{font-size:18px;font-weight:800;font-family:'Unbounded',sans-serif;color:var(--text);line-height:1.1}
+.wr-scard-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.wr-detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.wr-detail-row:last-child{border-bottom:none}
+.wr-detail-row .lbl{color:var(--muted)}
+.wr-detail-row .val{font-weight:600;font-family:'Unbounded',sans-serif;font-size:13px}
+.wr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.wr-modal-overlay.open{display:flex}
+.wr-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:480px;max-height:85vh;overflow-y:auto}
+.wr-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.wr-modal-title{font-size:15px;font-weight:700}
+.wr-modal-close{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 
 /* ── Paste button & popup ── */
 .is-paste-btn{position:absolute;top:6px;right:36px;width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .15s}
@@ -992,9 +1030,92 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <div class="an-xlabels" id="anXLabels"></div>
       </div>
     </div>
+
+    <!-- ════ ВКЛАДКИ ════ (показываем только когда токен подключён) -->
+    <div id="anTabs" style="display:none">
+      <div class="an-tabs">
+        <button class="an-tab on" id="tabStats"   onclick="anSwitchTab('stats')">📊 Статистика заказов</button>
+        <button class="an-tab"   id="tabWeekly"   onclick="anSwitchTab('weekly')">📋 Финансовые отчёты WB</button>
+      </div>
+
+      <!-- ── Панель: статистика (существующий anMain) ── -->
+      <div class="an-tab-panel on" id="tabPanelStats">
+        <!-- пусто — anMain уже рендерится выше, мы просто перемещаем его внутрь вкладки через JS -->
+      </div>
+
+      <!-- ── Панель: недельные отчёты ── -->
+      <div class="an-tab-panel" id="tabPanelWeekly">
+        <div class="wr-summary" id="wrSummary" style="display:none">
+          <div class="wr-scard">
+            <div class="wr-scard-lbl">Всего отчётов</div>
+            <div class="wr-scard-val" id="wrTotalCount">—</div>
+            <div class="wr-scard-sub">за всё время</div>
+          </div>
+          <div class="wr-scard">
+            <div class="wr-scard-lbl">Последний перевод</div>
+            <div class="wr-scard-val" id="wrLastTransfer">—</div>
+            <div class="wr-scard-sub" id="wrLastDate"></div>
+          </div>
+          <div class="wr-scard">
+            <div class="wr-scard-lbl">Ожидает перевода</div>
+            <div class="wr-scard-val" id="wrPending">—</div>
+            <div class="wr-scard-sub">по незакрытым отчётам</div>
+          </div>
+          <div class="wr-scard">
+            <div class="wr-scard-lbl">Итого начислено</div>
+            <div class="wr-scard-val" id="wrTotalSum">—</div>
+            <div class="wr-scard-sub">сумма всех отчётов</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Список отчётов</div>
+          <button class="an-refresh-btn" id="wrRefreshBtn" onclick="wrLoad()">
+            <svg id="wrRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Обновить
+          </button>
+        </div>
+
+        <div class="wr-table-wrap">
+          <div class="wr-empty" id="wrEmpty" style="display:none">
+            <div style="font-size:36px;opacity:.2;margin-bottom:8px">📋</div>
+            <div id="wrEmptyText">Загрузка...</div>
+          </div>
+          <table class="wr-table" id="wrTable" style="display:none">
+            <thead>
+              <tr>
+                <th>№ отчёта</th>
+                <th>Период</th>
+                <th>Дата создания</th>
+                <th>К перечислению</th>
+                <th>Статус</th>
+                <th style="text-align:center">Детали</th>
+              </tr>
+            </thead>
+            <tbody id="wrTbody"></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:center;margin-top:14px;gap:8px" id="wrPagination">
+          <button class="wr-load-btn" id="wrPrevBtn" onclick="wrPage(-1)" style="display:none">← Назад</button>
+          <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;padding:0 8px" id="wrPageInfo"></span>
+          <button class="wr-load-btn" id="wrNextBtn" onclick="wrPage(1)" style="display:none">Вперёд →</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-
+  <!-- ════ МОДАЛКА ДЕТАЛЕЙ ОТЧЁТА ════ -->
+  <div class="wr-modal-overlay" id="wrModalOverlay" onclick="wrCloseModal(event)">
+    <div class="wr-modal">
+      <div class="wr-modal-head">
+        <div class="wr-modal-title" id="wrModalTitle">Детали отчёта</div>
+        <button class="wr-modal-close" onclick="wrCloseModal()">✕</button>
+      </div>
+      <div id="wrModalBody"></div>
+    </div>
+  </div>
 </div>
 <script>
 const token = localStorage.getItem('wbai_token');
@@ -1774,6 +1895,7 @@ async function anCheckToken() {
     document.getElementById('anTokenBlock').style.display = d.hasToken ? 'none' : 'block';
     document.getElementById('anTokenStatus').style.display = d.hasToken ? 'flex' : 'none';
     document.getElementById('anMain').style.display = d.hasToken ? 'block' : 'none';
+    document.getElementById('anTabs').style.display = d.hasToken ? 'block' : 'none';
     if (d.hasToken) {
       document.getElementById('anTokenPreview').textContent = d.tokenPreview || '';
       anLoad();
@@ -1783,6 +1905,7 @@ async function anCheckToken() {
     document.getElementById('anTokenBlock').style.display = 'block';
     document.getElementById('anTokenStatus').style.display = 'none';
     document.getElementById('anMain').style.display = 'none';
+    document.getElementById('anTabs').style.display = 'none';
   }
 }
 
@@ -1935,6 +2058,258 @@ function anSetupTooltip(){
   if(!canvas||!tooltip)return;
   canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Сумма</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Прибыль</span><span class="an-tooltip-val green">'+anFmtCur(d.profit)+'</span></div>';});
   canvas.addEventListener('mouseleave',function(){tooltip.style.display='none';});
+}
+
+// ════════════════════════════════════════════
+//  ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК АНАЛИТИКИ
+// ════════════════════════════════════════════
+function anSwitchTab(tab) {
+  document.querySelectorAll('.an-tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.an-tab-panel').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('on');
+  if (tab === 'stats') {
+    document.getElementById('tabPanelStats').classList.add('on');
+  } else if (tab === 'weekly') {
+    document.getElementById('tabPanelWeekly').classList.add('on');
+    if (!WR.loaded) wrLoad();
+  }
+}
+
+// ════════════════════════════════════════════
+//  ФИНАНСОВЫЕ ОТЧЁТЫ WB (reports-weekly)
+// ════════════════════════════════════════════
+var WR = {
+  loaded: false,
+  page:   0,      // текущая страница (offset = page * limit)
+  limit:  20,
+  total:  0,
+  reports: []     // все загруженные отчёты
+};
+
+async function wrLoad() {
+  var btn = document.getElementById('wrRefreshBtn');
+  var icon = document.getElementById('wrRefreshIcon');
+  if (btn) btn.disabled = true;
+  if (icon) icon.style.animation = 'spin 1s linear infinite';
+
+  wrShowEmpty('Загружаем отчёты...');
+  document.getElementById('wrTable').style.display = 'none';
+
+  var offset = WR.page * WR.limit;
+  var url = '/api/wb-weekly-report?limit=' + WR.limit + '&offset=' + offset;
+
+  try {
+    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    var d; try { d = await r.json(); } catch(e) { d = { error: 'Ошибка сервера ' + r.status }; }
+
+    if (!r.ok || d.error) {
+      wrShowEmpty(d.error || 'Ошибка загрузки');
+      return;
+    }
+
+    // Нормализуем ответ — WB API может возвращать разные структуры
+    WR.reports = wrNormalize(d);
+    WR.loaded = true;
+
+    if (WR.reports.length === 0) {
+      wrShowEmpty('Отчётов не найдено');
+      return;
+    }
+
+    wrRender();
+    wrUpdateSummary();
+
+  } catch(e) {
+    wrShowEmpty('Ошибка соединения: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.style.animation = '';
+  }
+}
+
+// Нормализует разные форматы ответа WB API → единый массив
+function wrNormalize(raw) {
+  // Попробуем найти массив отчётов в любом месте ответа
+  var arr = null;
+  if (Array.isArray(raw))               arr = raw;
+  else if (Array.isArray(raw.data))     arr = raw.data;
+  else if (raw.data && Array.isArray(raw.data.reports)) arr = raw.data.reports;
+  else if (Array.isArray(raw.reports))  arr = raw.reports;
+  else {
+    // Неизвестная структура — показываем raw
+    console.warn('[WBai] wrNormalize unknown structure:', JSON.stringify(raw).slice(0, 200));
+    return [];
+  }
+  return arr;
+}
+
+function wrRender() {
+  var tbody = document.getElementById('wrTbody');
+  tbody.innerHTML = '';
+
+  WR.reports.forEach(function(rep, i) {
+    var id       = rep.realizationReportId || rep.reportId || rep.id || ('—');
+    var dateFrom = wrFmtDate(rep.dateFrom || rep.date_from || rep.fromDate || '');
+    var dateTo   = wrFmtDate(rep.dateTo   || rep.date_to   || rep.toDate   || '');
+    var created  = wrFmtDate(rep.createDate || rep.created_at || rep.docDate || '');
+    var transfer = rep.toTransfer != null ? rep.toTransfer
+                 : rep.ppvz_for_pay != null ? rep.ppvz_for_pay
+                 : rep.supplier_reward != null ? rep.supplier_reward : null;
+    var rrdId    = rep.rrdId || rep.rrd_id || '';
+
+    var statusLabel = wrStatus(rep);
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="num" style="font-weight:700;color:var(--p2)">' + (id || '—') + '</td>' +
+      '<td class="num" style="font-size:12px">' +
+        (dateFrom && dateTo ? dateFrom + ' — ' + dateTo : dateFrom || dateTo || '—') +
+      '</td>' +
+      '<td class="num" style="font-size:12px;color:var(--muted)">' + (created || '—') + '</td>' +
+      '<td class="num"><span class="' + (transfer != null ? (transfer >= 0 ? 'pos' : 'neg') : '') + '">' +
+        (transfer != null ? wrFmtCur(transfer) : '—') +
+      '</span></td>' +
+      '<td>' + statusLabel + '</td>' +
+      '<td style="text-align:center">' +
+        '<button onclick="wrOpenDetail(' + i + ')" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.borderColor=\'var(--p)\';this.style.color=\'var(--p2)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">Открыть</button>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('wrEmpty').style.display = 'none';
+  document.getElementById('wrTable').style.display = 'table';
+
+  // Пагинация
+  var prev = document.getElementById('wrPrevBtn');
+  var next = document.getElementById('wrNextBtn');
+  var info = document.getElementById('wrPageInfo');
+  if (prev) prev.style.display = WR.page > 0 ? 'inline-block' : 'none';
+  if (next) next.style.display = WR.reports.length >= WR.limit ? 'inline-block' : 'none';
+  if (info) info.textContent = WR.reports.length > 0 ? 'Страница ' + (WR.page + 1) : '';
+}
+
+function wrUpdateSummary() {
+  var reps = WR.reports;
+  if (!reps.length) return;
+
+  document.getElementById('wrSummary').style.display = 'grid';
+  document.getElementById('wrTotalCount').textContent = reps.length + (reps.length >= WR.limit ? '+' : '');
+
+  // Ищем последний по дате отчёт
+  var sorted = reps.slice().sort(function(a, b) {
+    return new Date(b.createDate || b.created_at || 0) - new Date(a.createDate || a.created_at || 0);
+  });
+  var last = sorted[0];
+  var lastAmt = last.toTransfer != null ? last.toTransfer : last.ppvz_for_pay != null ? last.ppvz_for_pay : null;
+  document.getElementById('wrLastTransfer').textContent = lastAmt != null ? wrFmtCur(lastAmt) : '—';
+  document.getElementById('wrLastDate').textContent = wrFmtDate(last.createDate || last.created_at || '') || '';
+
+  // Ожидают перевода
+  var pending = 0;
+  reps.forEach(function(r) {
+    if (wrStatusCode(r) === 'pending') {
+      var v = r.toTransfer != null ? r.toTransfer : r.ppvz_for_pay != null ? r.ppvz_for_pay : 0;
+      pending += v || 0;
+    }
+  });
+  document.getElementById('wrPending').textContent = pending ? wrFmtCur(pending) : '0 ₸';
+
+  // Итого
+  var total = 0;
+  reps.forEach(function(r) {
+    total += r.toTransfer != null ? r.toTransfer : r.ppvz_for_pay != null ? r.ppvz_for_pay : 0;
+  });
+  document.getElementById('wrTotalSum').textContent = wrFmtCur(total);
+}
+
+function wrOpenDetail(idx) {
+  var rep = WR.reports[idx];
+  if (!rep) return;
+  var id = rep.realizationReportId || rep.reportId || rep.id || '—';
+  document.getElementById('wrModalTitle').textContent = 'Отчёт №' + id;
+
+  // Формируем детальные строки из всех полей отчёта
+  var rows = [
+    { lbl: '№ отчёта',          val: id },
+    { lbl: 'Период',            val: wrFmtDate(rep.dateFrom||rep.date_from||rep.fromDate||'') + (rep.dateTo||rep.date_to||rep.toDate ? ' — ' + wrFmtDate(rep.dateTo||rep.date_to||rep.toDate) : '') },
+    { lbl: 'Дата создания',     val: wrFmtDate(rep.createDate||rep.created_at||rep.docDate||'') || '—' },
+    { lbl: 'К перечислению',    val: rep.toTransfer != null ? wrFmtCur(rep.toTransfer) : '—', cls: rep.toTransfer > 0 ? 'pos' : '' },
+    { lbl: 'Вознаграждение WB', val: rep.ppvz_for_pay != null ? wrFmtCur(rep.ppvz_for_pay) : '—' },
+    { lbl: 'Продажи (сумма)',   val: rep.retailAmount != null ? wrFmtCur(rep.retailAmount) : rep.retail_amount != null ? wrFmtCur(rep.retail_amount) : '—' },
+    { lbl: 'Возвраты',          val: rep.returnAmount != null ? wrFmtCur(rep.returnAmount) : rep.return_amount != null ? wrFmtCur(rep.return_amount) : '—', cls: 'neg' },
+    { lbl: 'Комиссия WB',       val: rep.deduction != null ? wrFmtCur(rep.deduction) : rep.penalty != null ? wrFmtCur(rep.penalty) : '—' },
+    { lbl: 'Хранение',          val: rep.storageFee != null ? wrFmtCur(rep.storageFee) : '—' },
+    { lbl: 'Доставка',          val: rep.deliveryCost != null ? wrFmtCur(rep.deliveryCost) : '—' },
+    { lbl: 'Статус',            val: wrStatus(rep) }
+  ];
+
+  var html = rows.map(function(row) {
+    return '<div class="wr-detail-row"><span class="lbl">' + row.lbl + '</span><span class="val ' + (row.cls||'') + '">' + row.val + '</span></div>';
+  }).join('');
+
+  // Если есть неотображённые поля — показать как raw JSON
+  var known = ['realizationReportId','reportId','id','dateFrom','date_from','fromDate','dateTo','date_to','toDate',
+    'createDate','created_at','docDate','toTransfer','ppvz_for_pay','retailAmount','retail_amount',
+    'returnAmount','return_amount','deduction','penalty','storageFee','deliveryCost','rrdId','rrd_id',
+    'status','isPaid','is_paid','supplierName','supplier_name'];
+  var extra = Object.keys(rep).filter(function(k){ return !known.includes(k); });
+  if (extra.length) {
+    html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Прочие поля</div>';
+    extra.forEach(function(k) {
+      html += '<div class="wr-detail-row"><span class="lbl">' + k + '</span><span class="val" style="font-size:12px;font-family:monospace;word-break:break-all">' + JSON.stringify(rep[k]) + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('wrModalBody').innerHTML = html;
+  document.getElementById('wrModalOverlay').classList.add('open');
+}
+
+function wrCloseModal(e) {
+  if (!e || e.target === document.getElementById('wrModalOverlay')) {
+    document.getElementById('wrModalOverlay').classList.remove('open');
+  }
+}
+
+function wrPage(dir) {
+  WR.page = Math.max(0, WR.page + dir);
+  wrLoad();
+}
+
+function wrShowEmpty(msg) {
+  document.getElementById('wrEmpty').style.display = 'block';
+  document.getElementById('wrEmptyText').textContent = msg;
+  document.getElementById('wrTable').style.display = 'none';
+  document.getElementById('wrSummary').style.display = 'none';
+  document.getElementById('wrPrevBtn').style.display = 'none';
+  document.getElementById('wrNextBtn').style.display = 'none';
+  document.getElementById('wrPageInfo').textContent = '';
+}
+
+function wrFmtDate(s) {
+  if (!s) return '';
+  var d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('ru', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function wrFmtCur(n) {
+  n = parseFloat(n) || 0;
+  return n.toLocaleString('ru', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₸';
+}
+
+function wrStatusCode(rep) {
+  if (rep.isPaid || rep.is_paid)         return 'paid';
+  if (rep.status === 'paid')             return 'paid';
+  if (rep.status === 'new' || !rep.status) return 'new';
+  return 'pending';
+}
+
+function wrStatus(rep) {
+  var code = wrStatusCode(rep);
+  if (code === 'paid')    return '<span class="wr-badge paid">Выплачен</span>';
+  if (code === 'pending') return '<span class="wr-badge pending">Ожидает</span>';
+  return '<span class="wr-badge new">Новый</span>';
 }
 
 init();

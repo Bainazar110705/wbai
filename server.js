@@ -1000,6 +1000,48 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   }
 });
 
+// ── GET /api/wb-weekly-report — Недельные отчёты WB (seller-services API) ─────
+app.get('/api/wb-weekly-report', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const wbToken = u.wb_api_token;
+
+  try {
+    // Пробрасываем параметры пагинации если есть
+    const params = new URLSearchParams();
+    if (req.query.limit)  params.set('limit',  req.query.limit);
+    if (req.query.offset) params.set('offset', req.query.offset);
+    const qs = params.toString() ? '?' + params.toString() : '';
+
+    const url = `https://seller-services.wildberries.ru/ns/reports/seller-wb-balance/api/v1/reports-weekly${qs}`;
+    console.log('[WBai] wb-weekly-report fetch:', url);
+
+    const r = await fetch(url, {
+      headers: {
+        'Authorization': wbToken,
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      }
+    });
+
+    if (r.status === 401) return res.status(400).json({ error: 'Токен недействителен. Создайте новый в WB.' });
+    if (r.status === 403) return res.status(400).json({ error: 'Нет прав. Нужна галочка «Аналитика» при создании токена.' });
+    if (r.status === 429) return res.status(429).json({ error: 'Лимит запросов WB API. Подождите минуту.' });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '');
+      console.error('[WBai] wb-weekly-report WB error:', r.status, txt.slice(0, 200));
+      return res.status(r.status).json({ error: `WB API вернул ошибку ${r.status}`, detail: txt.slice(0, 200) });
+    }
+
+    const data = await r.json();
+    console.log('[WBai] wb-weekly-report ok, keys:', Object.keys(data || {}));
+    res.json(data);
+  } catch(e) {
+    console.error('[WBai] wb-weekly-report error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── POST /api/generate-series — обрабатывает до 5 страниц последовательно ─────
 app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
   try {
