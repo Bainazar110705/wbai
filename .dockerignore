@@ -1,0 +1,10 @@
+node_modules
+.git
+.env
+.gitignore
+README.md
+AGENTS.md
+Caddyfile
+docker-compose.yml
+.dockerignore
+*.swp

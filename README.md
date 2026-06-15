@@ -1,16 +1,20 @@
 # WBai — AI помощник для продавцов Wildberries
 
-## Деплой на свой сервер
+## Деплой через Docker Compose
 
-Требования: Ubuntu/Debian, Node.js 20+, PostgreSQL, Nginx.
+```bash
+# Клонировать и настроить .env
+git clone <url> /opt/wbai
+cd /opt/wbai
+cp .env.example .env    # заполнить реальными ключами
 
-1. Установить PostgreSQL, создать БД и пользователя
-2. Установить Node.js, скопировать проект
-3. `cd /path/to/project && npm install`
-4. Создать `.env` с переменными (см. ниже)
-5. `pm2 start server.js --name wbai`
-6. Настроить Nginx как reverse proxy на localhost:3000
-7. Получить SSL через Certbot
+# Запустить
+docker compose up -d --build
+```
+
+Сервисы:
+- **app** — Node.js приложение (порт 3000)
+- **caddy** — reverse proxy с авто-SSL (порты 80/443)
 
 ## Переменные окружения (`.env`)
 
@@ -21,21 +25,20 @@
 | `ADMIN_KEY` | Admin auth for subscription activation |
 | `CLAUDE_API_KEY` | Anthropic API key (Claude Haiku) |
 | `FAL_KEY` | fal.ai API key for image gen |
-| `APP_URL` | Public URL for self-ping (e.g. https://wbai.kz) |
+| `APP_URL` | Public URL (https://wbai.kz) |
+
+## Команды
+
+```bash
+docker compose up -d              # запустить
+docker compose logs -f            # смотреть логи
+docker compose pull && up -d      # обновить (caddy)
+docker compose build --no-cache && up -d -d  # пересобрать app
+docker compose down               # остановить
+```
 
 ## Активация подписки клиента
 
-После оплаты выполни:
-```
-POST /api/admin/activate
-{
-  "adminKey": "твой-ADMIN_KEY",
-  "email": "клиент@email.com",
-  "months": 1
-}
-```
-
-Или через curl:
 ```bash
 curl -X POST https://wbai.kz/api/admin/activate \
   -H "Content-Type: application/json" \
@@ -43,6 +46,7 @@ curl -X POST https://wbai.kz/api/admin/activate \
 ```
 
 ## Просмотр всех пользователей
+
 ```bash
 curl https://wbai.kz/api/admin/users \
   -H "x-admin-key: пароль"
