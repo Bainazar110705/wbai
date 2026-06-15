@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -32,11 +33,11 @@ const imageLimiter = rateLimit({
   message: { error: 'Максимум 3 генерации в минуту.' }
 });
 
-app.set('trust proxy', 1); // Railway runs behind a proxy
+app.set('trust proxy', 1); // Required when behind Nginx reverse proxy
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-    const allowed = /^chrome-extension:\/\/|wbai\.up\.railway\.app|localhost/;
+    const allowed = /^chrome-extension:\/\/|wbai\.kz|localhost/;
     allowed.test(origin) ? cb(null, true) : cb(new Error('CORS: домен не разрешён'));
   },
   credentials: true
@@ -1091,14 +1092,14 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('WBai running on port ' + PORT);
-  // Пингуем себя каждые 10 минут — Railway усыпляет после ~15 мин простоя
-  const selfUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/api/ping`
+  // Пингуем себя каждые 10 минут — не даём серверу уснуть
+  const selfUrl = process.env.APP_URL
+    ? `${process.env.APP_URL}/api/ping`
     : null;
   if (selfUrl) {
     setInterval(() => {
       fetch(selfUrl).catch(() => {});
-    }, 10 * 60 * 1000); // 10 минут
+    }, 10 * 60 * 1000);
     console.log('[WBai] Self-ping enabled:', selfUrl);
   }
 });

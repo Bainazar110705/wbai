@@ -1,15 +1,27 @@
 # WBai — AI помощник для продавцов Wildberries
 
-## Деплой на Railway
+## Деплой на свой сервер
 
-1. Загрузи все файлы в GitHub репозиторий (без вложенных папок)
-2. Зайди на railway.app → New Project → Deploy from GitHub
-3. Выбери репозиторий
-4. В настройках добавь переменные окружения:
-   - `JWT_SECRET` — любая случайная строка (32+ символа)
-   - `ADMIN_KEY` — твой пароль для активации подписок
-   - `CLAUDE_API_KEY` — твой Claude API ключ
-5. Нажми Deploy
+Требования: Ubuntu/Debian, Node.js 20+, PostgreSQL, Nginx.
+
+1. Установить PostgreSQL, создать БД и пользователя
+2. Установить Node.js, скопировать проект
+3. `cd /path/to/project && npm install`
+4. Создать `.env` с переменными (см. ниже)
+5. `pm2 start server.js --name wbai`
+6. Настроить Nginx как reverse proxy на localhost:3000
+7. Получить SSL через Certbot
+
+## Переменные окружения (`.env`)
+
+| Var | Purpose |
+|-----|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | JWT signing key (32+ chars) |
+| `ADMIN_KEY` | Admin auth for subscription activation |
+| `CLAUDE_API_KEY` | Anthropic API key (Claude Haiku) |
+| `FAL_KEY` | fal.ai API key for image gen |
+| `APP_URL` | Public URL for self-ping (e.g. https://wbai.kz) |
 
 ## Активация подписки клиента
 
@@ -25,13 +37,13 @@ POST /api/admin/activate
 
 Или через curl:
 ```bash
-curl -X POST https://твой-домен.railway.app/api/admin/activate \
+curl -X POST https://wbai.kz/api/admin/activate \
   -H "Content-Type: application/json" \
   -d '{"adminKey":"пароль","email":"клиент@email.com","months":1}'
 ```
 
 ## Просмотр всех пользователей
 ```bash
-curl https://твой-домен.railway.app/api/admin/users \
+curl https://wbai.kz/api/admin/users \
   -H "x-admin-key: пароль"
 ```
