@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 
-const isLocal = !process.env.DATABASE_URL || /localhost|127\.0\.0\.1|::1/.test(process.env.DATABASE_URL || '');
+const isLocal = !process.env.DATABASE_URL || /localhost|127\.0\.0\.1|::1|postgres/.test(process.env.DATABASE_URL || '') || /sslmode=disable/.test(process.env.DATABASE_URL || '');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

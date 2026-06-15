@@ -1,10 +1,28 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wbai
+      POSTGRES_USER: wbai
+      POSTGRES_PASSWORD: 4164a82b8cbcdfa6f7087f13e9adb26a6ba0e801ea1c2e92
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wbai -d wbai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   app:
     build: .
     restart: unless-stopped
     env_file: .env
     expose:
       - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   caddy:
     image: caddy:2-alpine
@@ -19,4 +37,5 @@ services:
       - app
 
 volumes:
+  pgdata:
   caddy_data:
