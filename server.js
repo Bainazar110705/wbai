@@ -21,27 +21,45 @@ let rubKztCache = { rate: 6.5, fetchedAt: 0 };
 async function getRubKztRate() {
   const FOUR_HOURS = 4 * 60 * 60 * 1000;
   if (Date.now() - rubKztCache.fetchedAt < FOUR_HOURS) return rubKztCache.rate;
+
+  // Источник 1: CDN currency-api (JSON, надёжно, без проблем с кодировкой)
+  try {
+    const r = await fetch(
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/rub.json',
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const data = await r.json();
+    const rate = data?.rub?.kzt;
+    if (rate && rate > 1) {
+      rubKztCache = { rate, fetchedAt: Date.now() };
+      console.log(`[WBai] RUB→KZT: ${rate.toFixed(4)} (CDN)`);
+      return rate;
+    }
+  } catch(e) { console.warn('[WBai] CDN rate failed:', e.message); }
+
+  // Источник 2: Нацбанк РК (XML, разбиваем по <item> — не regexp через весь документ)
   try {
     const d = new Date();
-    const dd = String(d.getDate()).padStart(2,'0');
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const yyyy = d.getFullYear();
-    const url = `https://nationalbank.kz/rss/get_rates.cfm?fdate=${dd}.${mm}.${yyyy}`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+    const r = await fetch(`https://nationalbank.kz/rss/get_rates.cfm?fdate=${dateStr}`, { signal: AbortSignal.timeout(5000) });
     const xml = await r.text();
-    // <description>5.71</description><quant>1</quant><index>RUB</index>
-    const match = xml.match(/<description>([\d.]+)<\/description>[\s\S]*?<quant>(\d+)<\/quant>[\s\S]*?<index>RUB<\/index>/);
-    if (match) {
-      const rate = parseFloat(match[1]) / parseInt(match[2]);
-      if (rate > 0) {
-        rubKztCache = { rate, fetchedAt: Date.now() };
-        console.log(`[WBai] RUB→KZT rate: ${rate.toFixed(4)} (NBK)`);
-        return rate;
+    // Делим на блоки <item> и ищем тот, где есть >RUB<
+    for (const block of xml.split('<item>')) {
+      if (!block.includes('>RUB<')) continue;
+      const desc  = block.match(/<description>([\d.]+)<\/description>/)?.[1];
+      const quant = block.match(/<quant>(\d+)<\/quant>/)?.[1];
+      if (desc && quant) {
+        const rate = parseFloat(desc) / parseInt(quant);
+        if (rate > 1) {
+          rubKztCache = { rate, fetchedAt: Date.now() };
+          console.log(`[WBai] RUB→KZT: ${rate.toFixed(4)} (NBK)`);
+          return rate;
+        }
       }
     }
-  } catch(e) {
-    console.warn('[WBai] getRubKztRate failed:', e.message, '— cached:', rubKztCache.rate);
-  }
+  } catch(e) { console.warn('[WBai] NBK rate failed:', e.message); }
+
+  console.warn(`[WBai] All rate sources failed, using cached: ${rubKztCache.rate}`);
   return rubKztCache.rate;
 }
 
@@ -965,13 +983,15 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   }
 
   try {
-    // Запросы последовательно с паузой
-    const ordersRaw = await wbFetch(`/api/v1/supplier/orders?dateFrom=${dateFrom}`);
-    await new Promise(r => setTimeout(r, 400));
-    const prevOrdersRaw = await wbFetch(`/api/v1/supplier/orders?dateFrom=${prevFrom}`).catch(() => []);
-    await new Promise(r => setTimeout(r, 400));
+    const inRange     = d => d >= dateFrom && d <= dateTo;
+    const prevInRange = d => d >= prevFrom  && d <= prevTo;
 
-    // Финансовый отчёт для прибыли (с задержкой 5-7 дней от WB)
+    // ОДИН запрос от prevFrom — покрывает и текущий, и предыдущий период.
+    // Два отдельных запроса бьют по rate-limit WB (1 req/min) → второй падает тихо → prevTotals=0.
+    const allOrdersRaw = await wbFetch(`/api/v1/supplier/orders?dateFrom=${prevFrom}`);
+    await new Promise(r => setTimeout(r, 600));
+
+    // Финансовый отчёт для прибыли (задержка 5-7 дней от WB)
     let reportRaw = [];
     try {
       const repFrom = new Date(dateFrom); repFrom.setDate(repFrom.getDate()-7);
@@ -979,50 +999,49 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       reportRaw = Array.isArray(rr) ? rr : [];
     } catch(e) { reportRaw = []; }
 
-    const inRange = d => d >= dateFrom && d <= dateTo;
-    const prevInRange = d => d >= prevFrom && d <= prevTo;
-
-    // Группируем заказы по дням (без отменённых)
+    // Разбиваем за один проход: текущий период + предыдущий
     const ordersByDay = {};
-    (Array.isArray(ordersRaw)?ordersRaw:[]).forEach(o => {
+    let prevOrders = 0, prevRevenue = 0;
+
+    (Array.isArray(allOrdersRaw) ? allOrdersRaw : []).forEach(o => {
       if (o.isCancel) return;
-      const day = (o.date||'').slice(0,10);
-      if (!day||!inRange(day)) return;
-      if (!ordersByDay[day]) ordersByDay[day]={count:0,sum:0};
-      ordersByDay[day].count++;
-      ordersByDay[day].sum += Math.round(o.priceWithDisc||o.totalPrice||0); // priceWithDisc = как в портале WB
+      const day = (o.date || '').slice(0, 10);
+      if (!day) return;
+      const sum = Math.round(o.priceWithDisc || o.totalPrice || 0);
+
+      if (inRange(day)) {
+        if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0 };
+        ordersByDay[day].count++;
+        ordersByDay[day].sum += sum;
+      }
+      if (prevInRange(day)) {
+        prevOrders++;
+        prevRevenue += sum;
+      }
     });
 
     // Прибыль из финотчёта
     const profitByDay = {};
     reportRaw.forEach(r => {
-      const day=(r.rr_dt||r.create_dt||'').slice(0,10);
-      if(!day||!inRange(day)) return;
-      profitByDay[day]=(profitByDay[day]||0)+Math.round(r.ppvz_for_pay||0);
+      const day = (r.rr_dt || r.create_dt || '').slice(0, 10);
+      if (!day || !inRange(day)) return;
+      profitByDay[day] = (profitByDay[day] || 0) + Math.round(r.ppvz_for_pay || 0);
     });
 
-    // Все дни периода
+    // Строим массив по всем дням периода
     const allDays = [];
     const cur = new Date(dateFrom), end = new Date(dateTo);
     while (cur <= end) {
-      const day = cur.toISOString().slice(0,10);
-      const o = ordersByDay[day]||{count:0,sum:0};
-      allDays.push({ date:day, orders:o.count, revenue:o.sum, profit:profitByDay[day]||0 });
-      cur.setDate(cur.getDate()+1);
+      const day = cur.toISOString().slice(0, 10);
+      const o = ordersByDay[day] || { count: 0, sum: 0 };
+      allDays.push({ date: day, orders: o.count, revenue: o.sum, profit: profitByDay[day] || 0 });
+      cur.setDate(cur.getDate() + 1);
     }
 
-    const sumF = (arr,k) => arr.reduce((a,b)=>a+(b[k]||0),0);
-    const totals = { orders:sumF(allDays,'orders'), revenue:sumF(allDays,'revenue'), profit:sumF(allDays,'profit') };
-
-    // Предыдущий период
-    let prevOrders=0,prevRevenue=0;
-    (Array.isArray(prevOrdersRaw)?prevOrdersRaw:[]).forEach(o=>{
-      if(o.isCancel) return;
-      const d=(o.date||'').slice(0,10);
-      if(prevInRange(d)){prevOrders++;prevRevenue+=Math.round(o.priceWithDisc||o.totalPrice||0);}
-    });
-    const prevProfit = reportRaw.filter(r=>prevInRange((r.rr_dt||r.create_dt||'').slice(0,10))).reduce((a,r)=>a+Math.round(r.ppvz_for_pay||0),0);
-    const prevTotals = { orders:prevOrders, revenue:prevRevenue, profit:prevProfit };
+    const sumF = (arr, k) => arr.reduce((a, b) => a + (b[k] || 0), 0);
+    const totals     = { orders: sumF(allDays,'orders'), revenue: sumF(allDays,'revenue'), profit: sumF(allDays,'profit') };
+    const prevProfit = reportRaw.filter(r => prevInRange((r.rr_dt || r.create_dt || '').slice(0,10))).reduce((a,r) => a + Math.round(r.ppvz_for_pay || 0), 0);
+    const prevTotals = { orders: prevOrders, revenue: prevRevenue, profit: prevProfit };
 
     // WB Statistics API возвращает суммы в рублях (RUB) — конвертируем в тенге (KZT)
     const rubKzt = await getRubKztRate();

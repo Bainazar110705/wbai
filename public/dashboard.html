@@ -1952,7 +1952,8 @@ async function anLoad(from, to) {
     anUpdateMetrics(d.totals, d.prevTotals, AN.period);
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
     var now=new Date();
-    document.getElementById('anUpdatedAt').textContent=now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+    var rateStr = d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
+    document.getElementById('anUpdatedAt').textContent=now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+rateStr;
   } catch(e) { anShowErr('Ошибка соединения'); }
   finally { if(btn) btn.disabled=false; }
 }
