@@ -1721,10 +1721,52 @@ async function isGenerate(){
   }
 
   var extraAngles=IS.angleB64.filter(Boolean);
+
+  // Если доп. фото больше 2 — склеиваем в коллаж (FAL.ai лимит: main + extras + style ≤ 4)
+  async function makeCollage(base64Arr) {
+    return new Promise(function(resolve) {
+      var size = 512;
+      var cols = base64Arr.length <= 2 ? base64Arr.length : 2;
+      var rows = Math.ceil(base64Arr.length / cols);
+      var canvas = document.createElement('canvas');
+      canvas.width = size * cols;
+      canvas.height = size * rows;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      var loaded = 0;
+      base64Arr.forEach(function(b64, i) {
+        var img = new Image();
+        img.onload = function() {
+          var col = i % cols, row = Math.floor(i / cols);
+          var x = col * size, y = row * size;
+          var scale = Math.min(size / img.width, size / img.height);
+          var w = img.width * scale, h = img.height * scale;
+          ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+          if (++loaded === base64Arr.length) {
+            resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+          }
+        };
+        img.onerror = function() { if (++loaded === base64Arr.length) resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); };
+        img.src = 'data:image/jpeg;base64,' + b64;
+      });
+      if (!base64Arr.length) resolve(null);
+    });
+  }
+
+  // Лимит: оставляем главное фото + max 2 экстра (3-й слот для стиля)
+  // Если экстра > 2 — первые 2 оставляем, остальные склеиваем в коллаж
+  var finalExtraAngles = extraAngles;
+  if (extraAngles.length > 2) {
+    var collageB64 = await makeCollage(extraAngles.slice(2));
+    finalExtraAngles = extraAngles.slice(0, 2);
+    if (collageB64) finalExtraAngles.push(collageB64);
+  }
+
   var body={
     imageBase64:IS.prodB64,
     styleImageBase64:IS.refB64||null,
-    extraImages:extraAngles.length?extraAngles:null,
+    extraImages:finalExtraAngles.length?finalExtraAngles:null,
     productName:document.getElementById('isName').value.trim(),
     specs:document.getElementById('isSpecs').value.trim(),
     prompt:document.getElementById('isPrompt').value.trim(),
