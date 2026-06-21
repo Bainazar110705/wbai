@@ -685,13 +685,11 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     // Шаг 5: Формируем тело запроса под модель
     let falBody = {};
     if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
-      // Nano Banana Edit — лимит 3 фото: главное + 1 доп + референс стиля
-      const MAX_IMAGES = 4;
-      const styleUrl = styleImageBase64 ? prepareImageForFal(styleImageBase64) : null;
-      const productSlots = styleUrl ? MAX_IMAGES - 1 : MAX_IMAGES; // оставляем место для стиля
-      const editImageUrls = allImageUrls.slice(0, productSlots); // главное + доп фото (не больше лимита)
-      if (styleUrl) editImageUrls.push(styleUrl); // референс стиля последним
-      console.log(`[WBai] image_urls count: ${editImageUrls.length} (лимит ${MAX_IMAGES})`);
+      // Nano Banana Edit — передаём все фото напрямую включая референс стиля
+      const editImageUrls = [...allImageUrls]; // товар + аксессуары
+      if (styleImageBase64) {
+        editImageUrls.push(prepareImageForFal(styleImageBase64)); // референс стиля последним
+      }
       falBody = {
         prompt: finalPrompt,
         image_urls: editImageUrls,
