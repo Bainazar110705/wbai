@@ -686,7 +686,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     let falBody = {};
     if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
       // Nano Banana Edit — лимит 3 фото: главное + 1 доп + референс стиля
-      const MAX_IMAGES = 3;
+      const MAX_IMAGES = 4;
       const styleUrl = styleImageBase64 ? prepareImageForFal(styleImageBase64) : null;
       const productSlots = styleUrl ? MAX_IMAGES - 1 : MAX_IMAGES; // оставляем место для стиля
       const editImageUrls = allImageUrls.slice(0, productSlots); // главное + доп фото (не больше лимита)
