@@ -915,15 +915,17 @@ app.get('/api/admin/users', async (req, res) => {
 app.post('/api/wb-token', authMiddleware, async (req, res) => {
   const { token: wbToken } = req.body;
   if (!wbToken?.trim()) return res.status(400).json({ error: 'Введите токен' });
+  // Нормализуем — убираем Bearer если пользователь вставил с префиксом
+  const cleanToken = wbToken.trim().replace(/^Bearer\s+/i, '');
   // Проверяем токен
   try {
     const test = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/sales?dateFrom=${new Date(Date.now()-86400000).toISOString().slice(0,10)}`, {
-      headers: { Authorization: wbToken.trim() }
+      headers: { Authorization: `Bearer ${cleanToken}` }
     });
     if (test.status === 401) return res.status(400).json({ error: 'Токен недействителен. Создайте новый в WB.' });
-    if (test.status === 403) return res.status(400).json({ error: 'Нет прав. Нужна галочка «Статистика».' });
+    if (test.status === 403) return res.status(400).json({ error: 'Нет прав. Нужна галочку «Статистика» при создании токена.' });
   } catch(e) { /* network — save anyway */ }
-  await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [wbToken.trim(), req.user.id]);
+  await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [cleanToken, req.user.id]);
   res.json({ ok: true });
 });
 
@@ -973,7 +975,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
 
   async function wbFetch(path) {
     const r = await fetch('https://statistics-api.wildberries.ru' + path, {
-      headers: { Authorization: wbToken }
+      headers: { Authorization: `Bearer ${wbToken}` }
     });
     if (r.status === 401) throw new Error('Токен недействителен (401)');
     if (r.status === 403) throw new Error('Нет прав доступа (403). Нужна галочка «Статистика».');
@@ -1075,7 +1077,7 @@ app.get('/api/wb-weekly-report', authMiddleware, async (req, res) => {
 
     const r = await fetch(url, {
       headers: {
-        'Authorization': wbToken,
+        'Authorization': `Bearer ${wbToken}`,
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       }
