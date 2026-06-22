@@ -911,6 +911,71 @@ app.get('/api/admin/users', async (req, res) => {
 
 // Таблица: CREATE wb_api_token column (добавляется один раз через db.js)
 
+// ── Себестоимость товаров ─────────────────────────────────────────────────────
+
+// GET /api/product-costs — список артикулов с себестоимостью
+app.get('/api/product-costs', authMiddleware, async (req, res) => {
+  const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE user_id=? ORDER BY name', [req.user.id]);
+  res.json({ items: rows });
+});
+
+// POST /api/product-costs — сохранить себестоимость (массив артикулов)
+app.post('/api/product-costs', authMiddleware, async (req, res) => {
+  const { items } = req.body; // [{supplier_article, name, cost_price}]
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Нет данных' });
+  for (const item of items) {
+    const article = (item.supplier_article || '').trim();
+    const cost = Math.max(0, parseInt(item.cost_price) || 0);
+    const name = (item.name || '').slice(0, 200);
+    if (!article) continue;
+    await db.runAsync(
+      `INSERT INTO product_costs (user_id, supplier_article, name, cost_price, updated_at)
+       VALUES (?,?,?,?, NOW())
+       ON CONFLICT (user_id, supplier_article) DO UPDATE SET cost_price=EXCLUDED.cost_price, name=EXCLUDED.name, updated_at=NOW()`,
+      [req.user.id, article, name, cost]
+    );
+  }
+  res.json({ ok: true });
+});
+
+// GET /api/wb-articles — уникальные артикулы из заказов WB (для заполнения себестоимости)
+app.get('/api/wb-articles', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+
+  try {
+    // Берём заказы за последние 90 дней — чтобы получить все активные артикулы
+    const dateFrom = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    const resp = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/orders?dateFrom=${dateFrom}`, {
+      headers: { Authorization: `Bearer ${u.wb_api_token}` }
+    });
+    if (!resp.ok) throw new Error('WB API error ' + resp.status);
+    const orders = await resp.json();
+
+    // Группируем по supplierArticle — убираем дубли
+    const seen = {};
+    (Array.isArray(orders) ? orders : []).forEach(o => {
+      const art = (o.supplierArticle || '').trim();
+      if (!art || seen[art]) return;
+      seen[art] = { supplier_article: art, name: o.subject || o.category || '' };
+    });
+
+    // Подтягиваем уже сохранённые себестоимости
+    const saved = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
+    const savedMap = {};
+    saved.forEach(s => { savedMap[s.supplier_article] = s.cost_price; });
+
+    const articles = Object.values(seen).map(a => ({
+      ...a,
+      cost_price: savedMap[a.supplier_article] || 0
+    }));
+
+    res.json({ articles });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/wb-token — сохранить токен WB
 app.post('/api/wb-token', authMiddleware, async (req, res) => {
   const { token: wbToken } = req.body;
@@ -1001,24 +1066,32 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       reportRaw = Array.isArray(rr) ? rr : [];
     } catch(e) { reportRaw = []; }
 
+    // Загружаем себестоимости пользователя
+    const costsRows = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
+    const costsMap = {};
+    costsRows.forEach(c => { costsMap[c.supplier_article] = c.cost_price || 0; });
+
     // Разбиваем за один проход: текущий период + предыдущий
     const ordersByDay = {};
-    let prevOrders = 0, prevRevenue = 0;
+    let prevOrders = 0, prevRevenue = 0, prevCogs = 0;
 
     (Array.isArray(allOrdersRaw) ? allOrdersRaw : []).forEach(o => {
       if (o.isCancel) return;
       const day = (o.date || '').slice(0, 10);
       if (!day) return;
-      const sum = Math.round(o.priceWithDisc || o.totalPrice || 0);
+      const sum  = Math.round(o.priceWithDisc || o.totalPrice || 0);
+      const cogs = costsMap[(o.supplierArticle || '').trim()] || 0;
 
       if (inRange(day)) {
-        if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0 };
+        if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0, cogs: 0 };
         ordersByDay[day].count++;
-        ordersByDay[day].sum += sum;
+        ordersByDay[day].sum  += sum;
+        ordersByDay[day].cogs += cogs;
       }
       if (prevInRange(day)) {
         prevOrders++;
         prevRevenue += sum;
+        prevCogs    += cogs;
       }
     });
 
@@ -1061,18 +1134,21 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const cur = new Date(dateFrom), end = new Date(dateTo);
     while (cur <= end) {
       const day = cur.toISOString().slice(0, 10);
-      const o = ordersByDay[day] || { count: 0, sum: 0 };
+      const o = ordersByDay[day] || { count: 0, sum: 0, cogs: 0 };
       const m = marginByDay[day] || { payable:0, commission:0, logistics:0, storage:0, penalty:0, margin:0 };
+      const netMargin = m.margin - o.cogs; // маржа минус себестоимость
       allDays.push({
         date: day,
         orders: o.count,
         revenue: o.sum,
+        cogs: o.cogs,
         payable: m.payable,
         commission: m.commission,
         logistics: m.logistics,
         storage: m.storage,
         penalty: m.penalty,
         margin: m.margin,
+        net_margin: netMargin,
       });
       cur.setDate(cur.getDate() + 1);
     }
@@ -1081,25 +1157,28 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const totals = {
       orders:     sumF(allDays,'orders'),
       revenue:    sumF(allDays,'revenue'),
+      cogs:       sumF(allDays,'cogs'),
       payable:    sumF(allDays,'payable'),
       commission: sumF(allDays,'commission'),
       logistics:  sumF(allDays,'logistics'),
       storage:    sumF(allDays,'storage'),
       penalty:    sumF(allDays,'penalty'),
       margin:     sumF(allDays,'margin'),
+      net_margin: sumF(allDays,'net_margin'),
     };
-    const prevMargin = prevPayable - prevStorage - prevPenalty;
+    const prevMargin    = prevPayable - prevStorage - prevPenalty;
+    const prevNetMargin = prevMargin - prevCogs;
     const prevTotals = {
-      orders: prevOrders, revenue: prevRevenue,
+      orders: prevOrders, revenue: prevRevenue, cogs: prevCogs,
       payable: prevPayable, commission: prevCommission,
       logistics: prevLogistics, storage: prevStorage,
-      penalty: prevPenalty, margin: prevMargin,
+      penalty: prevPenalty, margin: prevMargin, net_margin: prevNetMargin,
     };
 
     // Конвертируем RUB → KZT
     const rubKzt = await getRubKztRate();
     const toKzt = v => Math.round((v || 0) * rubKzt);
-    const kztFields = ['revenue','payable','commission','logistics','storage','penalty','margin'];
+    const kztFields = ['revenue','cogs','payable','commission','logistics','storage','penalty','margin','net_margin'];
     const kztRows = allDays.map(r => {
       const row = { date: r.date, orders: r.orders };
       kztFields.forEach(f => row[f] = toKzt(r[f]));

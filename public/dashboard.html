@@ -1011,11 +1011,21 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         </div>
       </div>
 
+      <!-- Кнопка себестоимости -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;color:var(--muted)" id="anCogsHint">💡 Введите себестоимость товаров для расчёта чистой прибыли</div>
+        <button onclick="openCogsModal()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--p);background:transparent;color:var(--p);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⚙️ Себестоимость товаров</button>
+      </div>
+
       <!-- Разбивка расходов -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
         <div class="an-card" style="padding:12px 14px">
           <div class="an-card-lbl" style="font-size:11px">К выплате WB</div>
           <div class="an-card-val" id="anMPayable" style="font-size:18px">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
+          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Себестоимость</div>
+          <div class="an-card-val" id="anMCogs" style="font-size:18px;color:#e74c3c">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#ff6b3533">
           <div class="an-card-lbl" style="font-size:11px;color:#ff6b35">Комиссия WB</div>
@@ -2069,13 +2079,23 @@ function anUpdateMetrics(totals,prev,period){
   var lbl=labels[period]||'';
   anSetMetric('anMCount','anMCountDelta','anMCountPeriod',totals.orders||0,prev.orders||0,lbl,true);
   anSetMetric('anMSum','anMSumDelta','anMSumPeriod',totals.revenue||0,prev.revenue||0,lbl,false);
-  anSetMetric('anMMargin','anMMarginDelta','anMMarginPeriod',totals.margin||0,prev.margin||0,lbl,false);
+  // Если есть себестоимость — показываем чистую прибыль, иначе маржу до себестоимости
+  var hasNetMargin = (totals.cogs || 0) > 0;
+  var marginVal = hasNetMargin ? (totals.net_margin||0) : (totals.margin||0);
+  var prevMarginVal = hasNetMargin ? (prev.net_margin||0) : (prev.margin||0);
+  anSetMetric('anMMargin','anMMarginDelta','anMMarginPeriod', marginVal, prevMarginVal, lbl, false);
+  var lbl2 = document.getElementById('anMMargin');
+  if(lbl2) lbl2.closest('.an-card').querySelector('.an-card-lbl').textContent = hasNetMargin ? 'Чистая прибыль' : 'Маржа (без себест.)';
   // Разбивка расходов
-  anSetVal('anMPayable',   totals.payable    || 0);
-  anSetVal('anMCommission',totals.commission || 0);
-  anSetVal('anMLogistics', totals.logistics  || 0);
-  anSetVal('anMStorage',   totals.storage    || 0);
-  anSetVal('anMPenalty',   totals.penalty    || 0);
+  anSetVal('anMPayable',    totals.payable    || 0);
+  anSetVal('anMCogs',       totals.cogs       || 0);
+  anSetVal('anMCommission', totals.commission || 0);
+  anSetVal('anMLogistics',  totals.logistics  || 0);
+  anSetVal('anMStorage',    totals.storage    || 0);
+  anSetVal('anMPenalty',    totals.penalty    || 0);
+  // Подсказка
+  var hint = document.getElementById('anCogsHint');
+  if(hint) hint.textContent = hasNetMargin ? '✅ Себестоимость учтена в расчёте прибыли' : '💡 Введите себестоимость товаров для расчёта чистой прибыли';
 }
 
 function anBuildChart(rows,dateFrom,dateTo,period){
@@ -2398,5 +2418,116 @@ init();
   <button onclick="isPasteConfirm('ref')">🎨 Стиль (reference)</button>
   <button onclick="isPasteConfirm('cancel')" style="color:var(--muted)">Отмена</button>
 </div>
+<!-- ═══ МОДАЛ: СЕБЕСТОИМОСТЬ ТОВАРОВ ═══ -->
+<div id="cogsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;font-family:inherit">
+  <div style="background:var(--surface);border-radius:16px;padding:24px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:15px;font-weight:700">⚙️ Себестоимость товаров</div>
+      <button onclick="closeCogsModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Введите себестоимость (цена закупки + доставка до WB) в рублях. Одна цена на каждый артикул.</div>
+    <div style="flex:1;overflow-y:auto;margin-bottom:14px" id="cogsTableWrap">
+      <div style="text-align:center;padding:30px;color:var(--muted);font-size:13px" id="cogsLoading">Загружаем артикулы с WB...</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeCogsModal()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Отмена</button>
+      <button onclick="saveCogs()" id="cogsSaveBtn" style="flex:2;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var _cogsArticles = [];
+
+async function openCogsModal() {
+  var modal = document.getElementById('cogsModal');
+  modal.style.display = 'flex';
+  document.getElementById('cogsLoading').style.display = 'block';
+  document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px" id="cogsLoading">Загружаем артикулы с WB...</div>';
+
+  try {
+    var token = localStorage.getItem('wbai_token');
+    var r = await fetch('/api/wb-articles', { headers: { Authorization: 'Bearer ' + token } });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    _cogsArticles = data.articles || [];
+    renderCogsTable(_cogsArticles);
+  } catch(e) {
+    document.getElementById('cogsTableWrap').innerHTML = '<div style="color:#e74c3c;padding:20px;font-size:13px">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+function renderCogsTable(articles) {
+  if (!articles.length) {
+    document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Нет заказов за последние 90 дней</div>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="border-bottom:1px solid var(--border)">' +
+    '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">АРТИКУЛ</th>' +
+    '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">НАЗВАНИЕ</th>' +
+    '<th style="text-align:right;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">СЕБЕСТ. (₽)</th>' +
+    '</tr></thead><tbody>';
+
+  articles.forEach(function(a) {
+    html += '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:8px 6px;font-family:monospace;font-size:12px;color:var(--p)">' + escHtml(a.supplier_article) + '</td>' +
+      '<td style="padding:8px 6px;color:var(--text)">' + escHtml(a.name || '—') + '</td>' +
+      '<td style="padding:8px 6px;text-align:right">' +
+        '<input type="number" min="0" step="1" placeholder="0" value="' + (a.cost_price || '') + '" ' +
+        'data-art="' + escHtml(a.supplier_article) + '" data-name="' + escHtml(a.name||'') + '" ' +
+        'style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;text-align:right;font-family:inherit">' +
+      '</td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('cogsTableWrap').innerHTML = html;
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function saveCogs() {
+  var btn = document.getElementById('cogsSaveBtn');
+  btn.textContent = '⏳ Сохраняем...'; btn.disabled = true;
+
+  var inputs = document.querySelectorAll('#cogsTableWrap input[data-art]');
+  var items = [];
+  inputs.forEach(function(inp) {
+    items.push({
+      supplier_article: inp.getAttribute('data-art'),
+      name: inp.getAttribute('data-name'),
+      cost_price: parseInt(inp.value) || 0
+    });
+  });
+
+  try {
+    var token = localStorage.getItem('wbai_token');
+    var r = await fetch('/api/product-costs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ items: items })
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeCogsModal();
+    // Перезагружаем аналитику с новыми себестоимостями
+    if (typeof anLoad === 'function') anLoad();
+  } catch(e) {
+    alert('Ошибка: ' + e.message);
+  } finally {
+    btn.textContent = '💾 Сохранить'; btn.disabled = false;
+  }
+}
+
+function closeCogsModal() {
+  document.getElementById('cogsModal').style.display = 'none';
+}
+
+// Закрытие по клику на оверлей
+document.getElementById('cogsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCogsModal();
+});
+</script>
+
 </body>
 </html>

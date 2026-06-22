@@ -71,6 +71,18 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  // Себестоимость товаров по артикулу продавца
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_costs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      supplier_article VARCHAR(255) NOT NULL,
+      name TEXT DEFAULT '',
+      cost_price INTEGER DEFAULT 0,
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, supplier_article)
+    )
+  `);
   console.log('[WBai] Database ready');
 }
 
