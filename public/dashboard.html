@@ -2420,18 +2420,39 @@ init();
 </div>
 <!-- ═══ МОДАЛ: СЕБЕСТОИМОСТЬ ТОВАРОВ ═══ -->
 <div id="cogsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;font-family:inherit">
-  <div style="background:var(--surface);border-radius:16px;padding:24px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <div style="background:var(--surface);border-radius:16px;padding:24px;width:620px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+
+    <!-- Заголовок -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <div style="font-size:15px;font-weight:700">⚙️ Себестоимость товаров</div>
       <button onclick="closeCogsModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Введите себестоимость (цена закупки + доставка до WB) в рублях. Одна цена на каждый артикул.</div>
-    <div style="flex:1;overflow-y:auto;margin-bottom:14px" id="cogsTableWrap">
-      <div style="text-align:center;padding:30px;color:var(--muted);font-size:13px" id="cogsLoading">Загружаем артикулы с WB...</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Цена закупки + доставка до WB, в рублях. Выберите несколько артикулов и задайте им одну цену сразу.</div>
+
+    <!-- Панель массового заполнения -->
+    <div id="cogsBulkBar" style="display:none;background:var(--surface2);border:1px solid var(--p);border-radius:10px;padding:10px 14px;margin-bottom:10px;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:600;color:var(--p);flex:1" id="cogsBulkLabel">Выбрано 0 артикулов</div>
+      <input type="number" id="cogsBulkInput" min="0" step="1" placeholder="Себестоимость ₽" style="width:150px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit">
+      <button onclick="applyBulkCogs()" style="padding:7px 14px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Применить к выбранным</button>
     </div>
-    <div style="display:flex;gap:10px">
+
+    <!-- Поиск + выбрать все -->
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+      <input id="cogsSearch" type="text" placeholder="🔍 Поиск по артикулу или названию..." oninput="cogsFilterTable()" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="cogsSelectAll" onchange="cogsToggleAll(this.checked)"> Все
+      </label>
+    </div>
+
+    <!-- Таблица -->
+    <div style="flex:1;overflow-y:auto;border:1px solid var(--border);border-radius:10px" id="cogsTableWrap">
+      <div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Загружаем артикулы с WB...</div>
+    </div>
+
+    <!-- Кнопки -->
+    <div style="display:flex;gap:10px;margin-top:14px">
       <button onclick="closeCogsModal()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Отмена</button>
-      <button onclick="saveCogs()" id="cogsSaveBtn" style="flex:2;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💾 Сохранить</button>
+      <button onclick="saveCogs()" id="cogsSaveBtn" style="flex:2;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💾 Сохранить всё</button>
     </div>
   </div>
 </div>
@@ -2442,8 +2463,10 @@ var _cogsArticles = [];
 async function openCogsModal() {
   var modal = document.getElementById('cogsModal');
   modal.style.display = 'flex';
-  document.getElementById('cogsLoading').style.display = 'block';
-  document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px" id="cogsLoading">Загружаем артикулы с WB...</div>';
+  document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Загружаем артикулы с WB...</div>';
+  document.getElementById('cogsBulkBar').style.display = 'none';
+  document.getElementById('cogsSelectAll').checked = false;
+  document.getElementById('cogsSearch').value = '';
 
   try {
     var token = localStorage.getItem('wbai_token');
@@ -2453,9 +2476,11 @@ async function openCogsModal() {
     _cogsArticles = data.articles || [];
     renderCogsTable(_cogsArticles);
   } catch(e) {
-    document.getElementById('cogsTableWrap').innerHTML = '<div style="color:#e74c3c;padding:20px;font-size:13px">Ошибка: ' + e.message + '</div>';
+    document.getElementById('cogsTableWrap').innerHTML = '<div style="color:#e74c3c;padding:20px;font-size:13px">Ошибка: ' + escHtml(e.message) + '</div>';
   }
 }
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function renderCogsTable(articles) {
   if (!articles.length) {
@@ -2463,20 +2488,24 @@ function renderCogsTable(articles) {
     return;
   }
   var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
-    '<thead><tr style="border-bottom:1px solid var(--border)">' +
+    '<thead><tr style="background:var(--surface2);position:sticky;top:0">' +
+    '<th style="padding:8px 10px;width:32px"></th>' +
     '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">АРТИКУЛ</th>' +
     '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">НАЗВАНИЕ</th>' +
-    '<th style="text-align:right;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">СЕБЕСТ. (₽)</th>' +
-    '</tr></thead><tbody>';
+    '<th style="text-align:right;padding:8px 10px;color:var(--muted);font-weight:600;font-size:11px">СЕБЕСТ. ₽</th>' +
+    '</tr></thead><tbody id="cogsTbody">';
 
-  articles.forEach(function(a) {
-    html += '<tr style="border-bottom:1px solid var(--border)">' +
+  articles.forEach(function(a, i) {
+    html += '<tr class="cogs-row" style="border-bottom:1px solid var(--border)" data-art="' + escHtml(a.supplier_article) + '" data-name="' + escHtml(a.name||'') + '">' +
+      '<td style="padding:8px 10px;text-align:center">' +
+        '<input type="checkbox" class="cogs-cb" onchange="cogsUpdateBulkBar()" style="cursor:pointer;width:15px;height:15px">' +
+      '</td>' +
       '<td style="padding:8px 6px;font-family:monospace;font-size:12px;color:var(--p)">' + escHtml(a.supplier_article) + '</td>' +
-      '<td style="padding:8px 6px;color:var(--text)">' + escHtml(a.name || '—') + '</td>' +
-      '<td style="padding:8px 6px;text-align:right">' +
+      '<td style="padding:8px 6px;color:var(--text);font-size:12px">' + escHtml(a.name || '—') + '</td>' +
+      '<td style="padding:8px 10px;text-align:right">' +
         '<input type="number" min="0" step="1" placeholder="0" value="' + (a.cost_price || '') + '" ' +
-        'data-art="' + escHtml(a.supplier_article) + '" data-name="' + escHtml(a.name||'') + '" ' +
-        'style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;text-align:right;font-family:inherit">' +
+        'class="cogs-price" ' +
+        'style="width:100px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;text-align:right;font-family:inherit">' +
       '</td></tr>';
   });
 
@@ -2484,19 +2513,54 @@ function renderCogsTable(articles) {
   document.getElementById('cogsTableWrap').innerHTML = html;
 }
 
-function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cogsFilterTable() {
+  var q = document.getElementById('cogsSearch').value.toLowerCase();
+  document.querySelectorAll('.cogs-row').forEach(function(row) {
+    var art  = (row.getAttribute('data-art') || '').toLowerCase();
+    var name = (row.getAttribute('data-name') || '').toLowerCase();
+    row.style.display = (!q || art.includes(q) || name.includes(q)) ? '' : 'none';
+  });
+}
+
+function cogsToggleAll(checked) {
+  document.querySelectorAll('.cogs-row:not([style*="display: none"]) .cogs-cb').forEach(function(cb) { cb.checked = checked; });
+  cogsUpdateBulkBar();
+}
+
+function cogsUpdateBulkBar() {
+  var checked = document.querySelectorAll('.cogs-cb:checked').length;
+  var bar = document.getElementById('cogsBulkBar');
+  bar.style.display = checked > 0 ? 'flex' : 'none';
+  document.getElementById('cogsBulkLabel').textContent = 'Выбрано ' + checked + ' артикул' + (checked===1?'':'ов');
+  // Сбрасываем "все" если не все выбраны
+  var total = document.querySelectorAll('.cogs-cb').length;
+  document.getElementById('cogsSelectAll').checked = checked === total && total > 0;
+}
+
+function applyBulkCogs() {
+  var val = document.getElementById('cogsBulkInput').value;
+  if (!val) { document.getElementById('cogsBulkInput').focus(); return; }
+  document.querySelectorAll('.cogs-cb:checked').forEach(function(cb) {
+    var row = cb.closest('.cogs-row');
+    if (row) { var inp = row.querySelector('.cogs-price'); if (inp) inp.value = val; }
+  });
+  // Снимаем выделение
+  document.querySelectorAll('.cogs-cb').forEach(function(cb) { cb.checked = false; });
+  document.getElementById('cogsBulkInput').value = '';
+  cogsUpdateBulkBar();
+}
 
 async function saveCogs() {
   var btn = document.getElementById('cogsSaveBtn');
   btn.textContent = '⏳ Сохраняем...'; btn.disabled = true;
 
-  var inputs = document.querySelectorAll('#cogsTableWrap input[data-art]');
   var items = [];
-  inputs.forEach(function(inp) {
+  document.querySelectorAll('.cogs-row').forEach(function(row) {
+    var inp = row.querySelector('.cogs-price');
     items.push({
-      supplier_article: inp.getAttribute('data-art'),
-      name: inp.getAttribute('data-name'),
-      cost_price: parseInt(inp.value) || 0
+      supplier_article: row.getAttribute('data-art'),
+      name: row.getAttribute('data-name'),
+      cost_price: parseInt(inp ? inp.value : 0) || 0
     });
   });
 
@@ -2510,12 +2574,11 @@ async function saveCogs() {
     var data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка');
     closeCogsModal();
-    // Перезагружаем аналитику с новыми себестоимостями
     if (typeof anLoad === 'function') anLoad();
   } catch(e) {
     alert('Ошибка: ' + e.message);
   } finally {
-    btn.textContent = '💾 Сохранить'; btn.disabled = false;
+    btn.textContent = '💾 Сохранить всё'; btn.disabled = false;
   }
 }
 
@@ -2523,7 +2586,6 @@ function closeCogsModal() {
   document.getElementById('cogsModal').style.display = 'none';
 }
 
-// Закрытие по клику на оверлей
 document.getElementById('cogsModal').addEventListener('click', function(e) {
   if (e.target === this) closeCogsModal();
 });
