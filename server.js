@@ -1022,12 +1022,38 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       }
     });
 
-    // Прибыль из финотчёта
-    const profitByDay = {};
+    // Маржа по дням из финотчёта — полная разбивка
+    const marginByDay = {};
+    let prevPayable = 0, prevCommission = 0, prevLogistics = 0, prevStorage = 0, prevPenalty = 0;
+
     reportRaw.forEach(r => {
       const day = (r.rr_dt || r.create_dt || '').slice(0, 10);
-      if (!day || !inRange(day)) return;
-      profitByDay[day] = (profitByDay[day] || 0) + Math.round(r.ppvz_for_pay || 0);
+      if (!day) return;
+
+      const payable    = Math.round(r.ppvz_for_pay || 0);       // К выплате от WB
+      const commission = Math.round((r.ppvz_vw || 0) + (r.ppvz_vw_nds || 0)); // Комиссия WB
+      const logistics  = Math.round(r.delivery_rub || 0);        // Логистика
+      const storage    = Math.round(r.storage_fee || 0);         // Хранение
+      const penalty    = Math.round((r.penalty || 0) + (r.deduction || 0) + (r.acceptance || 0)); // Штрафы+удержания+приёмка
+      // Маржа = к выплате - хранение - штрафы (логистика уже вычтена WB при расчёте ppvz_for_pay)
+      const margin     = payable - storage - penalty;
+
+      if (inRange(day)) {
+        if (!marginByDay[day]) marginByDay[day] = { payable:0, commission:0, logistics:0, storage:0, penalty:0, margin:0 };
+        marginByDay[day].payable    += payable;
+        marginByDay[day].commission += commission;
+        marginByDay[day].logistics  += logistics;
+        marginByDay[day].storage    += storage;
+        marginByDay[day].penalty    += penalty;
+        marginByDay[day].margin     += margin;
+      }
+      if (prevInRange(day)) {
+        prevPayable    += payable;
+        prevCommission += commission;
+        prevLogistics  += logistics;
+        prevStorage    += storage;
+        prevPenalty    += penalty;
+      }
     });
 
     // Строим массив по всем дням периода
@@ -1036,21 +1062,53 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     while (cur <= end) {
       const day = cur.toISOString().slice(0, 10);
       const o = ordersByDay[day] || { count: 0, sum: 0 };
-      allDays.push({ date: day, orders: o.count, revenue: o.sum, profit: profitByDay[day] || 0 });
+      const m = marginByDay[day] || { payable:0, commission:0, logistics:0, storage:0, penalty:0, margin:0 };
+      allDays.push({
+        date: day,
+        orders: o.count,
+        revenue: o.sum,
+        payable: m.payable,
+        commission: m.commission,
+        logistics: m.logistics,
+        storage: m.storage,
+        penalty: m.penalty,
+        margin: m.margin,
+      });
       cur.setDate(cur.getDate() + 1);
     }
 
     const sumF = (arr, k) => arr.reduce((a, b) => a + (b[k] || 0), 0);
-    const totals     = { orders: sumF(allDays,'orders'), revenue: sumF(allDays,'revenue'), profit: sumF(allDays,'profit') };
-    const prevProfit = reportRaw.filter(r => prevInRange((r.rr_dt || r.create_dt || '').slice(0,10))).reduce((a,r) => a + Math.round(r.ppvz_for_pay || 0), 0);
-    const prevTotals = { orders: prevOrders, revenue: prevRevenue, profit: prevProfit };
+    const totals = {
+      orders:     sumF(allDays,'orders'),
+      revenue:    sumF(allDays,'revenue'),
+      payable:    sumF(allDays,'payable'),
+      commission: sumF(allDays,'commission'),
+      logistics:  sumF(allDays,'logistics'),
+      storage:    sumF(allDays,'storage'),
+      penalty:    sumF(allDays,'penalty'),
+      margin:     sumF(allDays,'margin'),
+    };
+    const prevMargin = prevPayable - prevStorage - prevPenalty;
+    const prevTotals = {
+      orders: prevOrders, revenue: prevRevenue,
+      payable: prevPayable, commission: prevCommission,
+      logistics: prevLogistics, storage: prevStorage,
+      penalty: prevPenalty, margin: prevMargin,
+    };
 
-    // WB Statistics API возвращает суммы в рублях (RUB) — конвертируем в тенге (KZT)
+    // Конвертируем RUB → KZT
     const rubKzt = await getRubKztRate();
     const toKzt = v => Math.round((v || 0) * rubKzt);
-    const kztRows = allDays.map(r => ({ ...r, revenue: toKzt(r.revenue), profit: toKzt(r.profit) }));
-    const kztTotals    = { orders: totals.orders,    revenue: toKzt(totals.revenue),    profit: toKzt(totals.profit)    };
-    const kztPrevTotals= { orders: prevTotals.orders, revenue: toKzt(prevTotals.revenue), profit: toKzt(prevTotals.profit) };
+    const kztFields = ['revenue','payable','commission','logistics','storage','penalty','margin'];
+    const kztRows = allDays.map(r => {
+      const row = { date: r.date, orders: r.orders };
+      kztFields.forEach(f => row[f] = toKzt(r[f]));
+      return row;
+    });
+    const kztTotals = { orders: totals.orders };
+    kztFields.forEach(f => kztTotals[f] = toKzt(totals[f]));
+    const kztPrevTotals = { orders: prevTotals.orders };
+    kztFields.forEach(f => kztPrevTotals[f] = toKzt(prevTotals[f]));
 
     res.json({ rows: kztRows, totals: kztTotals, prevTotals: kztPrevTotals, dateFrom, dateTo, prevFrom, prevTo, rubKztRate: rubKzt });
   } catch(e) {

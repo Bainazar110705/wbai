@@ -988,25 +988,50 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <button class="an-apply-btn" onclick="anApplyCustom()">Применить</button>
       </div>
 
+      <!-- Основные метрики -->
       <div class="an-metrics">
         <div class="an-card">
-          <div class="an-card-lbl">Количество заказов</div>
+          <div class="an-card-lbl">Заказы</div>
           <div class="an-card-val" id="anMCount">—</div>
           <span class="an-card-delta eq" id="anMCountDelta"></span>
           <div class="an-card-period" id="anMCountPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Сумма</div>
+          <div class="an-card-lbl">Выручка</div>
           <div class="an-card-val" id="anMSum">—</div>
           <span class="an-card-delta eq" id="anMSumDelta"></span>
           <div class="an-card-period" id="anMSumPeriod"></div>
         </div>
-        <div class="an-card">
-          <div class="an-card-lbl">Прибыль</div>
-          <div class="an-card-val" id="anMProfit">—</div>
-          <span class="an-card-delta eq" id="anMProfitDelta"></span>
-          <div class="an-card-period" id="anMProfitPeriod"></div>
-          <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.55">⏳ Данные появятся через 5–7 дней</div>
+        <div class="an-card" style="border-color:#22d37a33;background:linear-gradient(135deg,rgba(34,211,122,.04),transparent)">
+          <div class="an-card-lbl" style="color:#22d37a">Маржа (чистая)</div>
+          <div class="an-card-val" id="anMMargin" style="color:#22d37a">—</div>
+          <span class="an-card-delta eq" id="anMMarginDelta"></span>
+          <div class="an-card-period" id="anMMarginPeriod"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.6">⏳ Данные с задержкой 5–7 дней</div>
+        </div>
+      </div>
+
+      <!-- Разбивка расходов -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+        <div class="an-card" style="padding:12px 14px">
+          <div class="an-card-lbl" style="font-size:11px">К выплате WB</div>
+          <div class="an-card-val" id="anMPayable" style="font-size:18px">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#ff6b3533">
+          <div class="an-card-lbl" style="font-size:11px;color:#ff6b35">Комиссия WB</div>
+          <div class="an-card-val" id="anMCommission" style="font-size:18px;color:#ff6b35">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#f5a62333">
+          <div class="an-card-lbl" style="font-size:11px;color:#f5a623">Логистика</div>
+          <div class="an-card-val" id="anMLogistics" style="font-size:18px;color:#f5a623">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#9b59b633">
+          <div class="an-card-lbl" style="font-size:11px;color:#9b59b6">Хранение</div>
+          <div class="an-card-val" id="anMStorage" style="font-size:18px;color:#9b59b6">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
+          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Штрафы</div>
+          <div class="an-card-val" id="anMPenalty" style="font-size:18px;color:#e74c3c">—</div>
         </div>
       </div>
 
@@ -1015,8 +1040,8 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-chart-title" id="anChartTitle">График за неделю</div>
           <div class="an-legend">
             <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--p)"></div>Заказы</div>
-            <div class="an-legend-item"><div class="an-legend-dot" style="background:#0071e3"></div>Сумма</div>
-            <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--green)"></div>Прибыль</div>
+            <div class="an-legend-item"><div class="an-legend-dot" style="background:#0071e3"></div>Выручка</div>
+            <div class="an-legend-item"><div class="an-legend-dot" style="background:#22d37a"></div>Маржа</div>
           </div>
         </div>
         <div class="an-chart-wrap">
@@ -2037,12 +2062,20 @@ function anSetMetric(valId,deltaId,periodId,val,prev,lbl,isCnt){
   var pEl=document.getElementById(periodId); if(pEl)pEl.textContent=lbl;
 }
 
+function anSetVal(id,val){var el=document.getElementById(id);if(el)el.textContent=anFmtCur(val);}
+
 function anUpdateMetrics(totals,prev,period){
   var labels={today:'от вчера',week:'за прошлую неделю','2weeks':'за предыдущие 2 нед.',month:'от прошлого месяца','3months':'за 3 предыдущих мес.',halfyear:'за предыдущие полгода',year:'за прошлый год',custom:'за предыдущий период'};
   var lbl=labels[period]||'';
   anSetMetric('anMCount','anMCountDelta','anMCountPeriod',totals.orders||0,prev.orders||0,lbl,true);
   anSetMetric('anMSum','anMSumDelta','anMSumPeriod',totals.revenue||0,prev.revenue||0,lbl,false);
-  anSetMetric('anMProfit','anMProfitDelta','anMProfitPeriod',totals.profit||0,prev.profit||0,lbl,false);
+  anSetMetric('anMMargin','anMMarginDelta','anMMarginPeriod',totals.margin||0,prev.margin||0,lbl,false);
+  // Разбивка расходов
+  anSetVal('anMPayable',   totals.payable    || 0);
+  anSetVal('anMCommission',totals.commission || 0);
+  anSetVal('anMLogistics', totals.logistics  || 0);
+  anSetVal('anMStorage',   totals.storage    || 0);
+  anSetVal('anMPenalty',   totals.penalty    || 0);
 }
 
 function anBuildChart(rows,dateFrom,dateTo,period){
@@ -2054,21 +2087,21 @@ function anBuildChart(rows,dateFrom,dateTo,period){
   var points=[],from=new Date(dateFrom),to=new Date(dateTo),diffDays=Math.round((to-from)/86400000)+1;
   if(period==='today'){
     var r=byDate[dateFrom]||{};
-    for(var h=0;h<24;h++){var f=Math.max(0,Math.sin(Math.PI*(h-7)/15));points.push({label:String(h).padStart(2,'0'),count:Math.round((r.orders||0)*f/8),sum:Math.round((r.revenue||0)*f/8),profit:Math.round((r.profit||0)*f/8)});}
+    for(var h=0;h<24;h++){var f=Math.max(0,Math.sin(Math.PI*(h-7)/15));points.push({label:String(h).padStart(2,'0'),count:Math.round((r.orders||0)*f/8),sum:Math.round((r.revenue||0)*f/8),margin:Math.round((r.margin||0)*f/8)});}
   } else if(period==='week'){
     var days=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-    for(var i=0;i<7;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:days[d.getDay()],count:rr.orders||0,sum:rr.revenue||0,profit:rr.profit||0});}
+    for(var i=0;i<7;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:days[d.getDay()],count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
   } else if(period==='2weeks'||(period==='custom'&&diffDays<=31)){
-    for(var i=0;i<diffDays;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:rr.orders||0,sum:rr.revenue||0,profit:rr.profit||0});}
+    for(var i=0;i<diffDays;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
   } else if(period==='month'){
     var dim=new Date(from.getFullYear(),from.getMonth()+1,0).getDate();
-    for(var i=1;i<=dim;i++){var d=new Date(from.getFullYear(),from.getMonth(),i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:String(i),count:rr.orders||0,sum:rr.revenue||0,profit:rr.profit||0});}
+    for(var i=1;i<=dim;i++){var d=new Date(from.getFullYear(),from.getMonth(),i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:String(i),count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
   } else if(period==='3months'||(period==='custom'&&diffDays>31&&diffDays<=180)){
     var weeks=Math.ceil(diffDays/7);
-    for(var w=0;w<weeks;w++){var ws=new Date(from);ws.setDate(ws.getDate()+w*7);var we=new Date(ws);we.setDate(we.getDate()+6);var wo=0,wr=0,wp=0;for(var d2=new Date(ws);d2<=we&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};wo+=rr.orders||0;wr+=rr.revenue||0;wp+=rr.profit||0;}points.push({label:ws.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:wo,sum:wr,profit:wp});}
+    for(var w=0;w<weeks;w++){var ws=new Date(from);ws.setDate(ws.getDate()+w*7);var we=new Date(ws);we.setDate(we.getDate()+6);var wo=0,wr=0,wp=0;for(var d2=new Date(ws);d2<=we&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};wo+=rr.orders||0;wr+=rr.revenue||0;wp+=rr.margin||0;}points.push({label:ws.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:wo,sum:wr,margin:wp});}
   } else {
     var mc=Math.ceil(diffDays/30);
-    for(var m=0;m<mc;m++){var ms=new Date(from);ms.setMonth(ms.getMonth()+m);ms.setDate(1);var me=new Date(ms);me.setMonth(me.getMonth()+1);me.setDate(0);var mo=0,mr=0,mp=0;for(var d2=new Date(ms);d2<=me&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};mo+=rr.orders||0;mr+=rr.revenue||0;mp+=rr.profit||0;}points.push({label:AN_MONTHS[ms.getMonth()],count:mo,sum:mr,profit:mp});}
+    for(var m=0;m<mc;m++){var ms=new Date(from);ms.setMonth(ms.getMonth()+m);ms.setDate(1);var me=new Date(ms);me.setMonth(me.getMonth()+1);me.setDate(0);var mo=0,mr=0,mp=0;for(var d2=new Date(ms);d2<=me&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};mo+=rr.orders||0;mr+=rr.revenue||0;mp+=rr.margin||0;}points.push({label:AN_MONTHS[ms.getMonth()],count:mo,sum:mr,margin:mp});}
   }
   AN.data=points;
   var titles={today:'График за сегодня (по часам)',week:'График за неделю','2weeks':'График за 2 недели',month:'График за месяц','3months':'График за 3 месяца',halfyear:'График за полгода',year:'График за год',custom:'График за выбранный период'};
@@ -2087,19 +2120,19 @@ function anDrawChart(progress){
   var data=AN.data,padL=52,padR=16,padT=14,padB=8,cW=W-padL-padR,cH=H-padT-padB,n=data.length,step=cW/Math.max(n-1,1);
   var maxCount=Math.max.apply(null,data.map(function(d){return d.count;}).concat([1]));
   var maxSum=Math.max.apply(null,data.map(function(d){return d.sum;}).concat([1]));
-  var maxProfit=Math.max.apply(null,data.map(function(d){return d.profit;}).concat([1]));
+  var maxMargin=Math.max.apply(null,data.map(function(d){return Math.abs(d.margin||0);}).concat([1]));
   for(var i=0;i<=4;i++){var y=padT+cH-cH*i/4;ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+cW,y);ctx.stroke();ctx.fillStyle='#8888aa';ctx.font='9px monospace';ctx.textAlign='right';ctx.fillText(Math.round(maxCount*i/4),padL-6,y+3);}
   var getX=function(i){return padL+i*step;};
   var getY=function(v,max){return padT+cH-cH*(v/max)*anEaseOut(progress);};
   function drawLine(key,max,color){ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.globalAlpha=1;ctx.lineJoin='round';ctx.lineCap='round';data.forEach(function(d,i){i===0?ctx.moveTo(getX(i),getY(d[key],max)):ctx.lineTo(getX(i),getY(d[key],max));});ctx.stroke();ctx.globalAlpha=0.07;ctx.fillStyle=color;ctx.lineTo(getX(n-1),padT+cH);ctx.lineTo(getX(0),padT+cH);ctx.closePath();ctx.fill();ctx.globalAlpha=1;}
-  drawLine('sum',maxSum,'#0071e3');drawLine('profit',maxProfit,'#22d37a');drawLine('count',maxCount,'#7b2ff7');
+  drawLine('sum',maxSum,'#0071e3');drawLine('margin',maxMargin,'#22d37a');drawLine('count',maxCount,'#7b2ff7');
   data.forEach(function(d,i){ctx.beginPath();ctx.arc(getX(i),getY(d.count,maxCount),3,0,Math.PI*2);ctx.fillStyle='#7b2ff7';ctx.fill();ctx.strokeStyle='#0f0f1a';ctx.lineWidth=1.5;ctx.stroke();});
 }
 function anAnimate(){if(AN.animFrame)cancelAnimationFrame(AN.animFrame);AN.animStart=null;function step(ts){if(!AN.animStart)AN.animStart=ts;var p=Math.min((ts-AN.animStart)/500,1);anDrawChart(p);if(p<1)AN.animFrame=requestAnimationFrame(step);}AN.animFrame=requestAnimationFrame(step);}
 function anSetupTooltip(){
   var canvas=document.getElementById('anCanvas'),tooltip=document.getElementById('anTooltip');
   if(!canvas||!tooltip)return;
-  canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Сумма</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Прибыль</span><span class="an-tooltip-val green">'+anFmtCur(d.profit)+'</span></div>';});
+  canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Выручка</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Маржа</span><span class="an-tooltip-val green">'+anFmtCur(d.margin)+'</span></div>';});
   canvas.addEventListener('mouseleave',function(){tooltip.style.display='none';});
 }
 
