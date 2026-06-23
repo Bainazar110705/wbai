@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "WBai",
+  "version": "8.2",
+  "description": "AI помощник для продавцов Wildberries",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://seller.wildberries.ru/*",
+    "https://www.wildberries.ru/*",
+    "https://wildberries.ru/*",
+    "https://wbai.up.railway.app/*",
+    "https://search.wb.ru/*",
+    "https://card.wb.ru/*",
+    "https://*.wbbasket.ru/*",
+    "https://cmp.wildberries.ru/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon48.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://seller.wildberries.ru/*"
+      ],
+      "js": [
+        "content.js",
+        "card-filler.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.wildberries.ru/*",
+        "https://wildberries.ru/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://cmp.wildberries.ru/*"
+      ],
+      "js": [
+        "content.js",
+        "promo.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "icons": {
+    "48": "icons/icon48.png"
+  }
+}
