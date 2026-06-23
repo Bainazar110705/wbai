@@ -22,13 +22,15 @@
   }
 
   function norm(s) {
-    return (s || '').toLowerCase().replace(/[()]/g, '').replace(/[.,]/g, '').replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+    return (s || '').toLowerCase().replace(/[()\/]/g, '').replace(/[.,]/g, '').replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
   }
 
   function cleanVal(v) {
     var s = String(v).trim();
-    if (/^\d[\d\s,.]*\s*(Вт|В|А\/ч|мА\*ч|об\/мин|мм|см|кг|г|шт|год|лет|ч|атм|л\/мин)$/i.test(s)) {
-      return s.replace(/\s*(Вт|В|А\/ч|мА\*ч|об\/мин|мм|см|кг|г|шт|год|лет|ч|атм|л\/мин)$/i, '').trim();
+    // Сохраняем единицы времени — они важны для выбора правильного варианта в дропдауне
+    // НЕ стрипаем: ч (часы), мин (минуты) — чтобы "3 ч" не превращалось в "3"
+    if (/^\d[\d\s,.]*\s*(Вт|В|А\/ч|Ач|мАч|мА\*ч|об\/мин|мм|см|кг|г|шт|год|лет|атм|л\/мин|дБ|дб|rpm|Hz|Гц|мл|мкФ|Ом)$/i.test(s)) {
+      return s.replace(/\s*(Вт|В|А\/ч|Ач|мАч|мА\*ч|об\/мин|мм|см|кг|г|шт|год|лет|атм|л\/мин|дБ|дб|rpm|Hz|Гц|мл|мкФ|Ом)$/i, '').trim();
     }
     return s;
   }
@@ -86,8 +88,20 @@
       if ((inp.id || '').includes('vendorCode')) return;
       if (seen.has(inp)) return;
       seen.add(inp);
-      var wrapper = inp.closest('[class*="Field-wrapper__ChpbLLvc2p"]') || inp.closest('[class*="Field-wrapper__"][id]');
+      var wrapper = inp.closest('[class*="Field-wrapper__ChpbLLvc2p"]') || inp.closest('[class*="Field-wrapper__"][id]') || inp.closest('[class*="field-wrapper"]') || inp.closest('[class*="FieldWrapper"]');
       var label = wrapper ? (wrapper.getAttribute('id') || '') : '';
+      // Fallback: ищем видимый текст лейбла рядом с полем
+      if (!label) {
+        var labelEl = null;
+        var parent = inp.parentElement;
+        for (var d = 0; d < 5 && parent; d++) {
+          labelEl = parent.querySelector('label, [class*="label"], [class*="Label"]');
+          if (labelEl && labelEl !== inp && labelEl.innerText && labelEl.innerText.trim().length > 1) break;
+          labelEl = null;
+          parent = parent.parentElement;
+        }
+        if (labelEl) label = labelEl.innerText.trim().split('\n')[0].trim();
+      }
       fields.push({ label: label, inputId: inp.id || '', input: inp });
     });
     return fields;
@@ -132,7 +146,6 @@
   async function clickDropdown(value) {
     await wait(400);
     var vt = norm(value);
-    var units = ['ма*ч', 'а/ч', 'вт', ' в', ' а', 'об/мин', 'мм', 'см', 'кг'];
     var allEl = Array.from(document.querySelectorAll('*')).filter(function(el) {
       if (el.children.length > 0) return false;
       var t = (el.innerText || '').trim();
@@ -140,15 +153,26 @@
       var r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0;
     });
-    for (var u = 0; u < units.length; u++) {
-      for (var i = 0; i < allEl.length; i++) {
-        var ot = norm(allEl[i].innerText || '');
-        if (ot === vt + ' ' + units[u] || ot.startsWith(vt + ' ')) { allEl[i].click(); await wait(200); return true; }
-      }
-    }
+    // 1. Точное совпадение в первую очередь (включая единицы: "3 ч", "48 В")
     for (var i = 0; i < allEl.length; i++) {
       if (norm(allEl[i].innerText || '') === vt) { allEl[i].click(); await wait(200); return true; }
     }
+    // 2. Числовое значение + единица измерения (без времени — время уже совпало выше)
+    var units = ['ма*ч', 'а/ч', 'вт', ' в', 'об/мин', 'мм', 'см', 'кг'];
+    var numOnly = vt.replace(/\s*(вт|в|а\/ч|ма\*ч|об\/мин|мм|см|кг|г|шт|год|лет|ч|мин|атм|л\/мин)$/i, '').trim();
+    if (numOnly !== vt) {
+      for (var u = 0; u < units.length; u++) {
+        for (var i = 0; i < allEl.length; i++) {
+          var ot = norm(allEl[i].innerText || '');
+          if (ot === numOnly + ' ' + units[u] || ot === numOnly + units[u]) { allEl[i].click(); await wait(200); return true; }
+        }
+      }
+      // Число без единиц — последний вариант
+      for (var i = 0; i < allEl.length; i++) {
+        if (norm(allEl[i].innerText || '') === numOnly) { allEl[i].click(); await wait(200); return true; }
+      }
+    }
+    // 3. Нечёткое совпадение
     for (var i = 0; i < allEl.length; i++) {
       var ot = norm(allEl[i].innerText || '');
       if (ot && ot.length > 2 && (ot.includes(vt) || vt.includes(ot))) { allEl[i].click(); await wait(200); return true; }
@@ -263,17 +287,6 @@
             '<div style="grid-column:1/-1;"><label style="font-size:11px;color:#555;display:block;margin-bottom:3px;">\u0426\u0435\u043d\u0430 (\u20bd)</label><input id="wb-pri" type="number" placeholder="3900" style="width:100%;box-sizing:border-box;border:1px solid #ffe082;border-radius:6px;padding:6px 8px;font-size:13px;outline:none;"></div>' +
           '</div>' +
         '</div>' +
-        '<div style="margin-bottom:14px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">КЛЮЧЕВЫЕ СЛОВА <span style="color:#888;font-weight:400">(необязательно)</span></label>' +
-          '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
-          '<input id="wb-kw" type="text" placeholder="Из Sellego или оставьте пустым" style="flex:1;box-sizing:border-box;border:1px solid #e0d4f7;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;color:#333;">' +
-          '<button id="wb-kw-ai" type="button" style="padding:9px 14px;border:none;border-radius:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">🔍 AI ключи</button>' +
-          '</div>' +
-          '<div id="wb-kw-suggestions" style="display:none;background:#f0f7ff;border:1px solid #b3d4ff;border-radius:8px;padding:10px;margin-top:4px;">' +
-          '<div style="font-size:11px;font-weight:600;color:#1a56db;margin-bottom:6px;">Топ ключевых слов — нажмите чтобы добавить:</div>' +
-          '<div id="wb-kw-tags"></div>' +
-          '</div>' +
-        '</div>' +
         '<div id="wb-err" style="display:none;background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:8px 12px;color:#cc0000;font-size:12px;margin-bottom:10px;"></div>' +
         '<div style="display:flex;gap:10px;">' +
           '<button id="wb-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:14px;font-weight:600;cursor:pointer;">\u041e\u0442\u043c\u0435\u043d\u0430</button>' +
@@ -296,14 +309,12 @@
           var heiEl = document.getElementById('wb-hei');
           var weiEl = document.getElementById('wb-wei');
           var priEl = document.getElementById('wb-pri');
-          var kwEl = document.getElementById('wb-kw');
           if (charsEl && t.chars) charsEl.value = t.chars;
           if (lenEl && t.length) lenEl.value = t.length;
           if (widEl && t.width) widEl.value = t.width;
           if (heiEl && t.height) heiEl.value = t.height;
           if (weiEl && t.weight) weiEl.value = t.weight;
           if (priEl && t.price) priEl.value = t.price;
-          if (kwEl && t.kw) kwEl.value = t.kw;
           m.querySelectorAll('.wb-tl').forEach(function(b) { b.style.background = '#e8f0ff'; });
           btn.style.background = '#b3d4ff';
           fromTmpl = true;
@@ -320,46 +331,6 @@
       document.getElementById('wb-cls').onclick = function() { ov.remove(); resolve(null); };
       document.getElementById('wb-cancel').onclick = function() { ov.remove(); resolve(null); };
 
-      // AI ключевые слова
-      var kwAiBtn = document.getElementById('wb-kw-ai');
-      if (kwAiBtn) {
-        kwAiBtn.onclick = async function() {
-          var cat = getCategory();
-          var query = productName + (cat ? ' ' + cat : '');
-          kwAiBtn.textContent = '⏳';
-          kwAiBtn.disabled = true;
-          try {
-            var resp = await callClaude(
-              'Ты SEO-эксперт по Wildberries. Подбери топ-15 ключевых слов для товара на WB.\n\n' +
-              'ТОВАР: ' + query + '\n\n' +
-              'Требования:\n' +
-              '- Только реальные поисковые запросы покупателей на WB\n' +
-              '- Микс высокочастотных (ВЧ), среднечастотных (СЧ) и низкочастотных (НЧ) запросов\n' +
-              '- Включи синонимы, разговорные формы, транслитерацию\n' +
-              '- Разные словоформы одного запроса\n\n' +
-              'Ответ: только список через запятую, без нумерации, без пояснений.\n' +
-              'Пример: шуруповёрт аккумуляторный, шуруповёрт 18в, дрель шуруповёрт, ...'
-            );
-            if (resp) {
-              var keywords = resp.split(',').map(function(k) { return k.trim(); }).filter(function(k) { return k.length > 2; });
-              var tagsEl = document.getElementById('wb-kw-tags');
-              var sugEl = document.getElementById('wb-kw-suggestions');
-              if (tagsEl && sugEl) {
-                tagsEl.innerHTML = keywords.map(function(kw) {
-                  return '<span onclick="(function(el){' +
-                    'var inp=document.getElementById(\'wb-kw\');' +
-                    'if(inp){var cur=inp.value.trim();inp.value=cur?(cur+\', \'+el.dataset.kw):el.dataset.kw;}' +
-                    'el.style.background=\'#b3d4ff\';' +
-                    '})(this)" data-kw="' + kw.replace(/"/g, '') + '" style="display:inline-block;background:#e8f0ff;border:1px solid #b3d4ff;color:#1a56db;font-size:11px;padding:3px 10px;border-radius:20px;margin:2px;cursor:pointer;">' + kw + '</span>';
-                }).join('');
-                sugEl.style.display = 'block';
-              }
-            }
-          } catch(e) {}
-          kwAiBtn.textContent = '🔍 AI ключи';
-          kwAiBtn.disabled = false;
-        };
-      }
       document.getElementById('wb-ok').onclick = function() {
         var lenEl = document.getElementById('wb-len');
         var widEl = document.getElementById('wb-wid');
@@ -367,7 +338,6 @@
         var weiEl = document.getElementById('wb-wei');
         var priEl = document.getElementById('wb-pri');
         var charsEl = document.getElementById('wb-chars');
-        var kwEl = document.getElementById('wb-kw');
         var len = lenEl ? lenEl.value.trim() : '';
         var wid = widEl ? widEl.value.trim() : '';
         var hei = heiEl ? heiEl.value.trim() : '';
@@ -379,9 +349,8 @@
           return;
         }
         var chars = charsEl ? charsEl.value.trim() : '';
-        var kw = kwEl ? kwEl.value.trim() : '';
         ov.remove();
-        resolve({ chars: chars, kw: kw, length: len, width: wid, height: hei, weight: wei, price: pri, fromTemplate: fromTmpl });
+        resolve({ chars: chars, kw: '', length: len, width: wid, height: hei, weight: wei, price: pri, fromTemplate: fromTmpl });
       };
     });
   }
@@ -520,15 +489,35 @@
         var nk = norm(key);
         var isDim = ['длина', 'ширина', 'высота'].some(function(k) { return nk.startsWith(k); }) && !nk.includes('предмет') && !nk.includes('шнур');
         var isKomplekt = nk.includes('комплект');
-        var noDropdown = isDim || nk.includes('вес с упак') || nk === 'цена' || nk.includes('модель') || nk.includes('артикул');
+        var noDropdown = isDim || nk.includes('вес с упак') || nk === 'цена' || nk.includes('артикул') || nk === 'модель';
 
         if (isKomplekt) {
           await wait(800);
           var tnvedOpts = document.querySelectorAll('[class*="Tnved-option-component__label"]');
           if (tnvedOpts.length > 0) { tnvedOpts[0].click(); await wait(300); }
         } else if (!noDropdown) {
-          await wait(val.length > 30 ? 1200 : 600);
-          await clickDropdown(val);
+          // Поле с несколькими значениями через `;` — кликаем каждое отдельно
+          // Но только если это не длинная строка комплектации (текстовое поле)
+          var isSemicolon = raw.includes(';') && raw.split(';').length > 1 && raw.length < 200;
+          var isTextOnly = nk.includes('комплект') || nk.includes('описан') || nk.includes('состав');
+          if (isSemicolon && !isTextOnly) {
+            var parts = raw.split(';').map(function(s) { return s.trim(); }).filter(Boolean);
+            for (var p = 0; p < parts.length; p++) {
+              // Кликаем чтобы открыть dropdown (важно для полей типа "0/10")
+              inp.click(); inp.focus();
+              await wait(400);
+              // Передаём оригинальное значение с единицами: "3 мм" не "3"
+              setVal(inp, parts[p]);
+              await wait(800);
+              var clicked = await clickDropdown(parts[p]);
+              // Если не нашло с единицами — пробуем без
+              if (!clicked) await clickDropdown(cleanVal(parts[p]));
+              await wait(400);
+            }
+          } else {
+            await wait(raw.length > 30 ? 1200 : 600);
+            await clickDropdown(raw); // передаём оригинал чтобы точно совпал "48 В", "3 ч" и т.д.
+          }
         } else {
           inp.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Tab', keyCode: 9 }));
         }
@@ -549,112 +538,12 @@
     var pf = fields.find(function(f) { return (f.inputId || '').toLowerCase().includes('price') || f.label === 'price'; });
     if (pf) { setVal(pf.input, userInput.price); filled++; await wait(150); }
 
-    showToast('Генерирую SEO описание...', true);
-
-    // Ключевые запросы: первый = главный ВЧ-ключ, остальные по частотности
-    var kwList = (userInput.kw || '').split(/[\n,;]+/).map(function(k) { return k.trim(); }).filter(Boolean);
-    var mainKey = kwList[0] || productName;
-    var otherKeys = kwList.slice(1);
-    var kwSection = kwList.length > 0
-      ? 'Главный ключевой запрос: ' + mainKey + '\nКлючевые запросы по частотности (от ВЧ к НЧ): ' + (otherKeys.length ? otherKeys.join(', ') : 'подбери самостоятельно для "' + productName + '"')
-      : 'Главный ключевой запрос: подбери самостоятельно для "' + productName + '"\nКлючевые запросы по частотности: подбери топ-7 запросов покупателей WB';
-
-    var desc = await callClaude(
-      'Ты SEO-копирайтер для Wildberries. Пишешь SEO-описания под поисковые алгоритмы WB. Не продающий текст — а текст для индексации и охвата.\n\n' +
-
-      'ДАННЫЕ О ТОВАРЕ:\n' +
-      'Товар: ' + productName + '\n' +
-      'Категория: ' + (getCategory() || 'не указана') + '\n' +
-      kwSection + '\n' +
-      'Характеристики: ' + (userInput.chars || 'определи по названию товара') + '\n\n' +
-
-      'ЖЁСТКИЕ ПРАВИЛА:\n' +
-      '1. Текст начинается СТРОГО с главного ключевого запроса в точной форме\n' +
-      '2. Каждый ключевой запрос используется строго ОДИН РАЗ\n' +
-      '3. Длина: 1000–1600 символов\n' +
-      '4. Заспамленность: не выше 43%\n' +
-      '5. Никакой воды и штампов\n' +
-      '6. Никаких ложных характеристик\n' +
-      '7. Без эмодзи, хэштегов, маркеров и списков — только абзацы\n\n' +
-
-      'ПРИНЦИП РАБОТЫ С КЛЮЧАМИ:\n' +
-      'Каждый ключевой запрос — отдельная SEO-единица. Используй один раз, затем закрывай. Повторы — это переспам и потеря охвата.\n\n' +
-
-      'СТРУКТУРА — 4 АБЗАЦА:\n' +
-      'Абзац 1: главный ключ + второй ключ с новым словом + основные сценарии использования + материал или область применения + техническая деталь\n' +
-      'Абзац 2: ключ «набор/комплект» + перечень комплектации + двигатель или ключевая характеристика + сценарии применения\n' +
-      'Абзац 3: ключ с новым словом + упаковка/кейс/сумка + детали эксплуатации + профессиональный/универсальный\n' +
-      'Абзац 4: ключ «мощный/профессиональный» + основные задачи + готовый комплект (подарок — только здесь и только если уместно)\n\n' +
-
-      'ЗАПРЕЩЁННЫЕ СЛОВА: незаменимый, идеальный, лучший, высокое качество, удобство, надёжный партнёр, превосходный, полноценный, для любых задач, современный дизайн\n\n' +
-
-      'СИЛЬНЫЕ КОНСТРУКЦИИ (используй):\n' +
-      '— работает по [материал]\n' +
-      '— держит мощность при длительной нагрузке\n' +
-      '— закрывает [задача 1], [задача 2] и [задача 3]\n' +
-      '— зафиксированы внутри\n' +
-      '— упакован в жёсткий кейс\n' +
-      '— чередуются в работе\n\n' +
-
-      'ФИНАЛЬНАЯ ПРОВЕРКА ПЕРЕД ВЫВОДОМ:\n' +
-      '— начинается с главного ключа в точной форме\n' +
-      '— каждый ключ использован только один раз\n' +
-      '— нет воды и штампов\n' +
-      '— длина 1000–1600 символов\n\n' +
-
-      'Выведи только текст описания — без заголовков, пояснений и комментариев.'
-    , 'cards');
-
-    var descEl = Array.from(document.querySelectorAll('textarea')).find(function(t) {
-      return t.id !== 'editable-title' && t.getAttribute('data-testid') !== 'card-form-main-field-title';
-    });
-    if (descEl && desc) {
-      var cleanDesc = desc.trim().replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim();
-      // Жёсткий обрез до 2000 символов — обрезаем по последней точке перед лимитом
-      var LIMIT = 2000;
-      if (cleanDesc.length > LIMIT) {
-        var cut = cleanDesc.lastIndexOf('.', LIMIT - 1);
-        if (cut > LIMIT * 0.7) {
-          cleanDesc = cleanDesc.slice(0, cut + 1);
-        } else {
-          cleanDesc = cleanDesc.slice(0, LIMIT);
-        }
-      }
-      setVal(descEl, cleanDesc);
-      filled++;
-      await wait(300);
-    }
-
     var barcodeBtn = Array.from(document.querySelectorAll('button')).find(function(b) {
       return (b.innerText || '').toLowerCase().includes('баркод');
     });
     if (barcodeBtn) { barcodeBtn.click(); filled++; await wait(500); }
 
-    showToast('Готово! Заполнено ' + filled + ' полей. Проверяю SEO...', true);
-
-    // SEO оценка карточки
-    await wait(500);
-    try {
-      var seoCheck = await callClaude(
-        'Оцени SEO качество этой карточки товара на Wildberries.\n\n' +
-        'ТОВАР: ' + productName + '\n' +
-        'ОПИСАНИЕ: ' + (desc ? desc.substring(0, 500) : 'не заполнено') + '\n' +
-        'КЛЮЧЕВЫЕ СЛОВА: ' + (userInput.kw || 'не указаны') + '\n\n' +
-        'Дай краткую оценку в формате:\n' +
-        'ОЦЕНКА: X/10\n' +
-        'ПЛЮСЫ: [1-2 пункта]\n' +
-        'УЛУЧШИТЬ: [1-2 конкретных совета]\n\n' +
-        'Максимально кратко — 3-4 строки.'
-      , 'cards');
-      if (seoCheck) {
-        var score = seoCheck.match(/(\d+)\/10/);
-        var scoreVal = score ? parseInt(score[1]) : 7;
-        var color = scoreVal >= 8 ? '#4caf50' : scoreVal >= 6 ? '#ff9800' : '#f44336';
-        showToast('SEO ' + scoreVal + '/10 — ' + (scoreVal >= 8 ? 'Отлично!' : scoreVal >= 6 ? 'Хорошо' : 'Нужно улучшить'), true);
-      }
-    } catch(e) {
-      showToast('Готово! Заполнено ' + filled + ' полей.', true);
-    }
+    showToast('Готово! Заполнено ' + filled + ' полей.', true);
 
     if (!userInput.fromTemplate) {
       await wait(800);
@@ -664,6 +553,215 @@
         kw: userInput.kw, category: getCategory()
       });
       if (name) showToast('Шаблон "' + name + '" сохранён!', true);
+    }
+  }
+
+  // Получаем данные с WB через background (обход CSP)
+  function fetchWBData(query) {
+    return new Promise(function(resolve) {
+      var timer = setTimeout(function() { resolve({ products: [] }); }, 12000);
+      chrome.runtime.sendMessage({ action: 'fetchWBSearch', query: query }, function(resp) {
+        clearTimeout(timer);
+        resolve(resp || { products: [] });
+      });
+    });
+  }
+
+  // Модальное окно: ключевые слова + конкуренты
+  function showKeywordModal(productName, onConfirm) {
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10000000;display:flex;align-items:center;justify-content:center;';
+    var m = document.createElement('div');
+    m.style.cssText = 'background:#fff;border-radius:14px;width:500px;max-height:88vh;overflow-y:auto;font-family:-apple-system,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,0.25);';
+
+    m.innerHTML =
+      '<div style="background:linear-gradient(135deg,#7b2ff7,#5a1fc7);padding:13px 16px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1;">' +
+        '<div style="color:#fff;font-size:14px;font-weight:700;">✨ AI Описание</div>' +
+        '<button id="wb-kw-x" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:20px;cursor:pointer;line-height:1;">×</button>' +
+      '</div>' +
+      '<div style="padding:14px 16px;">' +
+        '<div style="font-size:12px;color:#888;margin-bottom:12px;">Товар: <b style="color:#333;">' + productName + '</b></div>' +
+
+        // Ключевые слова
+        '<div style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">🔑 Ключевые слова</div>' +
+        '<div id="wb-kw-loading" style="font-size:12px;color:#7b2ff7;margin-bottom:8px;">⏳ Загружаю популярные запросы с WB...</div>' +
+        '<div id="wb-kw-chips" style="display:none;margin-bottom:10px;"></div>' +
+        '<textarea id="wb-kw-input" placeholder="Из Sellego или вставьте свои ключевые слова через запятую..." style="width:100%;min-height:65px;border:1px solid #e0d4f7;border-radius:8px;padding:9px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;resize:vertical;margin-bottom:14px;"></textarea>' +
+
+        // Конкуренты
+        '<div style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">🔍 Конкуренты на WB</div>' +
+        '<div id="wb-comp-loading" style="font-size:12px;color:#7b2ff7;margin-bottom:8px;">⏳ Загружаю...</div>' +
+        '<div id="wb-comp-list" style="display:none;max-height:220px;overflow-y:auto;margin-bottom:14px;border:1px solid #f0ebff;border-radius:8px;"></div>' +
+
+        '<div style="display:flex;gap:8px;">' +
+          '<button id="wb-kw-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:13px;cursor:pointer;font-family:inherit;">Отмена</button>' +
+          '<button id="wb-kw-ok" style="flex:2;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">✨ Сгенерировать описание</button>' +
+        '</div>' +
+      '</div>';
+
+    ov.appendChild(m);
+    document.body.appendChild(ov);
+
+    // Загружаем данные
+    fetchWBData(productName).then(function(resp) {
+      var products = (resp.products || []).slice(0, 15);
+
+      // Ключевые слова — чипы из названий конкурентов
+      var loading = document.getElementById('wb-kw-loading');
+      var chips = document.getElementById('wb-kw-chips');
+      if (loading) loading.style.display = 'none';
+      if (chips) {
+        chips.style.display = 'block';
+        if (products.length > 0) {
+          chips.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:6px;">Популярные запросы (нажми чтобы добавить):</div>';
+          var words = new Set();
+          products.slice(0, 8).forEach(function(p) {
+            (p.name || '').toLowerCase().split(/[\s,\/\-]+/).forEach(function(w) {
+              w = w.trim();
+              if (w.length > 3 && !/^\d+$/.test(w)) words.add(w);
+            });
+          });
+          Array.from(words).slice(0, 16).forEach(function(kw) {
+            var chip = document.createElement('button');
+            chip.textContent = kw;
+            chip.style.cssText = 'padding:4px 10px;border-radius:20px;border:1.5px solid #ddd;background:#fafafa;color:#555;font-size:12px;cursor:pointer;margin:2px 3px 2px 0;font-family:inherit;';
+            chip.onclick = function() {
+              var inp = document.getElementById('wb-kw-input');
+              if (!inp) return;
+              var cur = inp.value.trim();
+              inp.value = cur ? cur + ', ' + kw : kw;
+              chip.style.borderColor = '#7b2ff7';
+              chip.style.color = '#7b2ff7';
+              chip.style.background = '#f0ebff';
+            };
+            chips.appendChild(chip);
+          });
+        } else {
+          chips.innerHTML = '<div style="font-size:12px;color:#aaa;">Не удалось загрузить подсказки</div>';
+        }
+      }
+
+      // Конкуренты
+      var cLoading = document.getElementById('wb-comp-loading');
+      var cList = document.getElementById('wb-comp-list');
+      if (cLoading) cLoading.style.display = 'none';
+      if (cList) {
+        cList.style.display = 'block';
+        if (!products.length) {
+          cList.innerHTML = '<div style="padding:10px;font-size:12px;color:#aaa;">Ничего не найдено</div>';
+        } else {
+          cList.innerHTML = products.map(function(p, i) {
+            var price = p.salePriceU ? Math.round(p.salePriceU / 100).toLocaleString() + ' ₽' : '—';
+            var rating = p.reviewRating ? p.reviewRating.toFixed(1) : '—';
+            var reviews = (p.feedbacks || 0).toLocaleString();
+            var rColor = rating >= 4.5 ? '#22c55e' : rating >= 4 ? '#f59e0b' : '#999';
+            return '<div style="padding:8px 12px;border-bottom:1px solid #f5f0ff;display:flex;gap:8px;align-items:flex-start;">' +
+              '<span style="font-size:11px;color:#bbb;flex-shrink:0;margin-top:2px;">#' + (i+1) + '</span>' +
+              '<div style="flex:1;">' +
+                '<div style="font-size:12px;font-weight:600;color:#1a1a1a;line-height:1.4;margin-bottom:3px;">' + (p.name || '—') + '</div>' +
+                '<div style="font-size:11px;color:#888;display:flex;gap:8px;">' +
+                  '<span style="font-weight:700;color:#1a1a1a;">' + price + '</span>' +
+                  '<span style="color:' + rColor + ';">★ ' + rating + '</span>' +
+                  '<span>' + reviews + ' отз.</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+    });
+
+    document.getElementById('wb-kw-x').onclick = function() { ov.remove(); };
+    document.getElementById('wb-kw-cancel').onclick = function() { ov.remove(); };
+    document.getElementById('wb-kw-ok').onclick = function() {
+      var kw = (document.getElementById('wb-kw-input').value || '').trim();
+      ov.remove();
+      onConfirm(kw);
+    };
+  }
+
+  async function generateDescription() {
+    var planCheck = await new Promise(function(resolve) {
+      var timer = setTimeout(function() { resolve('start'); }, 5000);
+      chrome.runtime.sendMessage({ action: 'getPlan' }, function(resp) {
+        clearTimeout(timer);
+        if (chrome.runtime.lastError) { resolve('start'); return; }
+        resolve(resp && resp.plan ? resp.plan : 'start');
+      });
+    });
+    if (planCheck === 'start') {
+      showToast('❌ Генерация описания доступна на тарифе Про и выше.', false);
+      return;
+    }
+
+    var nameEl = document.getElementById('editable-title');
+    var productName = nameEl ? (nameEl.value || nameEl.innerText || '') : '';
+    productName = productName.trim() || 'товар';
+
+    // Показываем модалку с подсказками ключевых слов
+    var kw = await new Promise(function(resolve) {
+      showKeywordModal(productName, resolve);
+    });
+    if (kw === undefined || kw === null) return;
+
+    showToast('Генерирую SEO описание...', true);
+
+    // Читаем характеристики карточки
+    var cardData = readFilledFields ? readFilledFields() : { chars: '' };
+    var charsText = cardData.chars ? 'ХАРАКТЕРИСТИКИ ТОВАРА:\n' + cardData.chars + '\n\n' : '';
+
+    var kwBlock = kw.trim()
+      ? 'КЛЮЧЕВЫЕ СЛОВА ДЛЯ SEO (используй каждое хотя бы 1 раз):\n' + kw.trim() + '\n\n'
+      : 'Самостоятельно подбери 8–12 реальных поисковых запросов покупателей WB для "' + productName + '" — от высокочастотных к низкочастотным, включи все органично.\n\n';
+
+    var desc = await callClaude(
+      'Ты опытный SEO-копирайтер для Wildberries. Пишешь описания, которые продают и хорошо индексируются.\n\n' +
+      'ТОВАР: ' + productName + '\n' +
+      'КАТЕГОРИЯ: ' + (getCategory() || 'не указана') + '\n\n' +
+      charsText +
+      kwBlock +
+      'ЗАДАЧА: Напиши продающее SEO-описание товара для карточки на WB.\n\n' +
+      'ЖЁСТКИЕ ПРАВИЛА:\n' +
+      '• Длина: от 900 до 1600 символов с пробелами — не меньше и не больше.\n' +
+      '• Каждое ключевое слово из списка — использовать ровно 1 раз, органично вписанным в текст.\n' +
+      '• Словоформы и падежи менять свободно, смысл ключа сохранять.\n' +
+      '• Только точки и запятые. Никаких: эмодзи, звёздочек (*), решёток (#), дефисов-списков, скобок, восклицательных знаков.\n' +
+      '• Никаких маркированных и нумерованных списков — только связные абзацы.\n' +
+      '• Запрещённые слова: лучший, уникальный, идеальный, эксклюзивный, революционный, инновационный, топовый, премиум (кроме случаев когда это реальная характеристика).\n' +
+      '• Не начинай с названия товара. Начни с боли или потребности покупателя.\n' +
+      '• Текст живой и убедительный — читатель должен захотеть купить.\n\n' +
+      'СТРУКТУРА (4 абзаца):\n' +
+      '1. Главная выгода и для кого товар + самые высокочастотные ключи\n' +
+      '2. Сценарии использования, кому подойдёт, когда нужен + среднечастотные ключи\n' +
+      '3. Материал, особенности, характеристики из карточки + низкочастотные ключи\n' +
+      '4. Короткий призыв к действию (1–2 предложения)\n\n' +
+      'Выведи ТОЛЬКО готовый текст описания. Без заголовков, пояснений, комментариев, кавычек.'
+    , 'cards');
+
+    if (!desc) { showToast('❌ Ошибка генерации. Попробуйте снова.', false); return; }
+
+    var cleanDesc = desc.trim().replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/\*/g, '').trim();
+    var LIMIT = 1900;
+    if (cleanDesc.length > LIMIT) {
+      var cut = cleanDesc.lastIndexOf('.', LIMIT - 1);
+      cleanDesc = cut > LIMIT * 0.7 ? cleanDesc.slice(0, cut + 1) : cleanDesc.slice(0, LIMIT);
+    }
+
+    var descEl = Array.from(document.querySelectorAll('textarea')).find(function(t) {
+      if (t.id === 'editable-title') return false;
+      if (t.getAttribute('data-testid') === 'card-form-main-field-title') return false;
+      return (
+        t.id === 'editable-description' ||
+        t.id === 'description' ||
+        t.getAttribute('data-testid') === 'card-form-main-field-description' ||
+        (t.placeholder && /описани/i.test(t.placeholder))
+      );
+    });
+    if (descEl) {
+      setVal(descEl, cleanDesc);
+      showToast('✅ Описание вставлено (' + cleanDesc.length + ' симв.)', true);
+    } else {
+      showToast('❌ Поле описания не найдено на странице.', false);
     }
   }
 
@@ -700,6 +798,21 @@
            url.includes('/nomenclature');
   }
 
+  function injectDescBtn() {
+    if (!isCardPage()) return;
+    if (document.getElementById('wb-desc-btn')) return;
+    // Ищем блок с кнопкой "Сгенерировать" рядом с полем описания
+    var genActions = document.querySelector('[class*="Description-generate-actions__"]');
+    if (!genActions) return;
+    var btn = document.createElement('button');
+    btn.id = 'wb-desc-btn';
+    btn.type = 'button';
+    btn.textContent = '✨ AI описание';
+    btn.style.cssText = 'background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:8px;vertical-align:middle;';
+    btn.onclick = generateDescription;
+    genActions.appendChild(btn);
+  }
+
   function injectInfographicBtn() {
     if (!isCardPage()) return;
     if (document.getElementById('wb-infographic-btn')) return;
@@ -720,7 +833,15 @@
     if (!isCardPage()) return;
     if (document.getElementById('wb-card-btn')) return;
     var createBtn = Array.from(document.querySelectorAll('button')).find(function(b) {
-      return (b.innerText || '').includes('Создать и завершить') || (b.innerText || '').includes('Сохранить');
+      if (!(b.innerText || '').includes('Создать и завершить') && !(b.innerText || '').includes('Сохранить')) return false;
+      // Не вставляем внутри попапов/модальных диалогов WB
+      var parent = b;
+      while (parent) {
+        var cls = (parent.className || '') + ' ' + (parent.getAttribute('role') || '');
+        if (/modal|popup|dialog|overlay|Modal|Dialog|Popup/i.test(cls)) return false;
+        parent = parent.parentElement;
+      }
+      return true;
     });
     if (!createBtn) return;
     var btn = document.createElement('button');
@@ -1679,6 +1800,7 @@
   var obs = new MutationObserver(function() {
     if (!isCardPage()) {
       var b = document.getElementById('wb-card-btn'); if (b) b.remove();
+      var db = document.getElementById('wb-desc-btn'); if (db) db.remove();
       var ib = document.getElementById('wb-infographic-btn'); if (ib) ib.remove();
       return;
     }
@@ -1688,6 +1810,10 @@
     if (has) setTimeout(injectBtn, 400);
     else { var b = document.getElementById('wb-card-btn'); if (b) b.remove(); }
 
+    // Кнопка AI описание рядом с полем описания
+    if (document.querySelector('[class*="Description-generate-actions__"]')) setTimeout(injectDescBtn, 300);
+    else { var db = document.getElementById('wb-desc-btn'); if (db) db.remove(); }
+
     var hasEditor = Array.from(document.querySelectorAll('button')).some(function(b) {
       return (b.innerText || '').includes('Открыть редактор');
     });
@@ -1696,22 +1822,13 @@
   });
   obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(injectBtn, 1000);
+  setTimeout(injectDescBtn, 1500);
   setTimeout(injectInfographicBtn, 1000);
 })();
 
 // ===== ГЕНЕРАЦИЯ НАЗВАНИЯ =====
 (function() {
   var titleBtnInjected = false;
-
-  function setFieldValue(el, val) {
-    el.focus();
-    var proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-    var nativeSet = Object.getOwnPropertyDescriptor(proto, 'value');
-    if (nativeSet && nativeSet.set) nativeSet.set.call(el, val);
-    else el.value = val;
-    el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: val }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
 
   async function generateTitle() {
     var nameEl = document.getElementById('editable-title');
@@ -1720,50 +1837,38 @@
     var currentName = (nameEl.value || nameEl.innerText || '').trim();
     var cat = (document.querySelector('[class*="subject"], [class*="Subject"]') || {}).innerText || '';
     cat = cat.split('/').pop().trim();
-    var query = currentName || cat || 'товар';
 
     var btn = document.getElementById('wb-title-btn');
     if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
 
-    // Шаг 1: берём названия конкурентов с WB
-    chrome.runtime.sendMessage({ action: 'fetchWBTitles', query: query }, function(wbResp) {
-      var competitorTitles = (wbResp && wbResp.titles && wbResp.titles.length > 0)
-        ? wbResp.titles
-        : [];
+    var prompt =
+      'Придумай SEO-название товара для Wildberries.\n\n' +
+      'ТОВАР: ' + (currentName || cat || 'товар') + '\n' +
+      'КАТЕГОРИЯ: ' + cat + '\n\n' +
+      'ПРАВИЛА:\n' +
+      '- Максимум 60 символов\n' +
+      '- Начни с главного высокочастотного запроса WB\n' +
+      '- Добавь 2-3 важных характеристики или ключевых слова\n' +
+      '- Без лишних слов и воды\n' +
+      '- Пример: "Шуруповерт аккумуляторный для дома мощный 48В"\n' +
+      'Напиши только название без кавычек и пояснений.';
 
-      var competitorBlock = competitorTitles.length > 0
-        ? 'НАЗВАНИЯ КОНКУРЕНТОВ В ТОПЕ WB (изучи их структуру):\n' +
-          competitorTitles.map(function(t, i) { return (i + 1) + '. ' + t; }).join('\n')
-        : '';
+    chrome.runtime.sendMessage({ action: 'callAI', prompt: prompt }, function(resp) {
+      if (btn) { btn.textContent = '✨'; btn.disabled = false; }
+      if (!resp || !resp.text) { alert('Ошибка AI'); return; }
 
-      var prompt =
-        'Ты SEO-специалист по Wildberries. Напиши одно название товара для карточки.\n\n' +
-        'ТОВАР: ' + query + '\n' +
-        'КАТЕГОРИЯ: ' + (cat || 'не указана') + '\n\n' +
-        (competitorBlock ? competitorBlock + '\n\n' : '') +
-        'ЗАДАЧА:\n' +
-        'Изучи как называют этот товар конкуренты в топе. Возьми самый частотный высокочастотный поисковый запрос покупателей WB как основу названия.\n\n' +
-        'ПРАВИЛА:\n' +
-        '- Максимум 60 символов\n' +
-        '- Начни строго с главного ВЧ-запроса (как покупатель ищет этот товар)\n' +
-        '- После ВЧ-запроса добавь 1-2 уточняющих слова из запросов покупателей (сценарий использования, тип, материал)\n' +
-        '- НЕ добавляй технические характеристики (вольты, амперы, размеры, вес)\n' +
-        '- НЕ добавляй бренд если его нет в запросах конкурентов\n' +
-        '- НЕ копируй название конкурента дословно — возьми структуру\n' +
-        '- Только то что реально ищут покупатели\n\n' +
-        'Напиши только готовое название — без кавычек, без пояснений, без нумерации.';
+      var title = resp.text.trim().replace(/^["«»]+|["«»]+$/g, '').trim();
+      if (title.length > 60) title = title.slice(0, 60).trim();
 
-      chrome.runtime.sendMessage({ action: 'callAI', prompt: prompt }, function(resp) {
-        if (btn) { btn.textContent = '✨'; btn.disabled = false; }
-        if (!resp || !resp.text) { alert('Ошибка AI'); return; }
-
-        var title = resp.text.trim().replace(/^["«»\d.)\-\s]+|["«»]+$/g, '').trim();
-        if (title.length > 60) {
-          var cut = title.lastIndexOf(' ', 59);
-          title = cut > 30 ? title.slice(0, cut) : title.slice(0, 60);
-        }
-        setFieldValue(nameEl, title);
-      });
+      // Вставляем в поле названия
+      nameEl.focus();
+      nameEl.click();
+      var proto = HTMLTextAreaElement.prototype;
+      var desc = Object.getOwnPropertyDescriptor(proto, 'value');
+      if (desc && desc.set) desc.set.call(nameEl, title);
+      else nameEl.value = title;
+      nameEl.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: title }));
+      nameEl.dispatchEvent(new Event('change', { bubbles: true }));
     });
   }
 
@@ -1795,238 +1900,4 @@
   });
   titleObs.observe(document.body, { childList: true, subtree: true });
   setTimeout(injectTitleBtn, 1500);
-})();
-
-// ===== КНОПКА AI ДЛЯ ОПИСАНИЯ =====
-(function() {
-  function findDescTextarea() {
-    return Array.from(document.querySelectorAll('textarea')).find(function(t) {
-      if (t.id === 'editable-title') return false;
-      if (t.getAttribute('data-testid') === 'card-form-main-field-title') return false;
-      return (
-        t.id === 'editable-description' ||
-        t.id === 'description' ||
-        t.getAttribute('data-testid') === 'card-form-main-field-description' ||
-        (t.placeholder && /описани/i.test(t.placeholder)) ||
-        (t.name && /description/i.test(t.name))
-      );
-    });
-  }
-
-  function getCardChars() {
-    var chars = [];
-    // Пробуем разные варианты селекторов характеристик WB
-    var selectors = [
-      '[class*="Field-wrapper"]',
-      '[class*="field-wrapper"]',
-      '[class*="CharacteristicItem"]',
-      '[class*="characteristic"]'
-    ];
-    selectors.forEach(function(sel) {
-      document.querySelectorAll(sel).forEach(function(w) {
-        var label = (w.querySelector('label, [class*="label"], [class*="Label"]') || {}).innerText || '';
-        var val = (w.querySelector('input:not([type=file]), textarea, [class*="value"], [class*="Value"]') || {}).value ||
-                  (w.querySelector('input:not([type=file]), textarea, [class*="value"], [class*="Value"]') || {}).innerText || '';
-        label = label.trim(); val = val.trim();
-        if (label && val && label.length < 80 && val.length < 150 &&
-            !['описание', 'название', 'бренд', 'артикул'].some(function(s){ return label.toLowerCase().includes(s); })) {
-          var entry = label + ': ' + val;
-          if (chars.indexOf(entry) < 0) chars.push(entry);
-        }
-      });
-    });
-    return chars.slice(0, 12);
-  }
-
-  function showDescModal(productName, charsText, callback) {
-    var existing = document.getElementById('wb-desc-modal');
-    if (existing) existing.remove();
-
-    var overlay = document.createElement('div');
-    overlay.id = 'wb-desc-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:inherit;';
-
-    overlay.innerHTML =
-      '<div style="background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
-          '<div style="font-size:16px;font-weight:700;color:#1a1a2e;">✨ AI SEO-описание</div>' +
-          '<button id="wb-desc-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>' +
-        '</div>' +
-
-        '<div style="background:#f0ebff;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#555;">' +
-          '📋 <b>Характеристики из карточки:</b><br>' +
-          '<span id="wb-desc-chars-preview" style="color:#333;">' + (charsText || '<i>не найдены — AI определит сам</i>') + '</span>' +
-        '</div>' +
-
-        '<div style="font-size:12px;color:#888;margin-bottom:12px;">Поля необязательны — AI заполнит сам то что не указано</div>' +
-
-        '<div style="margin-bottom:12px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:4px;">Главный ключевой запрос (ВЧ)</label>' +
-          '<input id="wb-desc-mainkey" placeholder="например: шуруповёрт аккумуляторный" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">' +
-        '</div>' +
-
-        '<div style="margin-bottom:12px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:4px;">Ключевые запросы по частотности</label>' +
-          '<textarea id="wb-desc-keys" placeholder="каждый с новой строки или через запятую&#10;шуруповёрт для дома&#10;дрель шуруповёрт&#10;шуруповёрт с битами" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;height:80px;resize:vertical;"></textarea>' +
-        '</div>' +
-
-        '<div style="margin-bottom:12px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:4px;">Комплектация</label>' +
-          '<input id="wb-desc-kit" placeholder="например: шуруповёрт, 2 АКБ, зарядное, кейс, биты 10 шт" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;">' +
-        '</div>' +
-
-        '<div style="margin-bottom:16px;">' +
-          '<label style="font-size:12px;font-weight:600;color:#333;display:block;margin-bottom:4px;">Позиционирование</label>' +
-          '<div style="display:flex;gap:8px;">' +
-            '<button class="wb-pos-btn" data-v="" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:12px;cursor:pointer;">Авто</button>' +
-            '<button class="wb-pos-btn" data-v="для дома" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:12px;cursor:pointer;">🏠 Для дома</button>' +
-            '<button class="wb-pos-btn" data-v="профессиональный" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:12px;cursor:pointer;">⚙️ Проф</button>' +
-            '<button class="wb-pos-btn" data-v="универсальный" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:12px;cursor:pointer;">🔧 Универсал</button>' +
-          '</div>' +
-        '</div>' +
-
-        '<div style="display:flex;gap:10px;">' +
-          '<button id="wb-desc-cancel" style="flex:1;padding:11px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:14px;font-weight:600;cursor:pointer;">Отмена</button>' +
-          '<button id="wb-desc-gen" style="flex:2;padding:11px;border:none;border-radius:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🚀 Сгенерировать</button>' +
-        '</div>' +
-      '</div>';
-
-    document.body.appendChild(overlay);
-
-    var selectedPos = '';
-    overlay.querySelectorAll('.wb-pos-btn').forEach(function(b) {
-      b.onclick = function() {
-        overlay.querySelectorAll('.wb-pos-btn').forEach(function(x) {
-          x.style.background = '#f5f5f5'; x.style.borderColor = '#ddd'; x.style.color = '#333';
-        });
-        b.style.background = 'linear-gradient(135deg,#7b2ff7,#5a1fc7)';
-        b.style.borderColor = '#7b2ff7'; b.style.color = '#fff';
-        selectedPos = b.getAttribute('data-v');
-      };
-    });
-
-    document.getElementById('wb-desc-close').onclick = function() { overlay.remove(); };
-    document.getElementById('wb-desc-cancel').onclick = function() { overlay.remove(); };
-    document.getElementById('wb-desc-gen').onclick = function() {
-      var mainKey = document.getElementById('wb-desc-mainkey').value.trim();
-      var keys = document.getElementById('wb-desc-keys').value.trim();
-      var kit = document.getElementById('wb-desc-kit').value.trim();
-      overlay.remove();
-      callback({ mainKey: mainKey, keys: keys, kit: kit, pos: selectedPos });
-    };
-  }
-
-  function doGenerate(productName, cat, charsText, userInput) {
-    var descEl = findDescTextarea();
-    if (!descEl) { alert('Поле описания не найдено'); return; }
-
-    var btn = document.getElementById('wb-desc-btn');
-    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
-
-    var mainKeyLine = userInput.mainKey
-      ? 'Главный ключевой запрос: ' + userInput.mainKey
-      : 'Главный ключевой запрос: определи самостоятельно — самый высокочастотный запрос покупателей WB для этого товара';
-
-    var keysLine = userInput.keys
-      ? 'Ключевые запросы по частотности: ' + userInput.keys.replace(/\n/g, ', ')
-      : 'Ключевые запросы по частотности: подбери топ-6 запросов от ВЧ к НЧ самостоятельно';
-
-    var kitLine = userInput.kit
-      ? 'Комплектация: ' + userInput.kit
-      : 'Комплектация: определи по характеристикам или названию товара';
-
-    var posLine = userInput.pos
-      ? 'Позиционирование: ' + userInput.pos
-      : 'Позиционирование: определи самостоятельно по товару';
-
-    var prompt =
-      'Ты SEO-копирайтер для Wildberries. Цель — максимальный охват ключевых запросов покупателей WB через естественный текст.\n\n' +
-
-      'ТОВАР: ' + productName + '\n' +
-      'КАТЕГОРИЯ: ' + (cat || 'не указана') + '\n' +
-      mainKeyLine + '\n' +
-      keysLine + '\n' +
-      (userInput.kit ? 'Комплектация: ' + userInput.kit + '\n' : '') +
-      (charsText ? 'Данные из карточки (используй только если нет противоречий): ' + charsText + '\n' : '') +
-      posLine + '\n\n' +
-
-      'ПРАВИЛА:\n' +
-      '1. Начинается СТРОГО с главного ключа в точной форме\n' +
-      '2. Каждый ключ — один раз, больше не повторять\n' +
-      '3. После каждого ключа — 1-2 предложения раскрывающие смысл\n' +
-      '4. Длина: 1000–1600 символов\n' +
-      '5. Заспамленность не выше 43%\n' +
-      '6. Без воды, штампов, ложных характеристик\n' +
-      '7. Только абзацы — без эмодзи, маркеров, списков\n\n' +
-
-      'СТРУКТУРА — 4 АБЗАЦА:\n' +
-      'Абзац 1: главный ключ + второй ключ → для чего товар, кому подходит\n' +
-      'Абзац 2: третий ключ → что входит в комплект, как применяется\n' +
-      'Абзац 3: четвёртый ключ → как хранится/упаковывается, особенности эксплуатации\n' +
-      'Абзац 4: пятый ключ → итог, для каких задач закрывает потребность\n\n' +
-
-      'ЗАПРЕЩЕНО: незаменимый, идеальный, лучший, высокое качество, надёжный партнёр, превосходный, для любых задач\n\n' +
-
-      'Выведи только текст описания — без заголовков и пояснений.';
-
-    chrome.runtime.sendMessage({ action: 'callAI', prompt: prompt }, function(resp) {
-      if (btn) { btn.textContent = '✨'; btn.disabled = false; }
-      if (!resp || !resp.text) { alert('Ошибка AI'); return; }
-
-      var text = resp.text.trim().replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim();
-      var LIMIT = 2000;
-      if (text.length > LIMIT) {
-        var cut = text.lastIndexOf('.', LIMIT - 1);
-        text = cut > LIMIT * 0.7 ? text.slice(0, cut + 1) : text.slice(0, LIMIT);
-      }
-
-      descEl.focus();
-      var nativeSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
-      if (nativeSet && nativeSet.set) nativeSet.set.call(descEl, text);
-      else descEl.value = text;
-      descEl.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
-      descEl.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-  }
-
-  function generateDescription() {
-    var nameEl = document.getElementById('editable-title');
-    var productName = (nameEl ? (nameEl.value || nameEl.innerText || '') : '').trim();
-    var cat = (document.querySelector('[class*="subject"], [class*="Subject"]') || {}).innerText || '';
-    cat = cat.split('/').pop().trim();
-    if (!productName) productName = cat || 'товар';
-
-    var chars = getCardChars();
-    var charsText = chars.join('; ');
-
-    showDescModal(productName, charsText, function(userInput) {
-      doGenerate(productName, cat, charsText, userInput);
-    });
-  }
-
-  function injectDescBtn() {
-    if (document.getElementById('wb-desc-btn')) return;
-    var descEl = findDescTextarea();
-    if (!descEl) return;
-
-    var btn = document.createElement('button');
-    btn.id = 'wb-desc-btn';
-    btn.type = 'button';
-    btn.textContent = '✨';
-    btn.title = 'AI SEO-описание';
-    btn.style.cssText = 'position:absolute;right:8px;top:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);color:#fff;border:none;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer;z-index:100;display:flex;align-items:center;justify-content:center;';
-    btn.onclick = generateDescription;
-
-    var parent = descEl.parentElement;
-    if (parent) {
-      parent.style.position = 'relative';
-      parent.appendChild(btn);
-    }
-  }
-
-  var descObs = new MutationObserver(function() {
-    if (!document.getElementById('wb-desc-btn')) setTimeout(injectDescBtn, 500);
-  });
-  descObs.observe(document.body, { childList: true, subtree: true });
-  setTimeout(injectDescBtn, 1500);
 })();
