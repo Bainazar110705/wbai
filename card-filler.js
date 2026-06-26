@@ -1599,20 +1599,41 @@
       }, 300);
 
       // Кнопки результата
-      document.getElementById('wb-inf-download-btn').onclick = function(e) {
+      document.getElementById('wb-inf-download-btn').onclick = async function(e) {
         e.preventDefault();
         e.stopPropagation();
-        var url = panel._resultBlob || finalBase64;
-        // Если base64 — конвертируем в blob чтобы не открывал вкладку
-        if (url && url.startsWith('data:')) {
-          var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1];
+        var src = panel._resultBlob || finalBase64;
+        // Конвертируем base64 → Blob
+        var blob;
+        if (src && src.startsWith('data:')) {
+          var arr = src.split(','), mime = arr[0].match(/:(.*?);/)[1];
           var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n);
           while (n--) u8[n] = bstr.charCodeAt(n);
-          url = URL.createObjectURL(new Blob([u8], { type: mime }));
+          blob = new Blob([u8], { type: mime });
+        } else {
+          blob = await fetch(src).then(function(r) { return r.blob(); });
         }
+        var defaultName = 'инфографика-' + (productName || 'товар').replace(/[\\/:*?"<>|]/g, '_').slice(0, 40) + '.jpg';
+        // Используем нативный диалог сохранения если браузер поддерживает
+        if (window.showSaveFilePicker) {
+          try {
+            var handle = await window.showSaveFilePicker({
+              suggestedName: defaultName,
+              types: [{ description: 'JPEG изображение', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }]
+            });
+            var writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+          } catch(err) {
+            if (err.name === 'AbortError') return; // пользователь отменил
+          }
+        }
+        // Fallback — обычное скачивание
+        var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'infographic-' + (productName || 'product') + '.jpg';
+        a.download = defaultName;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
