@@ -981,11 +981,9 @@
         '<div id="wb-inf-result" style="display:none;margin-bottom:14px;">' +
           '<div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">✨ Готовая инфографика</div>' +
           '<canvas id="wb-inf-canvas" style="width:100%;border-radius:10px;border:1px solid #e0d4f7;display:block;"></canvas>' +
-          '<div style="display:flex;gap:8px;margin-top:10px;">' +
-            '<button id="wb-inf-use-btn" style="flex:1.4;padding:10px;border-radius:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 Вставить в карточку</button>' +
-            '<button id="wb-inf-download-btn" style="flex:1;padding:10px;border-radius:8px;background:#f0ebff;border:1px solid #7b2ff7;color:#7b2ff7;font-size:13px;font-weight:600;cursor:pointer;">⬇️ Скачать</button>' +
+          '<div style="margin-top:10px;">' +
+            '<button id="wb-inf-download-btn" style="width:100%;padding:10px;border-radius:8px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">⬇️ Скачать инфографику</button>' +
           '</div>' +
-          '<button id="wb-inf-regen-btn" style="width:100%;padding:8px;border-radius:8px;background:#f5f5f5;border:1px solid #ddd;color:#666;font-size:12px;cursor:pointer;margin-top:6px;">🔄 Сгенерировать ещё раз</button>' +
         '</div>' +
 
         // Ошибка
@@ -1609,15 +1607,6 @@
         a.click();
       };
 
-      document.getElementById('wb-inf-use-btn').onclick = function() {
-        var uploaded = tryUploadToWB(panel._resultBlob || finalBase64);
-        if (uploaded) {
-          showToast('✅ Фото передано в поле загрузки!', true);
-        } else {
-          showToast('⬇️ Скачайте фото и перетащите в поле загрузки WB', true);
-          document.getElementById('wb-inf-download-btn').click();
-        }
-      };
 
     } catch(e) {
       document.getElementById('wb-inf-progress').style.display = 'none';
