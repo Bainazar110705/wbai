@@ -1599,12 +1599,24 @@
       }, 300);
 
       // Кнопки результата
-      document.getElementById('wb-inf-download-btn').onclick = function() {
+      document.getElementById('wb-inf-download-btn').onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         var url = panel._resultBlob || finalBase64;
+        // Если base64 — конвертируем в blob чтобы не открывал вкладку
+        if (url && url.startsWith('data:')) {
+          var arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1];
+          var bstr = atob(arr[1]), n = bstr.length, u8 = new Uint8Array(n);
+          while (n--) u8[n] = bstr.charCodeAt(n);
+          url = URL.createObjectURL(new Blob([u8], { type: mime }));
+        }
         var a = document.createElement('a');
         a.href = url;
         a.download = 'infographic-' + (productName || 'product') + '.jpg';
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
+        setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
       };
 
 
