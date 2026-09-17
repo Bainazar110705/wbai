@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate source
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install production dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check db.js
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check public/wbai-icons.js
+          node --check public/wbai-theme.js
+
+      - name: Check dashboard inline scripts
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('public/dashboard.html', 'utf8');
+          const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+          scripts.forEach((script, index) => new Function(script));
+          console.log(`Checked ${scripts.length} dashboard inline script block(s).`);
+          NODE
+
+      - name: Check whitespace errors
+        run: git diff --check HEAD^ HEAD
+
+  docker:
+    name: Build Docker image
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build application image
+        run: docker build --pull --tag wbai:${{ github.sha }} .
