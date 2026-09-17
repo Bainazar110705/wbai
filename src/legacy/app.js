@@ -1,0 +1,1406 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
+const dns = require('node:dns').promises;
+const net = require('node:net');
+const env = require('../config/env');
+const db = require('../../db');
+const logger = require('../platform/logger');
+const requestContext = require('../middleware/request-context');
+const errorHandler = require('../middleware/error-handler');
+const { wrapAsyncRoutes } = require('../middleware/async-routes');
+const { createAuthMiddleware } = require('../middleware/auth');
+const { createUsersRepository } = require('../repositories/users.repository');
+const { createCreditsService } = require('../services/credits.service');
+const { createStaticController } = require('../controllers/static.controller');
+const { registerStaticRoutes } = require('../routes/static.routes');
+const { createTemplatesRepository } = require('../repositories/templates.repository');
+const { createAuthService } = require('../services/auth.service');
+const { createTemplatesService } = require('../services/templates.service');
+const { createAuthController } = require('../controllers/auth.controller');
+const { createTemplatesController } = require('../controllers/templates.controller');
+const { registerAuthRoutes } = require('../routes/auth.routes');
+const { registerTemplatesRoutes } = require('../routes/templates.routes');
+
+const app = express();
+wrapAsyncRoutes(app);
+const ROOT_DIR = path.resolve(__dirname, '../..');
+const { appUrl: APP_URL, jwtSecret: JWT_SECRET, adminKey: ADMIN_KEY, claudeApiKey: CLAUDE_API_KEY, falKey: FAL_KEY, allowedOrigins } = env;
+const usersRepository = createUsersRepository(db);
+const creditsService = createCreditsService(usersRepository);
+const templatesRepository = createTemplatesRepository(db);
+const authService = createAuthService({ usersRepository, bcrypt, jwt, jwtSecret: JWT_SECRET });
+const templatesService = createTemplatesService(templatesRepository);
+const {
+  auth: authMiddleware,
+  subscription: checkSubscription,
+  requirePlan,
+  admin: requireAdmin
+} = createAuthMiddleware({ usersRepository, jwtSecret: JWT_SECRET, adminKey: ADMIN_KEY });
+const authController = createAuthController(authService);
+const templatesController = createTemplatesController(templatesService);
+
+// ── Курс RUB → KZT (WB Statistics API всегда в рублях) ───────────────────────
+// Кэш: обновляем курс раз в 4 часа с Нацбанка Казахстана (NBK)
+let rubKztCache = { rate: 6.5, fetchedAt: 0 };
+
+async function getRubKztRate() {
+  const FOUR_HOURS = 4 * 60 * 60 * 1000;
+  if (Date.now() - rubKztCache.fetchedAt < FOUR_HOURS) return rubKztCache.rate;
+
+  // Источник 1: CDN currency-api (JSON, надёжно, без проблем с кодировкой)
+  try {
+    const r = await fetch(
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/rub.json',
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const data = await r.json();
+    const rate = data?.rub?.kzt;
+    if (rate && rate > 1) {
+      rubKztCache = { rate, fetchedAt: Date.now() };
+      console.log(`[WBai] RUB→KZT: ${rate.toFixed(4)} (CDN)`);
+      return rate;
+    }
+  } catch(e) { console.warn('[WBai] CDN rate failed:', e.message); }
+
+  // Источник 2: Нацбанк РК (XML, разбиваем по <item> — не regexp через весь документ)
+  try {
+    const d = new Date();
+    const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+    const r = await fetch(`https://nationalbank.kz/rss/get_rates.cfm?fdate=${dateStr}`, { signal: AbortSignal.timeout(5000) });
+    const xml = await r.text();
+    // Делим на блоки <item> и ищем тот, где есть >RUB<
+    for (const block of xml.split('<item>')) {
+      if (!block.includes('>RUB<')) continue;
+      const desc  = block.match(/<description>([\d.]+)<\/description>/)?.[1];
+      const quant = block.match(/<quant>(\d+)<\/quant>/)?.[1];
+      if (desc && quant) {
+        const rate = parseFloat(desc) / parseInt(quant);
+        if (rate > 1) {
+          rubKztCache = { rate, fetchedAt: Date.now() };
+          console.log(`[WBai] RUB→KZT: ${rate.toFixed(4)} (NBK)`);
+          return rate;
+        }
+      }
+    }
+  } catch(e) { console.warn('[WBai] NBK rate failed:', e.message); }
+
+  console.warn(`[WBai] All rate sources failed, using cached: ${rubKztCache.rate}`);
+  return rubKztCache.rate;
+}
+
+// Безопасное логирование — никогда не выводим значение ключа
+logger.info('app_configuration_loaded', { claudeConfigured: !!CLAUDE_API_KEY, falConfigured: !!FAL_KEY });
+
+// Rate limiting
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много запросов. Подождите минуту.' }
+});
+const imageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 6,
+  message: { error: 'Максимум 3 генерации в минуту.' }
+});
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много административных запросов. Попробуйте позже.' }
+});
+
+app.set('trust proxy', 1); // Required when behind Nginx reverse proxy
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=(), payment=()');
+  res.setHeader('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");
+  if (req.secure || req.get('x-forwarded-proto') === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+app.use(requestContext);
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, false);
+    return cb(null, allowedOrigins.has(origin));
+  },
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key'],
+  maxAge: 600
+}));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb', extended: true }));
+app.use(express.static(path.join(ROOT_DIR, 'public')));
+
+registerAuthRoutes(app, { controller: authController, auth: authMiddleware });
+registerTemplatesRoutes(app, {
+  controller: templatesController,
+  auth: authMiddleware,
+  subscription: checkSubscription
+});
+
+// === ПРОКСИ ДЛЯ ИЗОБРАЖЕНИЙ (для Canvas) ===
+const IMAGE_PROXY_ALLOWED_HOSTS = ['wbbasket.ru', 'wbstatic.net'];
+const IMAGE_PROXY_ALLOWED_TYPES = new Set(['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp']);
+const IMAGE_PROXY_MAX_BYTES = 8 * 1024 * 1024;
+const IMAGE_PROXY_MAX_REDIRECTS = 3;
+
+function isAllowedImageHost(hostname) {
+  const host = hostname.toLowerCase();
+  return IMAGE_PROXY_ALLOWED_HOSTS.some(domain => host === domain || host.endsWith(`.${domain}`));
+}
+
+function isPrivateIp(address) {
+  if (net.isIP(address) === 4) {
+    const [a, b] = address.split('.').map(Number);
+    return a === 0 || a === 10 || a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224;
+  }
+
+  if (net.isIP(address) === 6) {
+    const normalized = address.toLowerCase();
+    if (normalized === '::1' || normalized === '::') return true;
+    if (normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe8') || normalized.startsWith('fe9') || normalized.startsWith('fea') || normalized.startsWith('feb')) return true;
+    const mappedV4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    return !!mappedV4 && isPrivateIp(mappedV4[1]);
+  }
+
+  return true;
+}
+
+async function validateImageProxyUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('Некорректный URL изображения');
+  }
+
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !isAllowedImageHost(url.hostname)) {
+    throw new Error('Источник изображения не разрешён');
+  }
+
+  const addresses = await dns.lookup(url.hostname, { all: true, verbatim: true });
+  if (!addresses.length || addresses.some(({ address }) => isPrivateIp(address))) {
+    throw new Error('Источник изображения не разрешён');
+  }
+
+  return url;
+}
+
+async function fetchAllowedImage(value, redirects = 0) {
+  if (redirects > IMAGE_PROXY_MAX_REDIRECTS) throw new Error('Слишком много перенаправлений');
+  const url = await validateImageProxyUrl(value);
+  const response = await fetch(url, {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(10_000),
+    headers: { Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif;q=0.9' }
+  });
+
+  if ([301, 302, 303, 307, 308].includes(response.status)) {
+    const location = response.headers.get('location');
+    if (!location) throw new Error('Некорректное перенаправление');
+    return fetchAllowedImage(new URL(location, url).toString(), redirects + 1);
+  }
+
+  if (!response.ok) throw new Error('Не удалось загрузить изображение');
+
+  const contentType = (response.headers.get('content-type') || '').split(';', 1)[0].toLowerCase();
+  if (!IMAGE_PROXY_ALLOWED_TYPES.has(contentType)) throw new Error('Неподдерживаемый формат изображения');
+
+  const contentLength = Number(response.headers.get('content-length') || 0);
+  if (contentLength > IMAGE_PROXY_MAX_BYTES) throw new Error('Изображение слишком большое');
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Не удалось загрузить изображение');
+  const chunks = [];
+  let size = 0;
+  while (true) {
+    const { done, value: chunk } = await reader.read();
+    if (done) break;
+    size += chunk.byteLength;
+    if (size > IMAGE_PROXY_MAX_BYTES) {
+      await reader.cancel();
+      throw new Error('Изображение слишком большое');
+    }
+    chunks.push(Buffer.from(chunk));
+  }
+
+  return { buffer: Buffer.concat(chunks, size), contentType };
+}
+
+app.get('/api/image-proxy', authMiddleware, async (req, res) => {
+  const { url } = req.query;
+  if (typeof url !== 'string' || !url) return res.status(400).json({ error: 'Нет URL' });
+  try {
+    const { buffer, contentType } = await fetchAllowedImage(url);
+    res.json({ base64: `data:${contentType};base64,${buffer.toString('base64')}` });
+  } catch (e) {
+    const isClientError = ['Некорректный URL изображения', 'Источник изображения не разрешён', 'Слишком много перенаправлений', 'Некорректное перенаправление', 'Неподдерживаемый формат изображения', 'Изображение слишком большое'].includes(e.message);
+    res.status(isClientError ? 400 : 502).json({ error: isClientError ? e.message : 'Не удалось загрузить изображение' });
+  }
+});
+
+// === WB PROXY ===
+app.get('/api/wb/search', authMiddleware, async (req, res) => {
+  const { query } = req.query;
+  if (!query) return res.status(400).json({ error: 'Нет запроса' });
+  try {
+    // Пробуем разные эндпоинты WB
+    const urls = [
+      `https://search.wb.ru/exactmatch/ru/common/v9/search?appType=1&curr=rub&dest=-1257786&query=${encodeURIComponent(query)}&resultset=catalog&limit=10&sort=popular`,
+      `https://search.wb.ru/exactmatch/ru/common/v7/search?appType=1&curr=rub&dest=-1257786&query=${encodeURIComponent(query)}&resultset=catalog&limit=10&sort=popular`,
+    ];
+
+    let data = null;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+            'Origin': 'https://www.wildberries.ru',
+            'Referer': 'https://www.wildberries.ru/',
+          }
+        });
+        if (response.ok) {
+          data = await response.json();
+          if (data?.data?.products?.length) break;
+        }
+      } catch(e) { continue; }
+    }
+
+    if (!data?.data?.products?.length) {
+      return res.status(404).json({ error: 'Товары не найдены', data: { products: [] } });
+    }
+    res.json(data);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/wb/card', authMiddleware, async (req, res) => {
+  const { nm } = req.query;
+  if (!nm) return res.status(400).json({ error: 'Нет артикула' });
+  try {
+    const response = await fetch(
+      `https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1257786&nm=${nm}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'ru-RU,ru;q=0.9',
+          'Origin': 'https://www.wildberries.ru',
+          'Referer': 'https://www.wildberries.ru/',
+        }
+      }
+    );
+    const data = await response.json();
+    if (!data?.data?.products?.length) {
+      return res.status(404).json({ error: 'Товар не найден' });
+    }
+    res.json(data);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// === СТИЛИ ИНФОГРАФИКИ ===
+app.get('/api/infographic-styles', authMiddleware, async (req, res) => {
+  const styles = await db.allAsync('SELECT id, name, image_base64, created_at FROM infographic_styles ORDER BY id ASC', []);
+  res.json({ styles });
+});
+
+app.post('/api/admin/infographic-styles', adminLimiter, requireAdmin, async (req, res) => {
+  const { name, imageBase64 } = req.body;
+  if (!imageBase64) return res.status(400).json({ error: 'Нет изображения' });
+  await db.runAsync('INSERT INTO infographic_styles (name, image_base64) VALUES (?, ?)', [name || 'Стиль', imageBase64]);
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/infographic-styles/:id', adminLimiter, requireAdmin, async (req, res) => {
+  await db.runAsync('DELETE FROM infographic_styles WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// === ГЕНЕРАЦИЯ ИНФОГРАФИКИ ===
+
+// Анализ примера стиля через Claude Vision: извлекаем детальное описание визуального стиля
+// включая цвета текстовых блоков — чтобы Seedream воспроизвёл стиль текста
+async function analyzeStyleWithClaude(styleImageBase64) {
+  if (!CLAUDE_API_KEY || !styleImageBase64) return null;
+  try {
+    const base64Data = styleImageBase64.replace(/^data:image\/[a-z+]+;base64,/, '');
+    const mediaType = styleImageBase64.includes('data:image/png') ? 'image/png' : 'image/jpeg';
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+            { type: 'text', text: `Analyze this product infographic style for an AI image generator. Describe ONLY visual design — NOT the product or text content. Be very specific:
+
+1. BACKGROUND: exact colors (hex), gradient direction, diagonal splits, patterns, texture
+2. COLOR PALETTE: every color used — bg, text, badges, accents, glows (e.g. "navy #0A1628", "cyan #00D4FF")
+3. SPEC BADGE STYLE (critical): shape (pill/rounded-square/circle), fill color, border (color+thickness), glow/shadow, inner layout (icon+number+label arrangement)
+4. ICON STYLE: outline or filled? line weight? colored or monochrome? any icons inside badges?
+5. TYPOGRAPHY: font weight, size hierarchy, letter spacing, any italic or condensed
+6. PRODUCT LIGHTING: direction, rim light color, shadow softness
+7. DECORATIVE ELEMENTS: dividers, shapes, overlays, shields, corner elements
+8. THEME: dark/light, warm/cool, contrast level
+
+Be concise bullet list. This goes directly into an AI image generator prompt.` }
+          ]
+        }]
+      })
+    });
+    const data = await response.json();
+    return data?.content?.[0]?.text || null;
+  } catch(e) {
+    console.error('[WBai] analyzeStyle error:', e.message);
+    return null;
+  }
+}
+
+// Определяем аксессуары из названия и характеристик → инструкции по размещению
+function buildAccessoriesInstructions(productName, specs) {
+  const text = ((productName || '') + ' ' + (specs || '')).toLowerCase();
+  const items = [];
+
+  // Аккумуляторы
+  const akbNum = text.match(/(\d+)\s*(акб|аккумул)/);
+  if (akbNum) {
+    const n = parseInt(akbNum[1]);
+    items.push(`BATTERIES: Show ${n} battery pack(s) — place them smaller (about 20% of product size) arranged neatly at the bottom-left or bottom area, label area next to them`);
+  } else if (text.includes('акб') || text.includes('аккумул')) {
+    items.push('BATTERIES: Show 1-2 battery pack(s) smaller at the bottom area');
+  }
+
+  // Кейс / чемодан
+  if (text.match(/кейс|чемодан|кофр|carrying case/)) {
+    items.push('CASE: Show a tool storage case — smaller (30% of product size), placed below or to the right of the product');
+  }
+
+  // Насадки / диски / биты
+  if (text.match(/насадк|дискi|диск|бит|сверл|nozzle|attachment/)) {
+    items.push('ATTACHMENTS: Show 2-3 discs/bits/nozzles arranged in a small row at the bottom');
+  }
+
+  // Зарядное устройство
+  if (text.match(/зарядн|charger/)) {
+    items.push('CHARGER: Show a compact charger unit smaller, in a bottom corner');
+  }
+
+  // Подарки / бонусы
+  if (text.match(/подарок|подарк|бонус|gift/)) {
+    items.push('GIFT ITEM: Show a small gift box or bonus item in a corner');
+  }
+
+  return items.length > 0
+    ? '\nACCESSORIES TO INCLUDE (all SMALLER than main product, arranged around it):\n' + items.map(i => '- ' + i).join('\n')
+    : '';
+}
+
+
+// ============================================================
+// КОНФИГУРАЦИЯ МОДЕЛЕЙ FAL.AI
+// ============================================================
+const AI_MODELS = {
+  'nano-banana-2': {
+    name: 'Nano Banana 2',
+    description: 'Лучший текст, сохраняет товар',
+    badge: 'Рекомендуем',
+    endpoint: 'fal-ai/nano-banana-2/edit',
+    supportsImageInput: true,
+  },
+  'nano-banana-pro': {
+    name: 'Nano Banana Pro',
+    description: 'Максимальное качество текста',
+    badge: null,
+    endpoint: 'fal-ai/nano-banana-pro/edit',
+    supportsImageInput: true,
+  },
+  'flux-kontext': {
+    name: 'FLUX Kontext',
+    description: 'Точная передача товара',
+    badge: null,
+    endpoint: 'fal-ai/flux-pro/kontext',
+    supportsImageInput: true,
+  },
+  'flux-dev-i2i': {
+    name: 'FLUX.1 Dev',
+    description: 'Творческий стиль',
+    badge: null,
+    endpoint: 'fal-ai/flux/dev/image-to-image',
+    supportsImageInput: true,
+    strength: 0.55,
+  },
+};
+
+// Эндпоинт — список моделей для UI
+app.get('/api/models', authMiddleware, (req, res) => {
+  const list = Object.entries(AI_MODELS).map(([id, m]) => ({
+    id, name: m.name, description: m.description, badge: m.badge,
+  }));
+  res.json({ models: list });
+});
+
+// Построитель промптов под каждую модель
+
+// ── Промпт для STYLE TRANSFER (Редизайн + Серия) ─────────────────────────────
+// Сохраняет ВСЁ содержимое, меняет ТОЛЬКО визуальный стиль
+function buildStyleTransferPrompt(styleAnalysis) {
+  return `TASK: PURE STYLE TRANSFER. Do NOT recreate. Do NOT redesign.
+
+════════════════════════════════════════════════
+IMAGE 1 = SOURCE PAGE (content is sacred)
+LAST IMAGE = STYLE REFERENCE (design only)
+════════════════════════════════════════════════
+
+FROM IMAGE 1 — PRESERVE EXACTLY (do not change):
+✅ Product: exact position, angle, size, lighting
+✅ All text: every word, number, label — exactly as shown
+✅ Layout: where each element is placed on the page
+✅ Badge positions: exact same locations
+✅ Icon positions: exact same locations
+✅ Spacing and proportions between elements
+
+FROM LAST IMAGE — APPLY TO IMAGE 1:
+🎨 Background: colors, gradient, pattern, diagonal splits
+🎨 Badge fill colors and border style
+🎨 Text colors (titles, labels, numbers)
+🎨 Icon visual style (outline/filled, color)
+🎨 Decorative elements style (dividers, shapes, glows)
+🎨 Overall color palette and mood
+
+FORBIDDEN:
+❌ Moving any element from its position
+❌ Changing any text or number
+❌ Changing product angle or size
+❌ Adding new elements not in Image 1
+❌ Removing elements that exist in Image 1
+❌ Using product from last image
+
+${styleAnalysis ? `STYLE DETAILS FROM ANALYSIS:
+${styleAnalysis}` : ''}
+
+RESULT: Image 1 content + Last image visual style = final output.`;
+}
+
+function buildPrompt(modelId, { title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock, hasStyleRef, mode }) {
+  const specs = secondarySpecs.filter(Boolean).map(s => s.trim());
+  const isRedesign = mode === 'redesign';
+
+  const textLines = [];
+  if (title) textLines.push(`"${title}"`);
+  if (primarySpec) textLines.push(`"${primarySpec}"`);
+  specs.forEach(s => textLines.push(`"${s}"`));
+  const textBlock = textLines.join('\n');
+
+  // ── Image roles — the most important rules ──────────────────────────────
+  const imageRolesBlock = hasStyleRef ? `
+╔══════════════════════════════════════════════════════════╗
+║           IMAGE ROLES — READ THIS FIRST                  ║
+╠══════════════════════════════════════════════════════════╣
+║ IMAGES 1…N-1  =  USER'S PRODUCT  (product source)       ║
+║ LAST IMAGE    =  STYLE REFERENCE (design source ONLY)    ║
+╚══════════════════════════════════════════════════════════╝
+
+PRODUCT SOURCE (Images 1 to N-1):
+These are the ONLY source for: product shape, product brand, product color,
+accessories, product markings. The product in the final image MUST come
+from these images and ONLY from these images.
+
+STYLE REFERENCE (Last image) — ALLOWED to copy:
+✅ Color palette and background colors
+✅ Background style (diagonal, gradient, split, pattern)
+✅ Badge/block shapes, rounded corners, borders
+✅ Typography weight, size hierarchy, label style
+✅ Icon style, decorative elements, shadows, glow effects
+✅ Overall composition and layout positions
+
+STYLE REFERENCE (Last image) — FORBIDDEN to copy:
+❌ The product shown in it — use ONLY product from Images 1…N-1
+❌ Any brand name or logo from the reference
+❌ Any text, numbers, specifications from the reference
+❌ Model names, product features from the reference
+` : '';
+
+  // ── Mode-specific scenario block ────────────────────────────────────────
+  let scenarioBlock = '';
+  if (hasStyleRef && isRedesign) {
+    scenarioBlock = `
+=== MODE: REDESIGN EXISTING CARD ===
+Image 1 is the user's EXISTING infographic that needs a visual refresh.
+KEEP from Image 1: the product, brand markings, advantages, characteristics, meaning.
+REPLACE with last image's style: colors, background, typography, layout, icons, decorative elements.
+Think of it as: same content dressed in the new visual style.`;
+  } else if (hasStyleRef) {
+    scenarioBlock = `
+=== MODE: NEW INFOGRAPHIC WITH STYLE REFERENCE ===
+Create a new infographic for the user's product using the reference as a design template.
+Product = Images 1…N-1. Design template = last image.
+The result should look like the user's product was always part of the same product line as the reference.`;
+  } else {
+    scenarioBlock = `
+=== MODE: NEW INFOGRAPHIC FROM SCRATCH ===
+Create a professional Wildberries infographic from scratch.
+Bold design: diagonal color split or gradient background, strong typography, colored spec badges.`;
+  }
+
+  // ── Style instructions ──────────────────────────────────────────────────
+  const styleInstructions = (hasStyleRef || styleAnalysis)
+    ? `=== DESIGN TEMPLATE (LAST image) — COPY ALL OF THESE EXACTLY ===
+✅ Background: exact colors, gradient direction, diagonal splits, geometric patterns
+✅ Color palette: every accent color, badge fill color, text color, glow color
+✅ Typography: font weight (bold/thin), font size hierarchy, letter spacing, text positioning
+✅ Icon style: outline/filled/colored — copy the exact icon visual style and shapes
+✅ Lighting & shadows: same product lighting direction, same drop shadow style and intensity
+✅ Spec badge design: exact shape (rounded/sharp), fill color, border, inner layout
+✅ Layout composition: title position, spec column position, product placement
+✅ Decorative elements: all dividers, shapes, overlays, glows, corner elements
+✅ Visual mood: dark/light theme, contrast level, color temperature
+${styleAnalysis ? `Style analysis: ${styleAnalysis}` : ''}
+
+DO NOT copy from reference:
+❌ Product — use ONLY product from Image 1
+❌ Brand/logo — use ONLY brand from Image 1
+❌ Specific text/numbers — use ONLY text provided in this prompt`
+    : `=== DESIGN ===
+Create a premium Wildberries infographic: diagonal color split background, bold spec badges,
+cinematic product lighting, high contrast, professional marketplace card aesthetic.`;
+
+  return `You are a professional Russian e-commerce designer creating a Wildberries product infographic card.
+IMAGE ROLES: Image 1 = PRODUCT (copy shape/brand/color ONLY from this). Last image = STYLE ONLY (copy design/colors/layout, NOT the product shown in it).
+${imageRolesBlock}
+${scenarioBlock}
+
+=== IMAGES IN THIS REQUEST ===
+- IMAGE 1: User's ${isRedesign ? 'EXISTING infographic' : 'product photo'}${title ? ` — "${title}"` : ''} → this is the HERO, place it large in center
+- ADDITIONAL IMAGES (if any): Product accessories (case, battery, discs) → place them SMALLER around main product
+- LAST IMAGE (if provided): Style reference ONLY → use for design, NOT for product content
+
+${styleInstructions}
+
+=== OUTPUT FORMAT ===
+Portrait orientation 3:4 ratio (768×1024px).
+
+=== LAYOUT ===
+1. PRODUCT PLACEMENT (from Image 1):
+   - Center or center-right, large (60-65% of frame height)
+   - Keep exact angle from input photo — do NOT rotate or tilt
+   - Strong cinematic lighting, bright rim light, drop shadow
+   ${accessoriesBlock ? `- Accessories: place smaller (15-25%) arranged neatly around product` : '- No accessories'}
+
+2. TITLE BLOCK (top area):
+   - Copy title block style from reference (shape, position, font size)
+   - Text inside: ${title ? `"${title}"` : 'product name from photo'}
+
+3. SPEC BADGES (left or right column):
+${textLines.slice(1).map(t => `   - "${t.replace(/^"|"$/g, '')}"`).join('\n') || '   - Key product characteristics'}
+
+=== EXACT TEXT TO DISPLAY ===
+${textBlock || '(derive key specs from product characteristics)'}
+FORBIDDEN: text from reference, watermarks, barcodes, or any text not listed above.
+FORBIDDEN: repeating the same spec or text more than once — each item appears exactly ONE time.
+
+${accessoriesBlock}
+${extraText ? `\n=== USER REQUEST — HIGHEST PRIORITY ===\n${extraText}` : ''}
+
+=== PRE-GENERATION CHECKLIST ===
+Before finalizing the image, verify each point:
+□ Product shown = user's product from Image 1 ✓
+□ NO product from reference/last image ✓
+□ NO brand or logo from reference ✓
+□ NO text, numbers, specs from reference ✓
+□ Visual style of reference IS applied ✓
+If any box fails → rework the composition.`;
+}
+
+
+// Загрузка изображения в fal.ai storage
+// Конвертируем base64 в data URL для передачи напрямую в fal.ai
+function prepareImageForFal(base64DataUrl) {
+  // fal.ai принимает base64 data URL напрямую в поле image_url
+  return base64DataUrl;
+}
+
+// Вызов fal.ai — прямой синхронный API
+async function callFalApi(endpoint, body) {
+  if (!FAL_KEY) throw new Error('FAL_KEY не настроен в переменных окружения');
+  console.log('[WBai] callFalApi endpoint:', endpoint);
+  const resp = await fetch(`https://fal.run/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${FAL_KEY}` },
+    body: JSON.stringify(body),
+  });
+  console.log('[WBai] fal.ai status:', resp.status);
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '{}');
+    console.error('[WBai] fal.ai error response:', resp.status, errText);
+    let err = {};
+    try { err = JSON.parse(errText); } catch(e) {}
+    const msg = typeof err?.detail === 'string' ? err.detail
+      : Array.isArray(err?.detail) ? JSON.stringify(err.detail)
+      : err?.message || err?.error || errText || `fal.ai error ${resp.status}`;
+    throw new Error(msg);
+  }
+  const resultJson = await resp.json();
+  console.log('[WBai] fal.ai success, keys:', Object.keys(resultJson || {}));
+  return resultJson;
+}
+
+app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
+  const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId, mode, aspectRatio, numImages } = req.body;
+
+  if (!imageBase64) return res.status(400).json({ error: 'Загрузите фото товара' });
+
+  const requestedCount = Math.min(Math.max(parseInt(numImages) || 1, 1), 4);
+  const validRatios = ['3:4', '1:1', '8:5', '4:3', '16:9', '9:16'];
+  const requestedRatio = validRatios.includes(aspectRatio) ? aspectRatio : '3:4';
+
+  // Резервируем кредиты одним условным UPDATE, чтобы параллельные запросы
+  // не могли одновременно пройти проверку одного и того же баланса.
+  const reservation = await creditsService.reserve(req.user.id, requestedCount);
+  if (!reservation) {
+    const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+    const credits = userCredits?.photo_credits || 0;
+    return res.status(403).json({
+      error: `Недостаточно кредитов. Нужно ${requestedCount}, у вас ${credits}.`,
+      credits_required: true,
+      credits_left: credits
+    });
+  }
+  let reservedCredits = requestedCount;
+  let generationCompleted = false;
+
+  const selectedModelId = (modelId && AI_MODELS[modelId]) ? modelId : 'nano-banana-2';
+  const model = AI_MODELS[selectedModelId] || AI_MODELS['nano-banana-2'];
+  console.log('[WBai] modelId received:', modelId, '→ using:', selectedModelId);
+  console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
+
+  try {
+    // Шаг 1: Claude анализирует стиль для ВСЕХ моделей — описание иконок критично
+    let styleAnalysis = null;
+    if (styleImageBase64) {
+      styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
+    }
+
+    // Шаг 2: Парсим данные товара
+    const specLines = specs ? specs.split('\n').filter(l => l.trim()).slice(0, 6) : [];
+    const primarySpec = specLines.length > 0 ? specLines[0].trim() : '';
+    const secondarySpecs = specLines.slice(1);
+    const title = productName || '';
+    const extraText = prompt || '';
+    const accessoriesBlock = buildAccessoriesInstructions(productName, specs);
+
+    // Шаг 3: Промпт под модель — для редизайна используем style transfer промпт
+    let finalPrompt;
+    if (mode === 'redesign') {
+      finalPrompt = buildStyleTransferPrompt(styleAnalysis);
+    } else {
+      finalPrompt = buildPrompt(selectedModelId, {
+        title, primarySpec, secondarySpecs, extraText, styleAnalysis, accessoriesBlock,
+        hasStyleRef: !!styleImageBase64, mode: mode || 'create'
+      });
+    }
+
+    // Шаг 4: Подготавливаем все фото
+    let imageUrl = null;
+    let allImageUrls = [];
+    if (model.supportsImageInput) {
+      console.log('[WBai] Подготавливаем фото для fal.ai...');
+      imageUrl = prepareImageForFal(imageBase64);
+      allImageUrls = [imageUrl];
+      // Добавляем доп. фото (кейс, диски, АКБ и т.д.)
+      if (extraImages && Array.isArray(extraImages)) {
+        extraImages.slice(0, 9).forEach(img => {
+          if (img) allImageUrls.push(prepareImageForFal(img));
+        });
+      }
+      console.log(`[WBai] Всего фото: ${allImageUrls.length}`);
+    }
+
+    // Шаг 5: Формируем тело запроса под модель
+    let falBody = {};
+    if (selectedModelId === 'nano-banana-2' || selectedModelId === 'nano-banana-pro') {
+      // Nano Banana Edit — передаём все фото напрямую включая референс стиля
+      const editImageUrls = [...allImageUrls]; // товар + аксессуары
+      if (styleImageBase64) {
+        editImageUrls.push(prepareImageForFal(styleImageBase64)); // референс стиля последним
+      }
+      falBody = {
+        prompt: finalPrompt,
+        image_urls: editImageUrls,
+        aspect_ratio: requestedRatio,
+        num_images: requestedCount,
+        safety_tolerance: '5',
+      };
+    } else if (selectedModelId === 'flux-kontext') {
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        guidance_scale: 3.5,
+        num_inference_steps: 28,
+        image_size: { width: 768, height: 1024 },
+        num_images: 1,
+        safety_tolerance: '5',
+      };
+    } else if (selectedModelId === 'flux-dev-i2i') {
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        strength: model.strength || 0.55,
+        num_inference_steps: 35,
+        guidance_scale: 3.5,
+        image_size: { width: 768, height: 1024 },
+        num_images: 1,
+        enable_safety_checker: false,
+      };
+    } else {
+      falBody = {
+        prompt: finalPrompt,
+        image_url: imageUrl,
+        image_size: { width: 768, height: 1024 },
+        num_images: 1,
+      };
+    }
+
+    // Шаг 6: Вызываем fal.ai
+    console.log(`[WBai] Отправляем запрос в fal.ai/${model.endpoint}...`);
+    const result = await callFalApi(model.endpoint, falBody);
+
+    console.log('[WBai] fal.ai result keys:', Object.keys(result || {}));
+
+    // Собираем все URL из ответа
+    const allUrls = (result?.images || []).map(img => img.url).filter(Boolean);
+    if (result?.image?.url) allUrls.push(result.image.url);
+    allUrls.splice(requestedCount);
+    if (!allUrls.length) {
+      console.error('[WBai] fal.ai ответ без изображений:', JSON.stringify(result));
+      await creditsService.release(req.user.id, reservedCredits);
+      reservedCredits = 0;
+      return res.status(500).json({ error: 'Изображение не сгенерировано' });
+    }
+
+    // Кредиты уже зарезервированы. Если провайдер вернул меньше изображений,
+    // возвращаем неиспользованную часть резерва.
+    const used = allUrls.length;
+    generationCompleted = true;
+    if (used < reservedCredits) {
+      const unusedCredits = reservedCredits - used;
+      await creditsService.release(req.user.id, unusedCredits);
+      reservedCredits -= unusedCredits;
+    }
+    const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+
+    console.log(`[WBai] Готово! Модель: ${selectedModelId}, изображений: ${used}, кредитов осталось: ${remaining?.photo_credits || 0}`);
+
+    // Возвращаем URL напрямую — клиент грузит сам (быстро, без скачивания на сервере)
+    res.json({ imageUrls: allUrls, images: allUrls, imageBase64: allUrls[0], credits_left: remaining?.photo_credits || 0, credits_used: used, modelUsed: selectedModelId });
+
+  } catch(e) {
+    if (!generationCompleted && reservedCredits > 0) {
+      try {
+        await creditsService.release(req.user.id, reservedCredits);
+      } catch (refundError) {
+        console.error('[WBai] generate-image credit refund error:', refundError.message);
+      }
+    }
+    console.error('[WBai] generate-image error:', e.message, e.cause || '');
+    res.status(500).json({ error: 'Ошибка генерации: ' + e.message });
+  }
+});
+
+app.post('/api/ai', aiLimiter, authMiddleware, checkSubscription, async (req, res) => {
+  const { prompt, feature } = req.body;
+  // feature: 'reviews' (start+), 'cards' (pro+), default=reviews
+  if (feature === 'cards' || feature === 'seo') {
+    const plan = req.dbUser?.plan || 'start';
+    if (plan === 'start') {
+      return res.status(403).json({ error: 'Заполнение карточек доступно на тарифе Про и выше', plan_required: 'pro' });
+    }
+  }
+  if (!prompt) return res.status(400).json({ error: 'Нет промпта' });
+  if (!CLAUDE_API_KEY) return res.status(500).json({ error: 'API ключ не настроен' });
+
+  let text = '';
+  let lastError = '';
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await response.json();
+      text = data.content?.[0]?.text || '';
+      if (text) break; // Успех — выходим из цикла
+      lastError = `Попытка ${attempt}: пустой ответ`;
+      if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
+    } catch(e) {
+      lastError = e.message;
+      if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+
+  if (!text) return res.status(500).json({ error: 'Сервер AI временно недоступен, попробуйте снова' });
+
+  await db.runAsync('UPDATE users SET ai_requests_count = ai_requests_count + 1 WHERE id = ?', [req.user.id]);
+  await db.runAsync('INSERT INTO ai_history (user_id, prompt, response) VALUES (?, ?, ?)',
+    [req.user.id, prompt.substring(0, 200), text.substring(0, 500)]).catch(() => {});
+  res.json({ text });
+});
+
+// === ИСТОРИЯ AI ЗАПРОСОВ ===
+app.get('/api/history', authMiddleware, checkSubscription, async (req, res) => {
+  // Создаём таблицу если нет
+  await db.runAsync(`CREATE TABLE IF NOT EXISTS ai_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    prompt TEXT,
+    response TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`, []).catch(() => {});
+  const rows = await db.allAsync('SELECT id, prompt, response, created_at FROM ai_history WHERE user_id = ? ORDER BY id DESC LIMIT 20', [req.user.id]);
+  res.json({ history: rows });
+});
+
+// === АДМИНКА ===
+app.post('/api/admin/activate', adminLimiter, requireAdmin, async (req, res) => {
+  const { email, months, plan } = req.body;
+  const user = await db.getAsync('SELECT * FROM users WHERE email = ?', [email?.toLowerCase()]);
+  if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+  const now = new Date();
+  const current = user.subscription_end ? new Date(user.subscription_end) : now;
+  const start = current > now ? current : now;
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + (months || 1));
+  const userPlan = plan || 'start';
+  // Тариф Макс — даём 30 кредитов за каждый месяц
+  const bonusCredits = userPlan === 'max' ? 30 * (months || 1) : 0;
+  await db.runAsync(
+    'UPDATE users SET subscription_end = ?, is_active = 1, plan = ?, photo_credits = photo_credits + ? WHERE id = ?',
+    [end.toISOString(), userPlan, bonusCredits, user.id]
+  );
+  res.json({ ok: true, subscription_end: end.toISOString(), plan: userPlan });
+});
+
+// Добавить фото-кредиты вручную
+app.post('/api/admin/add-credits', adminLimiter, requireAdmin, async (req, res) => {
+  const { email, credits, note } = req.body;
+  if (!email || credits === undefined || credits === null) return res.status(400).json({ error: 'Укажите email и количество' });
+  const user = await db.getAsync('SELECT * FROM users WHERE email = ?', [email?.toLowerCase()]);
+  if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+  const amount = parseInt(credits);
+  if (isNaN(amount)) return res.status(400).json({ error: 'Неверное количество' });
+  // Отрицательное значение = снятие кредитов
+  if (amount >= 0) {
+    await db.runAsync('UPDATE users SET photo_credits = photo_credits + ? WHERE id = ?', [amount, user.id]);
+  } else {
+    // Снимаем, но не ниже 0
+    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits + ?) WHERE id = ?', [amount, user.id]);
+  }
+  await db.runAsync(
+    'INSERT INTO credit_transactions (user_id, amount, note) VALUES (?, ?, ?)',
+    [user.id, amount, note || (amount >= 0 ? 'Ручное пополнение' : 'Ручное снятие')]
+  );
+  const updated = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [user.id]);
+  res.json({ ok: true, photo_credits: updated.photo_credits });
+});
+
+// Получить историю транзакций кредитов (для админа)
+app.get('/api/admin/credit-history/:userId', adminLimiter, requireAdmin, async (req, res) => {
+  const history = await db.allAsync(
+    'SELECT * FROM credit_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+    [req.params.userId]
+  );
+  res.json({ history });
+});
+
+app.post('/api/admin/remove-subscription', adminLimiter, requireAdmin, async (req, res) => {
+  const { email } = req.body;
+  const user = await db.getAsync('SELECT * FROM users WHERE email = ?', [email?.toLowerCase()]);
+  if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+  await db.runAsync('UPDATE users SET subscription_end = NULL, is_active = 0 WHERE id = ?', [user.id]);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/templates', adminLimiter, requireAdmin, async (req, res) => {
+  const templates = await db.allAsync(
+    `SELECT t.*, u.email FROM templates t
+     LEFT JOIN users u ON t.user_id = u.id
+     ORDER BY t.id DESC LIMIT 500`, []
+  );
+  res.json({ templates });
+});
+
+app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
+  const users = await db.allAsync('SELECT id, email, name, subscription_end, created_at, plan, photo_credits FROM users ORDER BY id DESC', []);
+  res.json({ users });
+});
+
+// ═══════════════════════════════════════════════════
+//  WB API TOKEN + АНАЛИТИКА
+// ═══════════════════════════════════════════════════
+
+// Таблица: CREATE wb_api_token column (добавляется один раз через db.js)
+
+// ── Себестоимость товаров ─────────────────────────────────────────────────────
+
+// GET /api/product-costs — список артикулов с себестоимостью
+app.get('/api/product-costs', authMiddleware, async (req, res) => {
+  const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE user_id=? ORDER BY name', [req.user.id]);
+  res.json({ items: rows });
+});
+
+// POST /api/product-costs — сохранить себестоимость (массив артикулов)
+app.post('/api/product-costs', authMiddleware, async (req, res) => {
+  const { items } = req.body; // [{supplier_article, name, cost_price}]
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Нет данных' });
+  for (const item of items) {
+    const article = (item.supplier_article || '').trim();
+    const cost = Math.max(0, parseInt(item.cost_price) || 0);
+    const name = (item.name || '').slice(0, 200);
+    if (!article) continue;
+    await db.runAsync(
+      `INSERT INTO product_costs (user_id, supplier_article, name, cost_price, updated_at)
+       VALUES (?,?,?,?, NOW())
+       ON CONFLICT (user_id, supplier_article) DO UPDATE SET cost_price=EXCLUDED.cost_price, name=EXCLUDED.name, updated_at=NOW()`,
+      [req.user.id, article, name, cost]
+    );
+  }
+  res.json({ ok: true });
+});
+
+// GET /api/wb-articles — уникальные артикулы из заказов WB (для заполнения себестоимости)
+app.get('/api/wb-articles', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+
+  try {
+    // Берём заказы за последние 90 дней — чтобы получить все активные артикулы
+    const dateFrom = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+    const resp = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/orders?dateFrom=${dateFrom}`, {
+      headers: { Authorization: `Bearer ${u.wb_api_token}` }
+    });
+    if (!resp.ok) throw new Error('WB API error ' + resp.status);
+    const orders = await resp.json();
+
+    // Группируем по supplierArticle — убираем дубли
+    const seen = {};
+    (Array.isArray(orders) ? orders : []).forEach(o => {
+      const art = (o.supplierArticle || '').trim();
+      if (!art || seen[art]) return;
+      seen[art] = { supplier_article: art, name: o.subject || o.category || '' };
+    });
+
+    // Подтягиваем уже сохранённые себестоимости
+    const saved = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
+    const savedMap = {};
+    saved.forEach(s => { savedMap[s.supplier_article] = s.cost_price; });
+
+    const articles = Object.values(seen).map(a => ({
+      ...a,
+      cost_price: savedMap[a.supplier_article] || 0
+    }));
+
+    res.json({ articles });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/wb-token — сохранить токен WB
+app.post('/api/wb-token', authMiddleware, async (req, res) => {
+  const { token: wbToken } = req.body;
+  if (!wbToken?.trim()) return res.status(400).json({ error: 'Введите токен' });
+  // Нормализуем — убираем Bearer если пользователь вставил с префиксом
+  const cleanToken = wbToken.trim().replace(/^Bearer\s+/i, '');
+  // Проверяем токен
+  try {
+    const test = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/sales?dateFrom=${new Date(Date.now()-86400000).toISOString().slice(0,10)}`, {
+      headers: { Authorization: `Bearer ${cleanToken}` }
+    });
+    if (test.status === 401) return res.status(400).json({ error: 'Токен недействителен. Создайте новый в WB.' });
+    if (test.status === 403) return res.status(400).json({ error: 'Нет прав. Нужна галочку «Статистика» при создании токена.' });
+  } catch(e) { /* network — save anyway */ }
+  await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [cleanToken, req.user.id]);
+  res.json({ ok: true });
+});
+
+// DELETE /api/wb-token
+app.delete('/api/wb-token', authMiddleware, async (req, res) => {
+  await db.runAsync('UPDATE users SET wb_api_token=NULL WHERE id=?', [req.user.id]);
+  res.json({ ok: true });
+});
+
+// GET /api/wb-token/status
+app.get('/api/wb-token/status', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  res.json({ hasToken: !!u?.wb_api_token, tokenPreview: u?.wb_api_token ? '****'+u.wb_api_token.slice(-6) : null });
+});
+
+// GET /api/wb-analytics
+app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
+  const { period, from, to } = req.query;
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const wbToken = u.wb_api_token;
+
+  // Период
+  const now = new Date();
+  let dateFrom, dateTo;
+  if (from && to) { dateFrom=from; dateTo=to; }
+  else {
+    dateTo = now.toISOString().slice(0,10);
+    const d = new Date(now);
+    switch(period) {
+      case 'today': d.setDate(d.getDate()); break;
+      case 'week': d.setDate(d.getDate()-7); break;
+      case '2weeks': d.setDate(d.getDate()-14); break;
+      case 'month': d.setMonth(d.getMonth()-1); break;
+      case '3months': d.setMonth(d.getMonth()-3); break;
+      case 'halfyear': d.setMonth(d.getMonth()-6); break;
+      case 'year': d.setFullYear(d.getFullYear()-1); break;
+      default: d.setDate(d.getDate()-7);
+    }
+    dateFrom = d.toISOString().slice(0,10);
+  }
+
+  // Предыдущий период
+  const diffMs = new Date(dateTo) - new Date(dateFrom);
+  const prevTo   = new Date(new Date(dateFrom).getTime() - 86400000).toISOString().slice(0,10);
+  const prevFrom = new Date(new Date(dateFrom).getTime() - diffMs - 86400000).toISOString().slice(0,10);
+
+  async function wbFetch(path) {
+    const r = await fetch('https://statistics-api.wildberries.ru' + path, {
+      headers: { Authorization: `Bearer ${wbToken}` }
+    });
+    if (r.status === 401) throw new Error('Токен недействителен (401)');
+    if (r.status === 403) throw new Error('Нет прав доступа (403). Нужна галочка «Статистика».');
+    if (r.status === 429) throw new Error('Лимит запросов WB API. Подождите минуту.');
+    if (!r.ok) throw new Error('WB API error ' + r.status);
+    return r.json();
+  }
+
+  try {
+    const inRange     = d => d >= dateFrom && d <= dateTo;
+    const prevInRange = d => d >= prevFrom  && d <= prevTo;
+
+    // ОДИН запрос от prevFrom — покрывает и текущий, и предыдущий период.
+    // Два отдельных запроса бьют по rate-limit WB (1 req/min) → второй падает тихо → prevTotals=0.
+    const allOrdersRaw = await wbFetch(`/api/v1/supplier/orders?dateFrom=${prevFrom}`);
+    await new Promise(r => setTimeout(r, 600));
+
+    // Финансовый отчёт для прибыли (задержка 5-7 дней от WB)
+    let reportRaw = [];
+    try {
+      const repFrom = new Date(dateFrom); repFrom.setDate(repFrom.getDate()-7);
+      const rr = await wbFetch(`/api/v1/supplier/reportDetailByPeriod?dateFrom=${repFrom.toISOString().slice(0,10)}&dateTo=${dateTo}&rrdid=0`);
+      reportRaw = Array.isArray(rr) ? rr : [];
+    } catch(e) { reportRaw = []; }
+
+    // Загружаем себестоимости пользователя
+    const costsRows = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
+    const costsMap = {};
+    costsRows.forEach(c => { costsMap[c.supplier_article] = c.cost_price || 0; });
+
+    // Разбиваем за один проход: текущий период + предыдущий
+    const ordersByDay = {};
+    let prevOrders = 0, prevRevenue = 0, prevCogs = 0;
+
+    (Array.isArray(allOrdersRaw) ? allOrdersRaw : []).forEach(o => {
+      if (o.isCancel) return;
+      const day = (o.date || '').slice(0, 10);
+      if (!day) return;
+      const sum  = Math.round(o.priceWithDisc || o.totalPrice || 0);
+      const cogs = costsMap[(o.supplierArticle || '').trim()] || 0;
+
+      if (inRange(day)) {
+        if (!ordersByDay[day]) ordersByDay[day] = { count: 0, sum: 0, cogs: 0 };
+        ordersByDay[day].count++;
+        ordersByDay[day].sum  += sum;
+        ordersByDay[day].cogs += cogs;
+      }
+      if (prevInRange(day)) {
+        prevOrders++;
+        prevRevenue += sum;
+        prevCogs    += cogs;
+      }
+    });
+
+    // Маржа по дням из финотчёта — полная разбивка
+    const marginByDay = {};
+    let prevPayable = 0, prevCommission = 0, prevLogistics = 0, prevStorage = 0, prevPenalty = 0;
+
+    reportRaw.forEach(r => {
+      const day = (r.rr_dt || r.create_dt || '').slice(0, 10);
+      if (!day) return;
+
+      const payable    = Math.round(r.ppvz_for_pay || 0);       // К выплате от WB
+      const commission = Math.round((r.ppvz_vw || 0) + (r.ppvz_vw_nds || 0)); // Комиссия WB
+      const logistics  = Math.round(r.delivery_rub || 0);        // Логистика
+      const storage    = Math.round(r.storage_fee || 0);         // Хранение
+      const penalty    = Math.round((r.penalty || 0) + (r.deduction || 0) + (r.acceptance || 0)); // Штрафы+удержания+приёмка
+      // Маржа = к выплате - хранение - штрафы (логистика уже вычтена WB при расчёте ppvz_for_pay)
+      const margin     = payable - storage - penalty;
+
+      if (inRange(day)) {
+        if (!marginByDay[day]) marginByDay[day] = { payable:0, commission:0, logistics:0, storage:0, penalty:0, margin:0 };
+        marginByDay[day].payable    += payable;
+        marginByDay[day].commission += commission;
+        marginByDay[day].logistics  += logistics;
+        marginByDay[day].storage    += storage;
+        marginByDay[day].penalty    += penalty;
+        marginByDay[day].margin     += margin;
+      }
+      if (prevInRange(day)) {
+        prevPayable    += payable;
+        prevCommission += commission;
+        prevLogistics  += logistics;
+        prevStorage    += storage;
+        prevPenalty    += penalty;
+      }
+    });
+
+    // Строим массив по всем дням периода
+    const allDays = [];
+    const cur = new Date(dateFrom), end = new Date(dateTo);
+    while (cur <= end) {
+      const day = cur.toISOString().slice(0, 10);
+      const o = ordersByDay[day] || { count: 0, sum: 0, cogs: 0 };
+      const m = marginByDay[day] || { payable:0, commission:0, logistics:0, storage:0, penalty:0, margin:0 };
+      const netMargin = m.margin - o.cogs; // маржа минус себестоимость
+      allDays.push({
+        date: day,
+        orders: o.count,
+        revenue: o.sum,
+        cogs: o.cogs,
+        payable: m.payable,
+        commission: m.commission,
+        logistics: m.logistics,
+        storage: m.storage,
+        penalty: m.penalty,
+        margin: m.margin,
+        net_margin: netMargin,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const sumF = (arr, k) => arr.reduce((a, b) => a + (b[k] || 0), 0);
+    const totals = {
+      orders:     sumF(allDays,'orders'),
+      revenue:    sumF(allDays,'revenue'),
+      cogs:       sumF(allDays,'cogs'),
+      payable:    sumF(allDays,'payable'),
+      commission: sumF(allDays,'commission'),
+      logistics:  sumF(allDays,'logistics'),
+      storage:    sumF(allDays,'storage'),
+      penalty:    sumF(allDays,'penalty'),
+      margin:     sumF(allDays,'margin'),
+      net_margin: sumF(allDays,'net_margin'),
+    };
+    const prevMargin    = prevPayable - prevStorage - prevPenalty;
+    const prevNetMargin = prevMargin - prevCogs;
+    const prevTotals = {
+      orders: prevOrders, revenue: prevRevenue, cogs: prevCogs,
+      payable: prevPayable, commission: prevCommission,
+      logistics: prevLogistics, storage: prevStorage,
+      penalty: prevPenalty, margin: prevMargin, net_margin: prevNetMargin,
+    };
+
+    // Конвертируем RUB → KZT
+    const rubKzt = await getRubKztRate();
+    const toKzt = v => Math.round((v || 0) * rubKzt);
+    const kztFields = ['revenue','cogs','payable','commission','logistics','storage','penalty','margin','net_margin'];
+    const kztRows = allDays.map(r => {
+      const row = { date: r.date, orders: r.orders };
+      kztFields.forEach(f => row[f] = toKzt(r[f]));
+      return row;
+    });
+    const kztTotals = { orders: totals.orders };
+    kztFields.forEach(f => kztTotals[f] = toKzt(totals[f]));
+    const kztPrevTotals = { orders: prevTotals.orders };
+    kztFields.forEach(f => kztPrevTotals[f] = toKzt(prevTotals[f]));
+
+    res.json({ rows: kztRows, totals: kztTotals, prevTotals: kztPrevTotals, dateFrom, dateTo, prevFrom, prevTo, rubKztRate: rubKzt });
+  } catch(e) {
+    console.error('[WBai] wb-analytics error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/wb-weekly-report — Недельные отчёты WB (seller-services API) ─────
+app.get('/api/wb-weekly-report', authMiddleware, async (req, res) => {
+  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const wbToken = u.wb_api_token;
+
+  try {
+    // Пробрасываем параметры пагинации если есть
+    const params = new URLSearchParams();
+    if (req.query.limit)  params.set('limit',  req.query.limit);
+    if (req.query.offset) params.set('offset', req.query.offset);
+    const qs = params.toString() ? '?' + params.toString() : '';
+
+    const url = `https://seller-services.wildberries.ru/ns/reports/seller-wb-balance/api/v1/reports-weekly${qs}`;
+    console.log('[WBai] wb-weekly-report fetch:', url);
+
+    const r = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${wbToken}`,
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      }
+    });
+
+    if (r.status === 401) return res.status(400).json({ error: 'Токен недействителен. Создайте новый в WB.' });
+    if (r.status === 403) return res.status(400).json({ error: 'Нет прав. Нужна галочка «Аналитика» при создании токена.' });
+    if (r.status === 429) return res.status(429).json({ error: 'Лимит запросов WB API. Подождите минуту.' });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '');
+      console.error('[WBai] wb-weekly-report WB error:', r.status, txt.slice(0, 200));
+      return res.status(r.status).json({ error: `WB API вернул ошибку ${r.status}`, detail: txt.slice(0, 200) });
+    }
+
+    const data = await r.json();
+    console.log('[WBai] wb-weekly-report ok, keys:', Object.keys(data || {}));
+    res.json(data);
+  } catch(e) {
+    console.error('[WBai] wb-weekly-report error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/generate-series — обрабатывает до 5 страниц последовательно ─────
+app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
+  let reservedCredits = 0;
+  let succeeded = 0;
+  try {
+    const { pages, styleImageBase64, aspectRatio } = req.body;
+    if (!pages?.length) return res.status(400).json({ error: 'Нет страниц для обработки' });
+    if (!styleImageBase64) return res.status(400).json({ error: 'Загрузите референс стиля' });
+
+    const pageList = pages.slice(0, 5).filter(Boolean);
+    const requestedRatio = ['3:4','1:1','8:5','4:3','16:9'].includes(aspectRatio) ? aspectRatio : '3:4';
+
+    // Резервируем весь объём серии одним условным UPDATE. Неуспешные страницы
+    // вернут неиспользованный остаток после обработки.
+    const reservation = await creditsService.reserve(req.user.id, pageList.length);
+    if (!reservation) {
+      const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+      const credits = userCredits?.photo_credits || 0;
+      return res.status(403).json({ error: `Нужно ${pageList.length} кредитов, у вас ${credits}`, credits_required: true });
+    }
+    reservedCredits = pageList.length;
+
+    // Claude анализирует стиль один раз
+    let styleAnalysis = null;
+    try {
+      if (CLAUDE_API_KEY) styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
+    } catch(e) { console.error('[WBai] Series Claude error:', e.message); }
+    const seriesPrompt = buildStyleTransferPrompt(styleAnalysis);
+
+    console.log(`[WBai] Серия: ${pageList.length} страниц`);
+
+    // Обрабатываем страницы последовательно с паузой — надёжнее чем параллельно
+    const output = [];
+
+    for (let idx = 0; idx < pageList.length; idx++) {
+      try {
+        const falBody = {
+          prompt: seriesPrompt,
+          image_urls: [prepareImageForFal(pageList[idx]), prepareImageForFal(styleImageBase64)],
+          aspect_ratio: requestedRatio,
+          num_images: 1,
+          safety_tolerance: '5',
+        };
+        const result = await callFalApi('fal-ai/nano-banana-2/edit', falBody);
+        const urls = (result?.images || []).map(img => img.url).filter(Boolean);
+        if (!urls.length) throw new Error('Нет изображения');
+
+        succeeded++;
+        output.push({ idx, url: urls[0], error: null });
+        console.log(`[WBai] Серия стр.${idx+1} готова (${succeeded}/${pageList.length})`);
+
+        // Пауза между запросами чтобы не перегружать fal.ai
+        if (idx < pageList.length - 1) await new Promise(r => setTimeout(r, 500));
+      } catch(e) {
+        console.error(`[WBai] Серия стр.${idx+1} ошибка:`, e.message);
+        output.push({ idx, url: null, error: e.message || 'Ошибка генерации' });
+      }
+    }
+
+    const unusedCredits = reservedCredits - succeeded;
+    if (unusedCredits > 0) {
+      await creditsService.release(req.user.id, unusedCredits);
+      reservedCredits -= unusedCredits;
+    }
+    const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
+    res.json({ results: output, credits_left: remaining?.photo_credits || 0, credits_used: succeeded });
+
+  } catch(e) {
+    const refundableCredits = reservedCredits - succeeded;
+    if (refundableCredits > 0) {
+      try {
+        await creditsService.release(req.user.id, refundableCredits);
+      } catch (refundError) {
+        console.error('[WBai] generate-series credit refund error:', refundError.message);
+      }
+    }
+    console.error('[WBai] generate-series fatal:', e.message);
+    res.status(500).json({ error: 'Ошибка сервера: ' + e.message });
+  }
+});
+
+registerStaticRoutes(app, createStaticController(ROOT_DIR));
+
+async function start() {
+  await db.init();
+  const PORT = env.port;
+  return new Promise((resolve, reject) => {
+    const server = app.listen(PORT, () => {
+      logger.info('server_started', { port: PORT });
+      // Пингуем себя каждые 10 минут — не даём серверу уснуть
+      const selfUrl = process.env.APP_URL
+        ? `${process.env.APP_URL}/api/ping`
+        : null;
+      if (selfUrl) {
+        setInterval(() => {
+          fetch(selfUrl).catch(() => {});
+        }, 10 * 60 * 1000);
+        logger.info('self_ping_enabled', { url: selfUrl });
+      }
+      resolve(server);
+    });
+    server.once('error', reject);
+  });
+}
+
+// Глобальный обработчик ошибок — предотвращает краш сервера при unhandled rejection
+// eslint-disable-next-line no-unused-vars
+app.use(errorHandler);
+
+module.exports = { app, start };

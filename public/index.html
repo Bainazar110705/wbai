@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBai — AI помощник для продавцов Wildberries</title>
 <link rel="icon" href="/icon128.ico" type="image/x-icon">
+<link rel="stylesheet" href="/ui-a11y.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -26,7 +27,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:64px;d
 .nav-btns{display:flex;gap:10px;align-items:center}
 .btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
 .btn-ghost:hover{border-color:var(--p2);color:var(--text)}
-.btn-cta{background:var(--p);color:#fff;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-cta{background:var(--p);color:#fff;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .btn-cta:hover{background:var(--p2);transform:translateY(-1px)}
 
 /* HERO */
@@ -99,7 +100,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:64px;d
 /* FAQ */
 .faq-list{max-width:700px;margin:0 auto}
 .faq-item{border-bottom:1px solid var(--border);padding:20px 0}
-.faq-q{font-size:15px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq-q{width:100%;padding:0;border:0;background:none;font:inherit;font-size:15px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--text);text-align:left}
 .faq-q span{color:var(--muted);font-size:20px;transition:transform .3s;flex-shrink:0}
 .faq-a{font-size:14px;color:var(--muted);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s}
 .faq-item.open .faq-a{max-height:200px;padding-top:12px}
@@ -111,7 +112,7 @@ footer a{color:var(--muted);text-decoration:none}
 footer a:hover{color:var(--p2)}
 
 /* MOBILE */
-.hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:4px}
+.hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:8px;border:0;background:none}
 .hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
 .mobile-menu{display:none;position:fixed;inset:0;background:var(--bg);z-index:99;padding:80px 24px 40px;flex-direction:column;gap:20px}
 .mobile-menu.open{display:flex}
@@ -131,11 +132,15 @@ footer a:hover{color:var(--p2)}
   .section{padding:60px 20px}
 }
 </style>
+<link rel="stylesheet" href="/wbai-design.css">
+<script src="/wbai-theme.js"></script>
+<script src="/wbai-icons.js" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">К содержимому</a>
 
 <!-- NAV -->
-<nav>
+<nav aria-label="Основная навигация">
   <a class="nav-logo" href="/">WB<span>ai</span></a>
   <div class="nav-links">
     <a href="#features">Возможности</a>
@@ -146,21 +151,24 @@ footer a:hover{color:var(--p2)}
   <div class="nav-btns" id="navBtns">
     <button class="btn-ghost" onclick="location.href='/login'">Войти</button>
     <button class="btn-cta" onclick="location.href='/login'">Попробовать</button>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Включить тёмную тему" aria-pressed="false"><span data-theme-icon aria-hidden="true"></span></button>
   </div>
-  <div class="hamburger" onclick="toggleMobile()">
+  <button class="theme-toggle theme-toggle-nav-mobile" type="button" data-theme-toggle aria-label="Включить тёмную тему" aria-pressed="false"><span data-theme-icon aria-hidden="true"></span></button>
+  <button class="hamburger" type="button" id="mobileMenuButton" onclick="toggleMobile()" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobileMenu">
     <span></span><span></span><span></span>
-  </div>
+  </button>
 </nav>
 
 <!-- MOBILE MENU -->
-<div class="mobile-menu" id="mobileMenu">
-  <a href="#features" onclick="toggleMobile()">Возможности</a>
-  <a href="#how" onclick="toggleMobile()">Как работает</a>
-  <a href="#pricing" onclick="toggleMobile()">Цены</a>
-  <a href="#faq" onclick="toggleMobile()">FAQ</a>
+<div class="mobile-menu" id="mobileMenu" aria-label="Мобильная навигация">
+  <a href="#features" onclick="toggleMobile(false)">Возможности</a>
+  <a href="#how" onclick="toggleMobile(false)">Как работает</a>
+  <a href="#pricing" onclick="toggleMobile(false)">Цены</a>
+  <a href="#faq" onclick="toggleMobile(false)">FAQ</a>
   <a href="/login" style="color:var(--p2)">Войти / Регистрация</a>
 </div>
 
+<main id="main-content" tabindex="-1">
 <!-- HERO -->
 <section class="hero">
   <div class="hero-glow"></div>
@@ -190,32 +198,32 @@ footer a:hover{color:var(--p2)}
     </div>
     <div class="features-grid reveal">
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
+        <div class="feature-icon" data-icon="sparkles" aria-hidden="true"></div>
         <div class="feature-title">Мгновенная генерация</div>
         <div class="feature-desc">Нажмите одну кнопку — AI сгенерирует 3 варианта ответа за секунды. Выберите лучший и вставьте одним кликом.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🎯</div>
+        <div class="feature-icon" data-icon="target" aria-hidden="true"></div>
         <div class="feature-title">Юмор по теме</div>
         <div class="feature-desc">AI цепляется за конкретные слова из отзыва. Никаких шаблонных ответов — каждый ответ уникален и по делу.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔌</div>
+        <div class="feature-icon" data-icon="plug" aria-hidden="true"></div>
         <div class="feature-title">Прямо на WB</div>
         <div class="feature-desc">Работает на seller.wildberries.ru — читает отзыв и вставляет ответ прямо в текстовое поле сайта.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
+        <div class="feature-icon" data-icon="shield" aria-hidden="true"></div>
         <div class="feature-title">Безопасно</div>
         <div class="feature-desc">API ключ хранится на сервере — не в браузере. Авторизация через JWT токен. Ваши данные защищены.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📦</div>
+        <div class="feature-icon" data-icon="box" aria-hidden="true"></div>
         <div class="feature-title">Шаблоны товаров</div>
         <div class="feature-desc">Сохраняйте параметры товаров — категория, размеры, цена, ключевые слова. Заполняйте карточки быстрее.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🎨</div>
+        <div class="feature-icon" data-icon="palette" aria-hidden="true"></div>
         <div class="feature-title">Настройка стиля</div>
         <div class="feature-desc">Укажите нишу, тип отзыва и стиль — AI адаптирует ответы под ваш бренд и аудиторию.</div>
       </div>
@@ -353,28 +361,30 @@ footer a:hover{color:var(--p2)}
     </div>
     <div class="faq-list reveal">
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Как установить расширение?<span>+</span></div>
-        <div class="faq-a">Нажмите кнопку "Установить расширение" в личном кабинете — откроется Chrome Web Store. Нажмите "Установить" и войдите в расширение используя email и пароль от WBai.</div>
+        <button class="faq-q" type="button" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-1">Как установить расширение?<span aria-hidden="true">+</span></button>
+        <div class="faq-a" id="faq-answer-1">Нажмите кнопку "Установить расширение" в личном кабинете — откроется Chrome Web Store. Нажмите "Установить" и войдите в расширение используя email и пароль от WBai.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">На каких страницах работает расширение?<span>+</span></div>
-        <div class="faq-a">Расширение работает только на seller.wildberries.ru — на странице отзывов и вопросов покупателей.</div>
+        <button class="faq-q" type="button" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-2">На каких страницах работает расширение?<span aria-hidden="true">+</span></button>
+        <div class="faq-a" id="faq-answer-2">Расширение работает только на seller.wildberries.ru — на странице отзывов и вопросов покупателей.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Как активировать подписку после оплаты?<span>+</span></div>
-        <div class="faq-a">Оплатите через Kaspi Pay в личном кабинете. В комментарии укажите ваш email. Подписка активируется в течение 1-2 часов. По вопросам — @WBAI_SUPPORT в Telegram.</div>
+        <button class="faq-q" type="button" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-3">Как активировать подписку после оплаты?<span aria-hidden="true">+</span></button>
+        <div class="faq-a" id="faq-answer-3">Оплатите через Kaspi Pay в личном кабинете. В комментарии укажите ваш email. Подписка активируется в течение 1-2 часов. По вопросам — @WBAI_SUPPORT в Telegram.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Безопасно ли использовать расширение?<span>+</span></div>
-        <div class="faq-a">Да. Расширение не хранит API ключи в браузере — все запросы к AI идут через наш сервер с авторизацией. Мы не читаем данные вашего магазина.</div>
+        <button class="faq-q" type="button" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-4">Безопасно ли использовать расширение?<span aria-hidden="true">+</span></button>
+        <div class="faq-a" id="faq-answer-4">Да. Расширение не хранит API ключи в браузере — все запросы к AI идут через наш сервер с авторизацией. Мы не читаем данные вашего магазина.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Можно ли отменить подписку?<span>+</span></div>
-        <div class="faq-a">Подписка не продлевается автоматически — вы платите вручную каждый месяц. Перестали платить — доступ заканчивается в конце оплаченного периода.</div>
+        <button class="faq-q" type="button" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-5">Можно ли отменить подписку?<span aria-hidden="true">+</span></button>
+        <div class="faq-a" id="faq-answer-5">Подписка не продлевается автоматически — вы платите вручную каждый месяц. Перестали платить — доступ заканчивается в конце оплаченного периода.</div>
       </div>
     </div>
   </div>
 </section>
+
+</main>
 
 <!-- CTA -->
 <section class="section" style="text-align:center">
@@ -403,17 +413,28 @@ if(localStorage.getItem('wbai_token')){
     .then(d=>{
       if(d){
         // Показываем кнопку кабинета
-        document.getElementById('navBtns').innerHTML=`<button class="btn-cta" onclick="location.href='/dashboard'">Личный кабинет →</button>`;
+        document.getElementById('navBtns').innerHTML=`<a class="btn-cta" href="/dashboard">Личный кабинет →</a>`;
       }
     }).catch(()=>{});
 }
 
-function toggleMobile(){
-  document.getElementById('mobileMenu').classList.toggle('open');
+function toggleMobile(returnFocus=true){
+  const menu=document.getElementById('mobileMenu');
+  const button=document.getElementById('mobileMenuButton');
+  const open=menu.classList.toggle('open');
+  button.setAttribute('aria-expanded',String(open));
+  button.setAttribute('aria-label',open?'Закрыть меню':'Открыть меню');
+  if(open) menu.querySelector('a')?.focus();
+  else if(returnFocus) button.focus();
 }
 function toggleFaq(el){
-  el.closest('.faq-item').classList.toggle('open');
+  const open=el.closest('.faq-item').classList.toggle('open');
+  el.setAttribute('aria-expanded',String(open));
 }
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && document.getElementById('mobileMenu').classList.contains('open')) toggleMobile();
+});
 
 // Scroll reveal
 const observer=new IntersectionObserver(entries=>{

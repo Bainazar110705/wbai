@@ -4,17 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBai — Вход</title>
+<link rel="stylesheet" href="/ui-a11y.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100vh;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.logo-wrap{display:flex;align-items:center;gap:10px;margin-bottom:32px;cursor:pointer}
+.logo-wrap{display:flex;align-items:center;gap:10px;margin-bottom:32px;cursor:pointer;text-decoration:none}
 .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
 .logo-text{font-size:22px;font-weight:800;color:#1a1a2e}
 .card{background:#fff;border-radius:16px;padding:36px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
-.back-btn{color:#999;font-size:24px;cursor:pointer;text-decoration:none;line-height:1}
+.back-btn{color:#666;font-size:24px;cursor:pointer;text-decoration:none;line-height:1}
 .card-title{font-size:20px;font-weight:700;color:#1a1a2e}
-.tab-link{color:#7b2ff7;font-size:14px;font-weight:600;cursor:pointer}
+.tab-link{color:#7b2ff7;font-size:14px;font-weight:600;cursor:pointer;background:none;border:0;font-family:inherit}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:14px;color:#444;margin-bottom:8px;font-weight:500}
 .field input{width:100%;border:1.5px solid #e0e0e8;border-radius:10px;padding:12px 16px;font-size:15px;color:#1a1a2e;outline:none;transition:border-color .2s}
@@ -28,31 +29,48 @@ body{min-height:100vh;background:#f4f4f8;font-family:-apple-system,BlinkMacSyste
 .err{background:#fff0f0;border:1.5px solid #ffcccc;border-radius:8px;padding:10px 14px;color:#c0392b;font-size:13px;margin-bottom:14px;display:none}
 .suc{background:#f0fff4;border:1.5px solid #b7e4c7;border-radius:8px;padding:10px 14px;color:#1a7a4a;font-size:13px;margin-bottom:14px;display:none}
 </style>
+<link rel="stylesheet" href="/wbai-design.css">
+<script src="/wbai-theme.js"></script>
+<script src="/wbai-icons.js" defer></script>
 </head>
-<body>
-<div class="logo-wrap" onclick="location.href='/'">
+<body class="auth-page">
+<a class="skip-link" href="#auth-card">К форме входа</a>
+<button class="theme-toggle theme-toggle-floating" type="button" data-theme-toggle aria-label="Включить тёмную тему" aria-pressed="false"><span data-theme-icon aria-hidden="true"></span></button>
+<a class="logo-wrap" href="/" aria-label="WBai: на главную">
   <div class="logo-icon">W</div>
   <div class="logo-text">WBai</div>
-</div>
-<div class="card">
+</a>
+<div class="auth-layout">
+<aside class="auth-showcase" aria-label="Возможности WBai">
+  <div class="auth-kicker"><span data-icon="sparkles" aria-hidden="true"></span> WBai workspace</div>
+  <h2>Превратите рутину продавца в понятный рабочий процесс.</h2>
+  <p>Отзывы, карточки товаров и инфографика — в одном аккуратном кабинете.</p>
+  <ul class="auth-points">
+    <li><span data-icon="zap" aria-hidden="true"></span> Ответы на отзывы за секунды</li>
+    <li><span data-icon="chart" aria-hidden="true"></span> Аналитика без лишних таблиц</li>
+    <li><span data-icon="palette" aria-hidden="true"></span> Студия инфографики по вашему стилю</li>
+  </ul>
+</aside>
+<main class="card" id="auth-card" tabindex="-1">
   <div class="card-header">
-    <a class="back-btn" href="/">‹</a>
-    <div class="card-title" id="cardTitle">Вход</div>
-    <span class="tab-link" id="switchBtn" onclick="switchTab()">Регистрация</span>
+    <a class="back-btn" href="/" aria-label="Вернуться на главную">‹</a>
+    <h1 class="card-title" id="cardTitle">Вход</h1>
+    <button class="tab-link" type="button" id="switchBtn" onclick="switchTab()" aria-controls="loginForm regForm">Регистрация</button>
   </div>
-  <div class="err" id="err"></div>
-  <div class="suc" id="suc"></div>
-  <div id="loginForm">
-    <div class="field"><label>Почта</label><input type="email" id="loginEmail" placeholder="your@email.com"></div>
-    <div class="field"><label>Пароль</label><div class="pass-wrap"><input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"><button class="pass-eye" onclick="togglePass('loginPass')">👁</button></div></div>
-    <button class="submit-btn" onclick="doLogin()" id="loginBtn">Войти</button>
-  </div>
-  <div id="regForm" style="display:none">
-    <div class="field"><label>Имя</label><input type="text" id="regName" placeholder="Ваше имя"></div>
-    <div class="field"><label>Почта</label><input type="email" id="regEmail" placeholder="your@email.com"></div>
-    <div class="field"><label>Пароль</label><div class="pass-wrap"><input type="password" id="regPass" placeholder="Минимум 6 символов" onkeydown="if(event.key==='Enter')doRegister()"><button class="pass-eye" onclick="togglePass('regPass')">👁</button></div></div>
-    <button class="submit-btn" onclick="doRegister()" id="regBtn">Создать аккаунт</button>
-  </div>
+  <div class="err" id="err" role="alert" aria-live="assertive"></div>
+  <div class="suc" id="suc" role="status" aria-live="polite"></div>
+  <form id="loginForm" onsubmit="doLogin(event)">
+    <div class="field"><label for="loginEmail">Почта</label><input type="email" id="loginEmail" name="email" placeholder="Введите email" autocomplete="email" required></div>
+    <div class="field"><label for="loginPass">Пароль</label><div class="pass-wrap"><input type="password" id="loginPass" name="password" placeholder="Введите пароль" autocomplete="current-password" required><button class="pass-eye" type="button" onclick="togglePass('loginPass',this)" aria-label="Показать пароль"><span data-icon="eye" aria-hidden="true"></span></button></div></div>
+    <button class="submit-btn" type="submit" id="loginBtn">Войти</button>
+  </form>
+  <form id="regForm" style="display:none" onsubmit="doRegister(event)" aria-hidden="true">
+    <div class="field"><label for="regName">Имя</label><input type="text" id="regName" name="name" placeholder="Ваше имя" autocomplete="name"></div>
+    <div class="field"><label for="regEmail">Почта</label><input type="email" id="regEmail" name="email" placeholder="Введите email" autocomplete="email" required></div>
+    <div class="field"><label for="regPass">Пароль</label><div class="pass-wrap"><input type="password" id="regPass" name="password" placeholder="Минимум 6 символов" autocomplete="new-password" minlength="6" required><button class="pass-eye" type="button" onclick="togglePass('regPass',this)" aria-label="Показать пароль"><span data-icon="eye" aria-hidden="true"></span></button></div></div>
+    <button class="submit-btn" type="submit" id="regBtn">Создать аккаунт</button>
+  </form>
+</main>
 </div>
 <script>
 if(localStorage.getItem('wbai_token')) location.href='/dashboard';
@@ -61,20 +79,24 @@ function switchTab(){
   isLogin=!isLogin;
   document.getElementById('loginForm').style.display=isLogin?'block':'none';
   document.getElementById('regForm').style.display=isLogin?'none':'block';
+  document.getElementById('loginForm').setAttribute('aria-hidden',String(!isLogin));
+  document.getElementById('regForm').setAttribute('aria-hidden',String(isLogin));
   document.getElementById('cardTitle').textContent=isLogin?'Вход':'Регистрация';
   document.getElementById('switchBtn').textContent=isLogin?'Регистрация':'Войти';
   document.getElementById('err').style.display='none';
   document.getElementById('suc').style.display='none';
+  document.getElementById(isLogin?'loginEmail':'regName').focus();
 }
-function togglePass(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
+function togglePass(id,button){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';button.setAttribute('aria-label',i.type==='password'?'Показать пароль':'Скрыть пароль');}
 function showErr(m){const e=document.getElementById('err');e.textContent=m;e.style.display='block';document.getElementById('suc').style.display='none';}
 function showSuc(m){const e=document.getElementById('suc');e.textContent=m;e.style.display='block';document.getElementById('err').style.display='none';}
-async function doLogin(){
+async function doLogin(event){
+  event?.preventDefault();
   const email=document.getElementById('loginEmail').value.trim();
   const pass=document.getElementById('loginPass').value;
   if(!email||!pass)return showErr('Заполните все поля');
   const btn=document.getElementById('loginBtn');
-  btn.disabled=true;btn.textContent='⏳ Входим...';
+  btn.disabled=true;btn.textContent='⏳ Входим...';document.getElementById('loginForm').setAttribute('aria-busy','true');
   try{
     const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     const d=await r.json();
@@ -83,16 +105,17 @@ async function doLogin(){
     localStorage.setItem('wbai_user',JSON.stringify(d.user));
     location.href='/dashboard';
   }catch(e){showErr('Ошибка соединения');}
-  finally{btn.disabled=false;btn.textContent='Войти';}
+  finally{btn.disabled=false;btn.textContent='Войти';document.getElementById('loginForm').removeAttribute('aria-busy');}
 }
-async function doRegister(){
+async function doRegister(event){
+  event?.preventDefault();
   const name=document.getElementById('regName').value.trim();
   const email=document.getElementById('regEmail').value.trim();
   const pass=document.getElementById('regPass').value;
   if(!email||!pass)return showErr('Заполните email и пароль');
   if(pass.length<6)return showErr('Пароль минимум 6 символов');
   const btn=document.getElementById('regBtn');
-  btn.disabled=true;btn.textContent='⏳ Создаём...';
+  btn.disabled=true;btn.textContent='⏳ Создаём...';document.getElementById('regForm').setAttribute('aria-busy','true');
   try{
     const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,name})});
     const d=await r.json();
@@ -101,7 +124,7 @@ async function doRegister(){
     setTimeout(()=>switchTab(),1500);
     document.getElementById('loginEmail').value=email;
   }catch(e){showErr('Ошибка соединения');}
-  finally{btn.disabled=false;btn.textContent='Создать аккаунт';}
+  finally{btn.disabled=false;btn.textContent='Создать аккаунт';document.getElementById('regForm').removeAttribute('aria-busy');}
 }
 </script>
 </body>

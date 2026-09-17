@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WBai — Админ панель</title>
+<link rel="stylesheet" href="/ui-a11y.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --purple: #7b2ff7; --bg: #0a0a0f; --card: #13131a; --border: #2a2a3a; --text: #e8e8f0; --muted: #888; --green: #4caf50; --red: #f44336; }
@@ -73,21 +74,27 @@ tr:hover td { background: rgba(123,47,247,0.04); }
 .toast { position: fixed; bottom: 24px; right: 24px; background: #1a2d1a; border: 1px solid var(--green); color: #7ed47e; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; display: none; z-index: 999; }
 .toast.err { background: #2a1a1a; border-color: #7f3333; color: #ff8888; }
 </style>
+<link rel="stylesheet" href="/wbai-design.css">
+<script src="/wbai-theme.js"></script>
+<script src="/wbai-icons.js" defer></script>
 </head>
-<body>
+<body class="admin-page">
+<a class="skip-link" href="#main-content">К управлению пользователями</a>
+<button class="theme-toggle theme-toggle-floating" type="button" data-theme-toggle aria-label="Включить тёмную тему" aria-pressed="false"><span data-theme-icon aria-hidden="true"></span></button>
 
 <!-- LOGIN -->
 <div id="loginScreen">
-  <div class="login-card">
-    <div class="login-logo">WBai</div>
-    <div class="login-sub">Панель администратора</div>
+  <form class="login-card" id="adminLoginForm">
+    <div class="admin-auth-mark"><span data-icon="shield" aria-hidden="true"></span></div>
+    <h1 class="login-logo">WBai Control</h1>
+    <div class="login-sub">Защищённая панель администратора. Введите ключ, чтобы продолжить.</div>
     <div class="field">
-      <label>Админ ключ</label>
-      <input type="password" id="adminKeyInput" placeholder="Введите ключ..." />
+      <label for="adminKeyInput">Админ ключ</label>
+      <input type="password" id="adminKeyInput" placeholder="Введите ключ..." autocomplete="off" required />
     </div>
-    <button class="login-btn" id="loginBtn">Войти</button>
-    <div class="login-err" id="loginErr">Неверный ключ</div>
-  </div>
+    <button class="login-btn" type="submit" id="loginBtn">Войти</button>
+    <div class="login-err" id="loginErr" role="alert" aria-live="assertive">Неверный ключ</div>
+  </form>
 </div>
 
 <!-- MAIN -->
@@ -97,30 +104,30 @@ tr:hover td { background: rgba(123,47,247,0.04); }
       <div class="header-logo">WBai Admin</div>
       <div class="header-sub">Панель управления пользователями</div>
     </div>
-    <button class="logout-btn" id="logoutBtn">Выйти</button>
+    <div class="header-actions"><button class="logout-btn" id="logoutBtn"><span data-icon="log-out" aria-hidden="true"></span> Выйти</button></div>
   </header>
-  <div class="content">
+  <main class="content" id="main-content" tabindex="-1">
     <div class="stats" id="statsBlock">
       <div class="stat-card"><div class="stat-label">Всего пользователей</div><div class="stat-value purple" id="statTotal">—</div></div>
       <div class="stat-card"><div class="stat-label">Активных подписок</div><div class="stat-value green" id="statActive">—</div></div>
       <div class="stat-card"><div class="stat-label">Истекших</div><div class="stat-value" id="statExpired">—</div></div>
     </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:24px">
-      <button class="tab-btn active" onclick="switchTab('users')">👥 Пользователи</button>
-      <button class="tab-btn" onclick="switchTab('templates')">📦 Шаблоны клиентов</button>
+    <div style="display:flex;gap:10px;margin-bottom:24px" role="tablist" aria-label="Разделы администрирования">
+      <button class="tab-btn active" type="button" role="tab" id="tab-button-users" aria-selected="true" aria-controls="tab-users" onclick="switchTab('users',this)"><span data-icon="users" aria-hidden="true"></span> Пользователи</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-button-templates" aria-selected="false" aria-controls="tab-templates" onclick="switchTab('templates',this)"><span data-icon="box" aria-hidden="true"></span> Шаблоны клиентов</button>
     </div>
 
-    <div class="tab-content active" id="tab-users">
+    <div class="tab-content active" id="tab-users" role="tabpanel" aria-labelledby="tab-button-users">
     <div class="table-header">
       <div class="table-title">Пользователи</div>
       <div style="display:flex;gap:10px;align-items:center">
-        <input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        <button class="refresh-btn" id="refreshBtn">↻ Обновить</button>
+        <label class="sr-only" for="searchInput">Поиск пользователей по email или имени</label><input class="search-input" id="searchInput" placeholder="Поиск по email..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <button class="refresh-btn" id="refreshBtn"><span data-icon="refresh" aria-hidden="true"></span> Обновить</button>
       </div>
     </div>
     <div class="table-wrap">
-      <table>
+      <table aria-label="Пользователи">
         <thead>
           <tr>
             <th>#</th>
@@ -137,13 +144,13 @@ tr:hover td { background: rgba(123,47,247,0.04); }
     </div>
     </div>
 
-    <div class="tab-content" id="tab-templates">
+    <div class="tab-content" id="tab-templates" role="tabpanel" aria-labelledby="tab-button-templates" hidden>
       <div class="table-header">
-        <div class="table-title">📦 Шаблоны всех клиентов</div>
-        <button class="refresh-btn" onclick="loadTemplates()">↻ Обновить</button>
+        <div class="table-title"><span data-icon="box" aria-hidden="true"></span> Шаблоны всех клиентов</div>
+        <button class="refresh-btn" onclick="loadTemplates()"><span data-icon="refresh" aria-hidden="true"></span> Обновить</button>
       </div>
       <div class="table-wrap">
-        <table>
+      <table aria-label="Шаблоны клиентов">
           <thead>
             <tr>
               <th>#</th>
@@ -159,39 +166,40 @@ tr:hover td { background: rgba(123,47,247,0.04); }
         </table>
       </div>
     </div>
+  </main>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 let adminKey = '';
 let allUsers = [];
 
-document.getElementById('adminKeyInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('loginBtn').click();
-});
-
-document.getElementById('loginBtn').addEventListener('click', async () => {
+document.getElementById('adminLoginForm').addEventListener('submit', async event => {
+  event.preventDefault();
   const key = document.getElementById('adminKeyInput').value.trim();
   if (!key) return;
   const btn = document.getElementById('loginBtn');
-  btn.disabled = true; btn.textContent = '⏳ Проверяем...';
+  btn.disabled = true; btn.textContent = 'Проверяем…';
+  document.getElementById('adminLoginForm').setAttribute('aria-busy','true');
   
-  const resp = await fetch('/api/admin/users', {
-    headers: { 'x-admin-key': key }
-  });
-  
-  btn.disabled = false; btn.textContent = 'Войти';
-  
-  if (!resp.ok) {
+  try {
+    const resp = await fetch('/api/admin/users', { headers: { 'x-admin-key': key } });
+    if (!resp.ok) {
+      document.getElementById('loginErr').style.display = 'block';
+      return;
+    }
+    adminKey = key;
+    localStorage.setItem('wbai_admin_key', key);
+    const data = await resp.json();
+    showMain(data.users);
+  } catch (error) {
+    document.getElementById('loginErr').textContent = 'Ошибка соединения';
     document.getElementById('loginErr').style.display = 'block';
-    return;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Войти';
+    document.getElementById('adminLoginForm').removeAttribute('aria-busy');
   }
-  
-  adminKey = key;
-  localStorage.setItem('wbai_admin_key', key);
-  const data = await resp.json();
-  showMain(data.users);
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -208,12 +216,21 @@ document.getElementById('searchInput').addEventListener('input', filterUsers);
 setTimeout(function(){ var s=document.getElementById('searchInput'); if(s) s.value=''; }, 50);
 
 async function loadUsers() {
-  const resp = await fetch('/api/admin/users', { headers: { 'x-admin-key': adminKey } });
-  if (!resp.ok) { showToast('Ошибка загрузки', true); return; }
-  const data = await resp.json();
-  allUsers = data.users;
-  renderUsers(allUsers);
-  updateStats(allUsers);
+  const button = document.getElementById('refreshBtn');
+  button.disabled = true; button.setAttribute('aria-busy','true');
+  try {
+    const resp = await fetch('/api/admin/users', { headers: { 'x-admin-key': adminKey } });
+    if (!resp.ok) { showToast('Ошибка загрузки', true); return; }
+    const data = await resp.json();
+    allUsers = data.users;
+    renderUsers(allUsers);
+    updateStats(allUsers);
+    showToast('Список пользователей обновлён');
+  } catch (error) {
+    showToast('Ошибка загрузки', true);
+  } finally {
+    button.disabled = false; button.removeAttribute('aria-busy');
+  }
 }
 
 function showMain(users) {
@@ -222,6 +239,7 @@ function showMain(users) {
   allUsers = users;
   renderUsers(users);
   updateStats(users);
+  document.getElementById('main-content').focus();
 }
 
 function updateStats(users) {
@@ -251,9 +269,9 @@ function renderUsers(users) {
     const isActive = subEnd && subEnd > now;
     const hasAny = !!subEnd;
     const badge = isActive
-      ? `<span class="badge-active">✅ Активна</span>`
+      ? `<span class="badge-active"><span data-icon="check" aria-hidden="true"></span> Активна</span>`
       : hasAny
-        ? `<span class="badge-expired">❌ Истекла</span>`
+        ? `<span class="badge-expired"><span data-icon="x-circle" aria-hidden="true"></span> Истекла</span>`
         : `<span class="badge-none">— Нет</span>`;
     const subDate = subEnd ? subEnd.toLocaleDateString('ru-RU') : '—';
     const regDate = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU') : '—';
@@ -273,7 +291,7 @@ function renderUsers(users) {
       </td>
       <td>
         <span id="credits_${u.id}" style="color:#a855f7;font-weight:700">${u.photo_credits||0}</span>
-        <button class="activate-btn" onclick="showAddCredits('${u.email}', ${u.id})" style="margin-left:6px;background:#1a1a2e;border:1px solid #7b2ff7;color:#a855f7;padding:4px 8px;font-size:11px">+📸</button>
+        <button class="activate-btn" onclick="showAddCredits('${u.email}', ${u.id})" aria-label="Изменить фото-кредиты" style="margin-left:6px;background:#1a1a2e;border:1px solid #7b2ff7;color:#a855f7;padding:4px 8px;font-size:11px"><span data-icon="image" aria-hidden="true"></span></button>
       </td>
       <td>
         <div class="activate-wrap">
@@ -285,12 +303,13 @@ function renderUsers(users) {
             <option value="custom">Свой...</option>
           </select>
           <input type="number" class="months-select" id="custom_${u.id}" placeholder="дней" min="1" max="3650" style="display:none;width:70px">
-          <button class="activate-btn" onclick="activate('${u.email}', ${u.id})">✅ Дать</button>
-          <button class="activate-btn" onclick="removeSubscription('${u.email}', ${u.id})" style="background:#2a1a1a;border:1px solid #7f3333;color:#ff8888;">✕</button>
+          <button class="activate-btn" onclick="activate('${u.email}', ${u.id}, this)"><span data-icon="check" aria-hidden="true"></span> Дать</button>
+          <button class="activate-btn" onclick="removeSubscription('${u.email}', ${u.id}, this)" aria-label="Убрать подписку" style="background:#2a1a1a;border:1px solid #7f3333;color:#ff8888;"><span data-icon="x" aria-hidden="true"></span></button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  window.wbaiInjectIcons?.();
 }
 
 function toggleCustom(userId, value) {
@@ -298,7 +317,7 @@ function toggleCustom(userId, value) {
   customInput.style.display = value === 'custom' ? 'inline-block' : 'none';
 }
 
-async function activate(email, userId) {
+async function activate(email, userId, btn) {
   const select = document.getElementById(`months_${userId}`);
   const customInput = document.getElementById(`custom_${userId}`);
   let months;
@@ -311,8 +330,7 @@ async function activate(email, userId) {
     months = parseInt(select.value);
   }
   
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳';
+  btn.disabled = true; btn.textContent = '…';
   
   const resp = await fetch('/api/admin/activate', {
     method: 'POST',
@@ -320,20 +338,20 @@ async function activate(email, userId) {
     body: JSON.stringify({ adminKey, email, months, plan: document.getElementById('plan_'+userId)?.value || 'start' })
   });
   const data = await resp.json();
-  btn.disabled = false; btn.textContent = '✅ Дать';
+  btn.disabled = false; btn.innerHTML = '<span data-icon="check" aria-hidden="true"></span> Дать';
+  window.wbaiInjectIcons?.();
   
   if (data.ok) {
-    showToast(`✅ ${email} — подписка активирована`);
+    showToast(`${email} — подписка активирована`);
     loadUsers();
   } else {
     showToast(data.error || 'Ошибка', true);
   }
 }
 
-async function removeSubscription(email, userId) {
+async function removeSubscription(email, userId, btn) {
   if (!confirm(`Убрать подписку у ${email}?`)) return;
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳';
+  btn.disabled = true; btn.textContent = '…';
   
   const resp = await fetch('/api/admin/remove-subscription', {
     method: 'POST',
@@ -341,10 +359,11 @@ async function removeSubscription(email, userId) {
     body: JSON.stringify({ adminKey, email })
   });
   const data = await resp.json();
-  btn.disabled = false; btn.textContent = '✕';
+  btn.disabled = false; btn.innerHTML = '<span data-icon="x" aria-hidden="true"></span>';
+  window.wbaiInjectIcons?.();
   
   if (data.ok) {
-    showToast(`✅ Подписка у ${email} убрана`);
+    showToast(`Подписка у ${email} убрана`);
     loadUsers();
   } else {
     showToast(data.error || 'Ошибка', true);
@@ -355,13 +374,14 @@ function showAddCredits(email, userId) {
   // Создаём красивый модальный диалог
   var existing = document.getElementById('wb-credits-modal');
   if (existing) existing.remove();
+  window.wbaiLastDialogTrigger = document.activeElement;
 
   var modal = document.createElement('div');
   modal.id = 'wb-credits-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:#0f0f1a;border:1px solid #2a2a40;border-radius:16px;padding:24px;width:360px;font-family:-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-      <div style="font-size:15px;font-weight:700;color:#f0f0fa;margin-bottom:4px;">📸 Управление кредитами</div>
+    <div role="dialog" aria-modal="true" aria-labelledby="creditsDialogTitle" tabindex="-1" style="background:#0f0f1a;border:1px solid #2a2a40;border-radius:16px;padding:24px;width:360px;font-family:-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div id="creditsDialogTitle" style="font-size:15px;font-weight:700;color:#f0f0fa;margin-bottom:4px;"><span data-icon="image" aria-hidden="true"></span> Управление кредитами</div>
       <div style="font-size:12px;color:#8888aa;margin-bottom:18px;">${email}</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
@@ -374,20 +394,27 @@ function showAddCredits(email, userId) {
       </div>
 
       <div style="margin-bottom:12px;">
-        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять)</label>
+        <label for="creditsInput" style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять)</label>
         <input id="creditsInput" type="number" placeholder="например: 25 или -10" style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:16px;">
-        <label style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Комментарий</label>
+        <label for="creditsNote" style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Комментарий</label>
         <input id="creditsNote" type="text" placeholder="Оплата Kaspi, возврат и т.д." style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
       <div style="display:flex;gap:8px;">
         <button id="creditsConfirm" onclick="confirmCredits('${email}', ${userId})" style="flex:1;padding:10px;background:linear-gradient(135deg,#7b2ff7,#5a1fc7);border:none;color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Применить</button>
-        <button onclick="document.getElementById('wb-credits-modal').remove()" style="flex:0.5;padding:10px;background:#1a1a2e;border:1px solid #2a2a40;color:#8888aa;border-radius:8px;font-size:13px;cursor:pointer;">Отмена</button>
+        <button type="button" onclick="closeCreditsDialog()" style="flex:0.5;padding:10px;background:#1a1a2e;border:1px solid #2a2a40;color:#8888aa;border-radius:8px;font-size:13px;cursor:pointer;">Отмена</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+  window.wbaiInjectIcons?.();
+  modal.querySelector('[role="dialog"]').focus();
+}
+
+function closeCreditsDialog() {
+  document.getElementById('wb-credits-modal')?.remove();
+  window.wbaiLastDialogTrigger?.focus();
 }
 
 function setCreditsAmount(n) {
@@ -400,7 +427,7 @@ async function confirmCredits(email, userId) {
   if (isNaN(amount) || amount === 0) { alert('Введите количество'); return; }
   document.getElementById('creditsConfirm').textContent = '⏳';
   await addCredits(email, userId, amount, note);
-  document.getElementById('wb-credits-modal')?.remove();
+  closeCreditsDialog();
 }
 
 async function addCredits(email, userId, credits, note) {
@@ -411,7 +438,7 @@ async function addCredits(email, userId, credits, note) {
   });
   const data = await resp.json();
   if (data.ok) {
-    showToast(`✅ ${email} — добавлено ${credits} кредитов. Итого: ${data.photo_credits}`);
+    showToast(`${email} — добавлено ${credits} кредитов. Итого: ${data.photo_credits}`);
     const el = document.getElementById('credits_'+userId);
     if (el) el.textContent = data.photo_credits;
   } else {
@@ -419,13 +446,26 @@ async function addCredits(email, userId, credits, note) {
   }
 }
 
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+function switchTab(name, button) {
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+  document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.hidden=true; });
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  document.getElementById('tab-' + name).hidden=false;
+  button.classList.add('active');
+  button.setAttribute('aria-selected','true');
+  button.focus();
   if (name === 'templates') loadTemplates();
 }
+
+document.querySelector('[role="tablist"]').addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[next].click();
+});
 
 async function loadTemplates() {
   const tbody = document.getElementById('templatesBody');
@@ -462,6 +502,18 @@ function showToast(msg, isErr = false) {
   t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', 3000);
 }
+
+document.addEventListener('keydown', event => {
+  const dialog = document.querySelector('#wb-credits-modal [role="dialog"]');
+  if (!dialog) return;
+  if (event.key === 'Escape') return closeCreditsDialog();
+  if (event.key !== 'Tab') return;
+  const focusable = [...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 
 // Автовход если ключ сохранён
 const savedKey = localStorage.getItem('wbai_admin_key');
