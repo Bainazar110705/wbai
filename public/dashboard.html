@@ -240,70 +240,659 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 @media(max-width:640px){
   .inf-model-grid{grid-template-columns:1fr 1fr}
 }
-/* ═══ STUDIO CSS ═══ */
-.is-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
-.is-credits{display:flex;align-items:center;gap:8px;background:var(--p3);border:1px solid rgba(123,47,247,0.3);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--p2)}
-.is-credits b{font-family:'Unbounded',sans-serif;font-size:20px}
-.is-no-plan{background:rgba(255,77,106,0.1);border-color:rgba(255,77,106,0.3);color:#fca5a5}
-.is-layout{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
-.is-panel{display:flex;flex-direction:column;gap:12px}
-.is-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
-.is-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-.is-drop{border:2px dashed var(--border);border-radius:10px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.is-drop:hover,.is-drop.over{border-color:var(--p);background:var(--p3)}
-.is-drop input{display:none}
-.is-drop-icon{font-size:22px;margin-bottom:6px}
-.is-drop-text{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
-.is-drop-sub{font-size:11px;color:var(--muted)}
-.is-preview{width:100%;max-height:150px;object-fit:contain;border-radius:8px;display:none}
-.is-preview.on{display:block}
-.is-ph.off{display:none}
-.is-rm{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(255,77,106,0.9);border:none;color:#fff;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;font-weight:700;z-index:2}
-.is-rm.on{display:flex}
-.is-row{display:flex;gap:6px}
-.is-pill{flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;text-align:center}
-.is-pill:hover{border-color:var(--p);color:var(--p2)}
-.is-pill.on{border-color:var(--p);background:var(--p3);color:var(--p2)}
-.is-field{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:var(--surface2);color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;resize:vertical}
-.is-field:focus{border-color:var(--p)}
-.is-field::placeholder{color:var(--muted)}
-.is-gen{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Unbounded',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.is-gen:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(123,47,247,0.35)}
-.is-gen:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.is-gallery-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
-.is-tab{padding:10px 20px;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:0;border-bottom:2px solid transparent;background:transparent;margin-bottom:-1px;transition:all .2s}
-.is-tab.on{color:var(--p2);border-bottom-color:var(--p)}
-.is-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.is-card{position:relative;border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .2s}
-.is-card:hover{border-color:rgba(123,47,247,0.4);transform:translateY(-2px)}
-.is-card img{width:100%;display:block}
-.is-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 55%);opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:10px}
-.is-card:hover .is-card-overlay{opacity:1}
-.is-card-actions{display:flex;gap:6px;margin-bottom:6px}
-.is-act{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;text-decoration:none}
-.is-act:hover{background:rgba(255,255,255,0.3)}
-.is-act.liked{background:rgba(239,68,68,0.85)}
-.is-card-label{font-size:10px;color:rgba(255,255,255,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.is-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:14px}
-.is-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--p);border-radius:50%;animation:ispin 1s linear infinite}
-@keyframes ispin{to{transform:rotate(360deg)}}
-.is-loading-text{font-size:14px;font-weight:600;color:var(--text)}
-.is-loading-sub{font-size:12px;color:var(--muted)}
-.is-empty{text-align:center;padding:60px 20px;color:var(--muted)}
-.is-empty-icon{font-size:48px;opacity:.2;margin-bottom:12px}
-.is-empty-text{font-size:14px;opacity:.4}
-.is-error{background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);color:#fca5a5;padding:14px;border-radius:10px;font-size:13px;margin:12px 0}
-@media(max-width:900px){.is-layout{grid-template-columns:1fr}}
-.is-angle-slot{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;position:relative;transition:border-color .2s;background:var(--surface2)}
-.is-angle-slot:hover{border-color:var(--p2)}
-.is-angle-slot img{width:100%;height:100%;object-fit:cover;display:none}
-.is-angle-slot img.on{display:block}
-.is-angle-slot .slot-rm{position:absolute;inset:0;background:rgba(255,77,106,0.8);display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
-.is-angle-slot:hover .slot-rm.on{display:flex}
-.is-pending{border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;gap:10px;opacity:.7}
-.is-pending .is-spinner{width:32px;height:32px;border-width:2px}
-.is-pending-label{font-size:11px;color:var(--muted);text-align:center;padding:0 12px}
-@media(max-width:640px){.is-grid{grid-template-columns:1fr 1fr}}
+/* ═══ INFOGRAPHIC STUDIO ═══ */
+#page-infographic:not(.active) {
+  display: none !important;
+}
+
+#page-infographic.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 130px);
+  max-height: calc(100vh - 110px);
+  gap: 12px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ── Topbar ── */
+.hf-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.hf-topbar-tabs {
+  display: flex;
+  gap: 4px;
+}
+.hf-topbar [data-icon],
+.hf-generate-button [data-icon],
+.hf-pill-btn [data-icon],
+.hf-ref-button [data-icon] {
+  width: 14px;
+  height: 14px;
+}
+.hf-top-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.hf-top-tab:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+.hf-top-tab.on {
+  color: var(--p2);
+  background: var(--p3);
+  border-color: var(--border);
+}
+.hf-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.is-credits {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.is-credits b {
+  color: var(--p2);
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+}
+.is-no-plan {
+  background: rgba(255,77,106,0.1);
+  border-color: rgba(255,77,106,0.25);
+  color: #fca5a5;
+}
+
+/* ── Central Stage (fits nicely without scroll) ── */
+.hf-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 20px;
+  position: relative;
+  overflow-y: auto;
+  min-height: 240px;
+  box-sizing: border-box;
+}
+.hf-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  user-select: none;
+  margin: auto 0;
+}
+.hf-empty-mark {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--p3);
+  color: var(--p2);
+}
+.hf-empty-mark [data-icon] { width: 25px; height: 25px; }
+.hf-empty-steps {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.hf-empty-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.hf-empty-step b { color: var(--p2); }
+.hf-fan-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  perspective: 900px;
+}
+.hf-fan-card {
+  width: 95px;
+  height: 132px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.hf-card-1 {
+  transform: rotate(-6deg) translateY(8px);
+}
+.hf-card-2 {
+  transform: rotate(-2deg) translateY(-2px);
+}
+.hf-card-3 {
+  transform: rotate(2deg) translateY(-2px);
+}
+.hf-card-4 {
+  transform: rotate(6deg) translateY(8px);
+}
+.hf-fan-card:hover {
+  transform: translateY(-6px) scale(1.06) !important;
+  border-color: var(--p);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.2), 0 0 14px var(--p3);
+  z-index: 10;
+}
+.hf-card-badge {
+  align-self: flex-start;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.hf-card-art {
+  flex: 1;
+  margin: 6px 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border);
+}
+.art-1 { background: radial-gradient(circle at 50% 40%, rgba(123,47,247,0.3) 0%, var(--surface2) 75%); }
+.art-2 { background: radial-gradient(circle at 50% 40%, rgba(20,184,166,0.3) 0%, var(--surface2) 75%); }
+.art-3 { background: radial-gradient(circle at 50% 40%, rgba(249,115,22,0.3) 0%, var(--surface2) 75%); }
+.art-4 { background: radial-gradient(circle at 50% 40%, rgba(59,130,246,0.3) 0%, var(--surface2) 75%); }
+.hf-card-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hf-hero-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+.hf-hero-brand {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--p2);
+  margin: 0 0 6px 0;
+}
+.hf-hero-sub {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 440px;
+  line-height: 1.4;
+  margin: 0 auto;
+}
+
+/* ── Results Grid ── */
+.is-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.is-card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.is-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: var(--p);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+}
+.is-card img {
+  width: 100%;
+  display: block;
+}
+.is-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+}
+.is-card:hover .is-card-overlay { opacity: 1; }
+.is-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.is-act {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.is-act:hover {
+  background: var(--p);
+  color: #fff;
+  transform: scale(1.1);
+}
+.is-act.liked {
+  background: rgba(239,68,68,0.9);
+  color: #fff;
+}
+.is-card-label {
+  font-size: 11px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Loading & Empty states */
+.is-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  gap: 12px;
+}
+.is-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--p);
+  border-radius: 50%;
+  animation: ispin 0.7s linear infinite;
+}
+@keyframes ispin { to { transform: rotate(360deg); } }
+.is-loading-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.is-loading-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.is-error {
+  background: rgba(255,77,106,0.1);
+  border: 1px solid rgba(255,77,106,0.3);
+  color: var(--red);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin: 12px auto;
+  max-width: 500px;
+  text-align: center;
+}
+.is-pending {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: 8px;
+}
+.is-pending .is-spinner { width: 28px; height: 28px; }
+.is-pending-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding: 0 10px;
+}
+.is-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--muted);
+}
+.is-empty-icon { font-size: 40px; opacity: 0.3; margin-bottom: 10px; }
+.is-empty-text { font-size: 13px; opacity: 0.6; }
+
+/* ═══ CREATION PANEL ═══ */
+.hf-dock {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+.hf-dock-inner {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  padding: 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.hf-dock-inner:focus-within {
+  border-color: var(--p);
+  box-shadow: 0 10px 32px var(--p3);
+}
+.hf-prompt-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hf-upload-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1.5px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.hf-upload-trigger:hover,
+.hf-upload-trigger.over {
+  border-color: var(--p);
+  background: var(--p3);
+}
+.hf-upload-trigger input { display: none; }
+.hf-plus-symbol {
+  font-size: 20px;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1;
+}
+.hf-upload-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  display: none;
+}
+.hf-upload-thumb.on { display: block; }
+.hf-upload-icon-box.off { display: none; }
+.hf-upload-del {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ff4d6a;
+  border: none;
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.hf-upload-del.on { display: flex; }
+.hf-upload-paste {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+}
+.hf-prompt-text {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--text) !important;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  padding: 6px 4px;
+  min-height: 22px;
+  max-height: 80px;
+  box-shadow: none !important;
+}
+.hf-prompt-text::placeholder {
+  color: var(--muted) !important;
+  opacity: 0.7;
+}
+.hf-generate-button {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px var(--p3);
+}
+.hf-generate-button:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px var(--p3);
+}
+.hf-generate-button:disabled {
+  opacity: 0.4;
+  background: var(--surface2);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.hf-btn-bolt { font-size: 13px; }
+.hf-btn-cost { font-size: 11px; opacity: 0.85; }
+
+/* Bottom Row: Pill options */
+.hf-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 5px;
+}
+.hf-pill-selector {
+  display: flex;
+  gap: 3px;
+}
+.hf-pill-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hf-pill-btn:hover {
+  color: var(--p2);
+  border-color: var(--p);
+}
+.hf-pill-btn.on {
+  color: var(--p2);
+  background: var(--p3);
+  border-color: var(--p);
+  font-weight: 700;
+}
+.hf-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin: 0 2px;
+}
+.hf-ref-button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.hf-ref-button:hover,
+.hf-ref-button.over {
+  border-color: var(--p);
+  color: var(--p2);
+}
+.hf-ref-button input { display: none; }
+.hf-ref-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: none;
+}
+.hf-ref-thumb.on { display: inline-block; }
+.hf-ref-del {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ff4d6a;
+  border: none;
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+}
+.hf-ref-del.on { display: inline-flex; }
+.hf-ref-paste {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+@media(max-width: 768px) {
+  #page-infographic { max-height: none; min-height: auto; }
+  .hf-hero-brand { font-size: 18px; }
+  .hf-fan-container { gap: 6px; margin-bottom: 12px; }
+  .hf-fan-card { width: 75px; height: 110px; padding: 5px; }
+  .hf-card-label { font-size: 8px; }
+  .hf-generate-button { padding: 0 12px; font-size: 12px; }
+  .hf-pills-bar { gap: 3px; }
+  .hf-pill-btn { font-size: 10px; padding: 3px 7px; }
+}
 
 .an-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .an-topbar-left{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
@@ -396,31 +985,62 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .wr-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .wr-modal-title{font-size:15px;font-weight:700}
 .wr-modal-close{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+/* MANAGER ADVERT REPORT */
+.mgr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.mgr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
+.mgr-card-label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.mgr-card-value{font-size:17px;font-weight:800;font-family:'Unbounded',sans-serif;line-height:1.2}
+.mgr-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:12px}
+.mgr-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.mgr-table{width:100%;border-collapse:collapse;font-size:12px}
+.mgr-table th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px;border-bottom:1px solid var(--border)}
+.mgr-table td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.mgr-table tr:last-child td{border-bottom:none}
+.mgr-muted{font-size:12px;color:var(--muted);line-height:1.5}
 
-/* ── Paste button & popup ── */
-.is-paste-btn{position:absolute;top:6px;right:36px;width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .15s}
-.is-paste-btn:hover{background:var(--p3);border-color:var(--p);color:var(--p2)}
-#isPastePopup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:180px}
-#isPastePopup .pp-title{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-#isPastePopup button{display:block;width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;transition:background .1s}
-#isPastePopup button:hover{background:var(--p3);border-color:var(--p);color:var(--p2)}
+/* ── Paste button & popup — Glass ── */
+.is-paste-btn{position:absolute;top:6px;right:36px;width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .2s}
+.is-paste-btn:hover{background:rgba(123,47,247,0.15);border-color:var(--p);color:var(--p2)}
+#isPastePopup{position:fixed;z-index:9999;background:rgba(15,15,26,0.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;box-shadow:0 16px 48px rgba(0,0,0,.6);min-width:200px}
+#isPastePopup .pp-title{font-size:10px;color:rgba(255,255,255,0.3);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+#isPastePopup button{display:block;width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:6px;text-align:left;transition:all .15s}
+#isPastePopup button:hover{background:rgba(123,47,247,0.12);border-color:rgba(123,47,247,0.3);color:var(--p2)}
 #isPastePopup button:last-child{margin-bottom:0}
-/* ── Mode buttons ── */
-.is-mode-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.is-mode-btn{padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
-.is-mode-btn.on{background:var(--p);border-color:var(--p);color:#fff}
-.is-mode-hint{font-size:11px;color:var(--p2);margin-top:5px;min-height:16px}
+/* ── Mode buttons — Pill style ── */
+.is-mode-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.is-mode-btn{padding:9px 16px;border-radius:999px;border:1.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s ease;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+@media(max-width:640px) {
+  .is-mode-btn { font-size: 11px; padding: 7px 10px; }
+}
+.is-mode-btn:hover {
+  border-color: rgba(123,47,247,0.4); color: var(--p2);
+  background: rgba(123,47,247,0.06);
+}
+.is-mode-btn.on {
+  background: linear-gradient(135deg, var(--p), var(--p2));
+  border-color: transparent; color: #fff;
+  box-shadow: 0 4px 16px rgba(123,47,247,0.3);
+}
+.is-mode-hint { font-size: 11px; color: var(--p2); margin-top: 5px; min-height: 16px; }
 /* ── Series slots ── */
-.is-series-wrap{display:none}
-.is-series-wrap.on{display:block}
-.is-series-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
-.is-series-slot{aspect-ratio:3/4;border:1.5px dashed var(--border);border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
-.is-series-slot:hover{border-color:var(--p)}
-.is-series-slot.has-img{border-style:solid;border-color:var(--p)}
-.is-series-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:6px}
-.is-series-slot .sl-rm{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:2}
-.is-series-slot.has-img .sl-rm{display:flex}
-.is-series-slot .sl-plus{font-size:18px;color:var(--muted)}
+.is-series-wrap { display: none; }
+.is-series-wrap.on { display: block; }
+.is-series-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+.is-series-slot {
+  aspect-ratio: 3/4; border: 1.5px dashed rgba(255,255,255,0.06); border-radius: 10px;
+  background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.2s;
+}
+.is-series-slot:hover { border-color: var(--p); }
+.is-series-slot.has-img { border-style: solid; border-color: var(--p); }
+.is-series-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.is-series-slot .sl-rm {
+  position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(255,77,106,0.9); backdrop-filter: blur(4px); color: #fff; font-size: 9px;
+  display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 2;
+}
+.is-series-slot.has-img .sl-rm { display: flex; }
+.is-series-slot .sl-plus { font-size: 18px; color: rgba(255,255,255,0.35); }
 </style>
 <link rel="stylesheet" href="/wbai-design.css">
 <script src="/wbai-theme.js"></script>
@@ -457,8 +1077,9 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <button class="nav-item" type="button" onclick="showPage('templates');closeSidebar()"><span class="nav-icon" data-icon="box" aria-hidden="true"></span>Шаблоны товаров</button>
     <button class="nav-item" type="button" onclick="showPage('videos');closeSidebar()"><span class="nav-icon" data-icon="play" aria-hidden="true"></span>Видео обзор</button>
     <button class="nav-item" type="button" onclick="showPage('history');closeSidebar()"><span class="nav-icon" data-icon="clipboard" aria-hidden="true"></span>История запросов</button>
+    <button class="nav-item" type="button" onclick="showPage('analytics');closeSidebar()"><span class="nav-icon" data-icon="chart" aria-hidden="true"></span>Аналитика WB</button>
     <button class="nav-item" type="button" onclick="showPage('settings');closeSidebar()"><span class="nav-icon" data-icon="settings" aria-hidden="true"></span>Настройки</button>
-    <button class="nav-item" type="button" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="palette" aria-hidden="true"></span>Студия инфографики</button>
+    <button class="nav-item" type="button" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="image" aria-hidden="true"></span>Студия инфографики</button>
     <button class="nav-item" type="button" onclick="showPage('install');closeSidebar()"><span class="nav-icon" data-icon="download" aria-hidden="true"></span>Установка расширения</button>
     <button class="nav-item" type="button" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon" data-icon="message" aria-hidden="true"></span>Поддержка</button>
   </div>
@@ -848,131 +1469,151 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
   <!-- INFOGRAPHIC STUDIO -->
   <div class="page" id="page-infographic">
-    <div class="is-header">
-      <div class="page-title" style="margin-bottom:0"><span data-icon="palette" aria-hidden="true"></span> Студия инфографики</div>
-      <div class="is-credits" id="isCreditsBadge" style="display:none">
-        Кредитов: <b id="isCreditsNum">0</b>
+
+    <!-- Studio navigation -->
+    <div class="hf-topbar">
+      <div class="hf-topbar-tabs">
+        <button class="hf-top-tab on" type="button" id="isTabNew" onclick="isShowTab('new')">
+          <span data-icon="image" aria-hidden="true"></span> Студия
+        </button>
+        <button class="hf-top-tab" type="button" id="isTabHist" onclick="isShowTab('hist')">
+          <span data-icon="clock" aria-hidden="true"></span> История (<span id="isHistCount">0</span>)
+        </button>
       </div>
-      <div class="is-credits is-no-plan" id="isNoPlanBadge" style="display:none">
-        <span data-icon="x-circle" aria-hidden="true"></span> Доступно на тарифе Макс
+
+      <div class="hf-topbar-right">
+        <div class="is-credits" id="isCreditsBadge" style="display:none">
+          <span data-icon="image" aria-hidden="true"></span>
+          <span>Кредитов:</span> <b id="isCreditsNum">0</b>
+        </div>
+        <div class="is-credits is-no-plan" id="isNoPlanBadge" style="display:none">
+          <span data-icon="x-circle" aria-hidden="true"></span> Доступно на тарифе Макс
+        </div>
       </div>
     </div>
 
-    <div class="is-layout">
+    <!-- Hidden compatibility elements required by legacy JS code -->
+    <div style="display:none !important;" aria-hidden="true">
+      <div class="page-title">Студия инфографики</div>
+      <input id="isName" value="">
+      <textarea id="isSpecs"></textarea>
+      <div id="isModeHint"></div>
+      <div id="isProdSec"></div>
+      <div id="isAnglesSec"><div id="isAnglesGrid"></div></div>
+      <div id="isDescSec"></div>
+      <div id="isCountSec"></div>
+      <div id="isSeriesWrap" class="is-series-wrap"><div id="isSeriesGrid" class="is-series-grid"></div></div>
+      <div class="is-gallery-tabs" style="display:none"></div>
+    </div>
 
-      <!-- CONTROLS -->
-      <div class="is-panel">
-
-        <div class="is-sec" style="padding-bottom:2px">
-          <div class="is-mode-row">
-            <button class="is-mode-btn on" type="button" id="isModeCreate" onclick="isSetMode('create',this)" aria-pressed="true"><span data-icon="image" aria-hidden="true"></span> Новая инфографика</button>
-            <button class="is-mode-btn" type="button" id="isModeRedesign" onclick="isSetMode('redesign',this)" aria-pressed="false"><span data-icon="rotate" aria-hidden="true"></span> Редизайн карточки</button>
-            <button class="is-mode-btn" type="button" id="isModeSeries" onclick="isSetMode('series',this)" aria-pressed="false"><span data-icon="layers" aria-hidden="true"></span> Серия страниц</button>
-          </div>
-          <div class="is-mode-hint" id="isModeHint">Загрузите фото товара — AI создаст инфографику с нуля.</div>
+    <!-- MAIN STAGE / HERO CANVAS -->
+    <div class="hf-stage" id="isPanelNew">
+      <!-- Empty state -->
+      <div class="hf-hero" id="isEmptyNew">
+        <div class="hf-empty-mark"><span data-icon="image" aria-hidden="true"></span></div>
+        <div class="hf-hero-title">Инфографика для Wildberries</div>
+        <div class="hf-hero-brand">Создайте карточку товара</div>
+        <div class="hf-hero-sub">Добавьте фото товара и опишите задачу — студия подготовит вариант инфографики.</div>
+        <div class="hf-empty-steps" aria-label="Как создать инфографику">
+          <span class="hf-empty-step"><b>1</b> Загрузите фото</span>
+          <span class="hf-empty-step"><b>2</b> Опишите задачу</span>
+          <span class="hf-empty-step"><b>3</b> Создайте вариант</span>
         </div>
+      </div>
 
-        <div class="is-sec" id="isProdSec">
-          <div class="is-label"><span data-icon="upload" aria-hidden="true"></span> Фото товара <span style="color:var(--red)">*</span></div>
-          <div class="is-drop" id="isProdDrop" role="button" tabindex="0" aria-label="Загрузить фото товара" onclick="document.getElementById('isProdFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('isProdFile').click()}">
+      <!-- Loading Spinner Area -->
+      <div class="is-loading" id="isLoading" style="display:none">
+        <div class="is-spinner"></div>
+        <div class="is-loading-text" id="isLoadText">Генерирую инфографику...</div>
+        <div class="is-loading-sub">AI собирает композицию, шрифты и свет (~20–40 сек)</div>
+      </div>
+
+      <!-- Error message container -->
+      <div class="is-error" id="isError" style="display:none"></div>
+
+      <!-- Result cards grid -->
+      <div class="is-grid" id="isNewGrid" style="display:none"></div>
+    </div>
+
+    <!-- HISTORY STAGE -->
+    <div class="hf-stage" id="isPanelHist" style="display:none">
+      <div class="is-empty" id="isEmptyHist" style="display:none">
+        <div class="is-empty-icon"><span data-icon="folder" aria-hidden="true"></span></div>
+        <div class="is-empty-text">История пуста — сгенерируйте свою первую инфографику</div>
+      </div>
+      <div class="is-grid" id="isHistGrid"></div>
+    </div>
+
+    <!-- Creation controls -->
+    <div class="hf-dock">
+      <div class="hf-dock-inner">
+        <!-- Primary Prompt & Action Row -->
+        <div class="hf-prompt-bar">
+          <!-- Upload Button with preview & remove -->
+          <div class="hf-upload-trigger" id="isProdDrop" role="button" tabindex="0" title="Загрузить фото товара" onclick="document.getElementById('isProdFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('isProdFile').click()}">
             <input type="file" id="isProdFile" accept="image/*">
-            <div class="is-ph" id="isProdPh">
-              <div class="is-drop-icon"><span data-icon="image" aria-hidden="true"></span></div>
-              <div class="is-drop-text">Главное фото</div>
-              <div class="is-drop-sub">JPG, PNG, WEBP · до 10 МБ</div>
+            <div class="hf-upload-icon-box" id="isProdPh">
+              <span class="hf-plus-symbol">+</span>
             </div>
-            <img class="is-preview" id="isProdPreview">
-            <button class="is-rm" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')" aria-label="Удалить фото"><span data-icon="x" aria-hidden="true"></span></button>
-            <button class="is-paste-btn" onclick="event.stopPropagation();isPasteBtn('prod',event)" title="Вставить (Ctrl+V)" aria-label="Вставить фото"><span data-icon="clipboard" aria-hidden="true"></span></button>
+            <img class="hf-upload-thumb" id="isProdPreview" alt="Превью товара">
+            <button type="button" class="hf-upload-del" id="isProdRm" onclick="event.stopPropagation();isRemove('prod')" title="Удалить фото">✕</button>
+            <button type="button" class="hf-upload-paste" onclick="event.stopPropagation();isPasteBtn('prod',event)" title="Вставить (Ctrl+V)"><span data-icon="clipboard"></span></button>
           </div>
-          <div style="margin-top:8px" id="isAnglesSec">
-            <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:5px"><span data-icon="camera" aria-hidden="true"></span> ЕЩЁ РАКУРСЫ (необязательно)</div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px" id="isAnglesGrid"></div>
-          </div>
+
+          <!-- Prompt text input -->
+          <textarea class="hf-prompt-text" id="isPrompt" rows="1" placeholder="Describe the infographic you imagine (стиль, цвет, текст, акценты)..." oninput="this.style.height='auto';this.style.height=(this.scrollHeight)+'px'"></textarea>
+
+          <!-- Generate button -->
+          <button class="hf-generate-button" id="isGenBtn" onclick="isGenerate()">
+            <span data-icon="image" aria-hidden="true"></span>
+            <span class="hf-btn-text">Создать</span>
+            <span class="hf-btn-cost">1 кредит</span>
+          </button>
         </div>
 
-        <div class="is-sec">
-          <div class="is-label"><span data-icon="palette" aria-hidden="true"></span> Reference (стиль)</div>
-          <div class="is-drop" id="isRefDrop" style="padding:12px" role="button" tabindex="0" aria-label="Загрузить референс стиля" onclick="document.getElementById('isRefFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('isRefFile').click()}">
+        <!-- Secondary Controls Pill Bar -->
+        <div class="hf-pills-bar">
+          <!-- Mode Selector -->
+          <div class="hf-pill-selector">
+            <button type="button" class="hf-pill-btn on" id="isModeCreate" onclick="isSetMode('create',this)"><span data-icon="plus" aria-hidden="true"></span> Создать</button>
+            <button type="button" class="hf-pill-btn" id="isModeRedesign" onclick="isSetMode('redesign',this)"><span data-icon="rotate" aria-hidden="true"></span> Редизайн</button>
+            <button type="button" class="hf-pill-btn" id="isModeSeries" onclick="isSetMode('series',this)"><span data-icon="layers" aria-hidden="true"></span> Серия</button>
+          </div>
+
+          <div class="hf-divider"></div>
+
+          <!-- Ratio Selector -->
+          <div class="hf-pill-selector">
+            <button type="button" class="hf-pill-btn on" id="isR34" onclick="isSetRatio('3:4',this)">3:4 WB</button>
+            <button type="button" class="hf-pill-btn" id="isR11" onclick="isSetRatio('1:1',this)">1:1</button>
+            <button type="button" class="hf-pill-btn" id="isR85" onclick="isSetRatio('8:5',this)">800×500</button>
+          </div>
+
+          <div class="hf-divider"></div>
+
+          <!-- Count Selector -->
+          <div class="hf-pill-selector">
+            <button type="button" class="hf-pill-btn on" id="isN1" onclick="isSetCount(1,this)">1 фото</button>
+            <button type="button" class="hf-pill-btn" id="isN2" onclick="isSetCount(2,this)">2</button>
+            <button type="button" class="hf-pill-btn" id="isN4" onclick="isSetCount(4,this)">4</button>
+          </div>
+
+          <!-- Style Reference slot in pills -->
+          <div class="hf-ref-button" id="isRefDrop" role="button" tabindex="0" title="Загрузить референс стиля" onclick="document.getElementById('isRefFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('isRefFile').click()}">
             <input type="file" id="isRefFile" accept="image/*">
-            <div class="is-ph" id="isRefPh">
-              <div class="is-drop-icon" style="font-size:18px;margin-bottom:4px"><span data-icon="paperclip" aria-hidden="true"></span></div>
-              <div class="is-drop-text" style="font-size:12px">Загрузить референс стиля</div>
+            <div id="isRefPh" style="display:flex;align-items:center;gap:4px">
+              <span data-icon="image" aria-hidden="true"></span> <span>Референс</span>
             </div>
-            <img class="is-preview" id="isRefPreview" style="max-height:90px">
-            <button class="is-rm" id="isRefRm" onclick="event.stopPropagation();isRemove('ref')" aria-label="Удалить референс"><span data-icon="x" aria-hidden="true"></span></button>
-            <button class="is-paste-btn" onclick="event.stopPropagation();isPasteBtn('ref',event)" title="Вставить (Ctrl+V)" aria-label="Вставить референс"><span data-icon="clipboard" aria-hidden="true"></span></button>
+            <img id="isRefPreview" class="hf-ref-thumb" alt="Референс">
+            <button type="button" class="hf-ref-del" id="isRefRm" onclick="event.stopPropagation();isRemove('ref')" title="Удалить референс">✕</button>
+            <button type="button" class="hf-ref-paste" onclick="event.stopPropagation();isPasteBtn('ref',event)" title="Вставить (Ctrl+V)"><span data-icon="clipboard"></span></button>
           </div>
+
         </div>
-
-
-        <!-- СЕРИЯ — скрыто по умолчанию -->
-        <div class="is-sec is-series-wrap" id="isSeriesWrap">
-          <div class="is-label"><span data-icon="image" aria-hidden="true"></span> Страницы для обработки <span style="color:var(--muted);font-weight:400">(до 5)</span></div>
-          <div class="is-series-grid" id="isSeriesGrid"></div>
-        </div>
-
-        <div class="is-sec" id="isDescSec">
-          <div class="is-label"><span data-icon="file-text" aria-hidden="true"></span> Описание</div>
-          <div style="display:flex;flex-direction:column;gap:7px">
-            <input class="is-field" id="isName" placeholder="Название товара" aria-label="Название товара">
-            <textarea class="is-field" id="isSpecs" rows="4" placeholder="Характеристики (каждая с новой строки)" aria-label="Характеристики товара"></textarea>
-            <textarea class="is-field" id="isPrompt" rows="2" placeholder="Доп. пожелания..." aria-label="Дополнительные пожелания"></textarea>
-          </div>
-        </div>
-
-        <div class="is-sec">
-          <div class="is-label"><span data-icon="ruler" aria-hidden="true"></span> Формат</div>
-          <div class="is-row">
-            <button class="is-pill on" id="isR34" onclick="isSetRatio('3:4',this)">3:4</button>
-            <button class="is-pill" id="isR11" onclick="isSetRatio('1:1',this)">1:1</button>
-            <button class="is-pill" id="isR85" onclick="isSetRatio('8:5',this)">800×500</button>
-          </div>
-        </div>
-
-        <div class="is-sec" id="isCountSec">
-          <div class="is-row">
-            <button class="is-pill on" id="isN1" onclick="isSetCount(1,this)">1<br><span style="font-size:9px;font-weight:400;color:var(--muted)">1 кредит</span></button>
-            <button class="is-pill" id="isN2" onclick="isSetCount(2,this)">2<br><span style="font-size:9px;font-weight:400;color:var(--muted)">2 кредита</span></button>
-            <button class="is-pill" id="isN4" onclick="isSetCount(4,this)">4<br><span style="font-size:9px;font-weight:400;color:var(--muted)">4 кредита</span></button>
-          </div>
-        </div>
-
-        <button class="is-gen" id="isGenBtn" onclick="isGenerate()"><span data-icon="sparkles" aria-hidden="true"></span> Генерировать</button>
 
       </div>
-
-      <!-- GALLERY -->
-      <div>
-        <div class="is-gallery-tabs">
-          <button class="is-tab on" type="button" id="isTabNew" onclick="isShowTab('new')" aria-selected="true">Генерация</button>
-          <button class="is-tab" type="button" id="isTabHist" onclick="isShowTab('hist')" aria-selected="false">История (<span id="isHistCount">0</span>)</button>
-        </div>
-
-        <div id="isPanelNew">
-          <div class="is-empty" id="isEmptyNew">
-            <div class="is-empty-icon"><span data-icon="palette" aria-hidden="true"></span></div>
-            <div class="is-empty-text">Загрузите фото и нажмите «Генерировать»</div>
-          </div>
-          <div class="is-loading" id="isLoading" style="display:none">
-            <div class="is-spinner"></div>
-            <div class="is-loading-text" id="isLoadText">Генерирую...</div>
-            <div class="is-loading-sub">Обычно 20–60 секунд</div>
-          </div>
-          <div class="is-error" id="isError" style="display:none"></div>
-          <div class="is-grid" id="isNewGrid" style="display:none"></div>
-        </div>
-
-        <div id="isPanelHist" style="display:none">
-          <div class="is-empty" id="isEmptyHist" style="display:none">
-            <div class="is-empty-icon"><span data-icon="folder" aria-hidden="true"></span></div>
-            <div class="is-empty-text">История пуста — генерируйте первое фото</div>
-          </div>
-          <div class="is-grid" id="isHistGrid"></div>
-        </div>
-      </div>
-
     </div>
+
   </div>
 
   <!-- АНАЛИТИКА -->
@@ -1091,6 +1732,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <div class="an-tabs">
         <button class="an-tab on" id="tabStats"   onclick="anSwitchTab('stats')"><span data-icon="chart" aria-hidden="true"></span> Статистика заказов</button>
         <button class="an-tab"   id="tabWeekly"   onclick="anSwitchTab('weekly')"><span data-icon="clipboard" aria-hidden="true"></span> Финансовые отчёты WB</button>
+        <button class="an-tab"   id="tabManagers" onclick="anSwitchTab('managers')"><span data-icon="user" aria-hidden="true"></span> Менеджеры рекламы</button>
       </div>
 
       <!-- ── Панель: статистика (существующий anMain) ── -->
@@ -1157,6 +1799,40 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <button class="wr-load-btn" id="wrNextBtn" onclick="wrPage(1)" style="display:none">Вперёд →</button>
         </div>
       </div>
+
+      <div class="an-tab-panel" id="tabPanelManagers">
+        <div class="mgr-muted">Назначьте рекламные кампании менеджерам. WBai покажет их расходы на рекламу, сумму заказов из рекламы и результат до себестоимости. Для этой вкладки токену нужен доступ <b>«Продвижение»</b>.</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:16px 0">
+          <div style="min-width:180px;flex:1">
+            <label class="field-label" for="mgrName">Менеджер</label>
+            <input class="field-input" id="mgrName" maxlength="80" placeholder="Например, Айдана">
+          </div>
+          <div style="min-width:260px;flex:2">
+            <label class="field-label" for="mgrCampaign">Рекламная кампания</label>
+            <select class="field-input" id="mgrCampaign"><option value="">Загрузите кампании</option></select>
+          </div>
+          <button class="an-btn" id="mgrAssignBtn" onclick="mgrAssignCampaign()">Назначить</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <button class="an-refresh-btn" type="button" onclick="mgrLoadCampaigns()">Загрузить кампании WB</button>
+          <span id="mgrMessage" class="mgr-muted" role="status" aria-live="polite"></span>
+        </div>
+        <div id="mgrAssignments" class="mgr-muted">Назначения пока не загружены.</div>
+
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:20px;padding-top:18px">
+          <div>
+            <label class="field-label" for="mgrDateFrom">Период с</label>
+            <input class="field-input" id="mgrDateFrom" type="date">
+          </div>
+          <div>
+            <label class="field-label" for="mgrDateTo">по</label>
+            <input class="field-input" id="mgrDateTo" type="date">
+          </div>
+          <button class="an-btn" id="mgrReportBtn" onclick="mgrLoadReport()">Показать отчёт</button>
+          <span class="mgr-muted">Не более 31 дня</span>
+        </div>
+        <div id="mgrReport" class="mgr-muted" style="margin-top:14px">Выберите период и нажмите «Показать отчёт».</div>
+      </div>
     </div>
 
   </div>
@@ -1191,7 +1867,7 @@ async function init() {
     // Восстанавливаем последнюю открытую страницу
     const lastPage = localStorage.getItem('wbai_last_page');
     if(lastPage && lastPage !== 'home' && document.getElementById('page-'+lastPage)) {
-      showPage(lastPage === 'analytics' ? 'settings' : lastPage);
+      showPage(lastPage);
     }
   } catch(e){ console.error(e); }
 }
@@ -1266,15 +1942,13 @@ async function loadTemplates() {
 }
 
 function showPage(name) {
-  const openApiSettings = name==='analytics';
   const openCredits = name==='credits';
-  if(openApiSettings) name='settings';
   if(openCredits) name='subscription';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
   if(name==='subscription') document.getElementById('page-credits')?.classList.add('active');
-  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',settings:'настройки',install:'установка',infographic:'студия'};
+  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',analytics:'аналитика',settings:'настройки',install:'установка',infographic:'студия'};
   document.querySelectorAll('.nav-item').forEach(n=>{
     const active=n.textContent.toLowerCase().includes(map[name]||name);
     n.classList.toggle('active',active);
@@ -1282,8 +1956,9 @@ function showPage(name) {
   });
   localStorage.setItem('wbai_last_page', name);
   if(name==='history') loadHistory();
+  if(name==='analytics') anInit();
   if(name==='infographic') isInit();
-  if(name==='settings') settingsSwitch(openApiSettings ? 'wb-api' : (localStorage.getItem('wbai_settings_section') || 'account'));
+  if(name==='settings') settingsSwitch(localStorage.getItem('wbai_settings_section') || 'account');
   document.getElementById('main-content').focus({ preventScroll: true });
   document.getElementById('appStatus').textContent='Открыт раздел: '+(document.querySelector('#page-'+name+' .page-title')?.textContent||name);
   if(openCredits) requestAnimationFrame(()=>document.getElementById('subscription-credits')?.scrollIntoView({behavior:'smooth',block:'start'}));
@@ -1305,7 +1980,7 @@ function settingsSwitch(section) {
     tab.setAttribute('aria-selected', String(isActive));
   });
   localStorage.setItem('wbai_settings_section', selected);
-  if (selected === 'wb-api') anInit();
+  if (selected === 'wb-api') anCheckToken();
 }
 
 document.querySelectorAll('.settings-tab').forEach((tab, index, tabs) => {
@@ -1474,7 +2149,7 @@ function isSetMode(mode, btn) {
 }
 
 function isSetGenerateButton(button, label) {
-  button.innerHTML = '<span data-icon="sparkles" aria-hidden="true"></span> ' + label;
+  button.innerHTML = '<span data-icon="image" aria-hidden="true"></span> ' + label;
   window.wbaiInjectIcons?.(button);
 }
 
@@ -2028,7 +2703,7 @@ function isRenderHistory(){
 // ═══════════════════════════════════════════════════
 //  АНАЛИТИКА (WB API)
 // ═══════════════════════════════════════════════════
-var AN = { period:'week', data:[], animFrame:null, animStart:null, initialized:false, hasToken:false };
+var AN = { period:'week', data:[], animFrame:null, animStart:null, initialized:false, loaded:false, hasToken:false };
 var AN_MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 
 async function anInit() {
@@ -2065,13 +2740,22 @@ async function anCheckToken() {
     AN.hasToken = !!d.hasToken;
     document.getElementById('anTokenBlock').style.display = d.hasToken ? 'none' : 'block';
     document.getElementById('anTokenStatus').style.display = d.hasToken ? 'flex' : 'none';
+    var analyticsMain = document.getElementById('anMain');
+    var analyticsTabs = document.getElementById('anTabs');
+    if (analyticsMain) analyticsMain.style.display = d.hasToken ? 'block' : 'none';
+    if (analyticsTabs) analyticsTabs.style.display = d.hasToken ? 'block' : 'none';
     if (d.hasToken) {
       document.getElementById('anTokenPreview').textContent = d.tokenPreview || '';
+      if (AN.initialized && !AN.loaded) { AN.loaded = true; anLoad(); }
     }
   } catch(e) {
     AN.hasToken = false;
     document.getElementById('anTokenBlock').style.display = 'block';
     document.getElementById('anTokenStatus').style.display = 'none';
+    var analyticsMain = document.getElementById('anMain');
+    var analyticsTabs = document.getElementById('anTabs');
+    if (analyticsMain) analyticsMain.style.display = 'none';
+    if (analyticsTabs) analyticsTabs.style.display = 'none';
   }
 }
 
@@ -2096,16 +2780,16 @@ async function anSaveToken() {
 async function anDisconnectToken() {
   if (!confirm('Отключить WB API?')) return;
   await fetch('/api/wb-token', {method:'DELETE', headers:{Authorization:'Bearer '+token}});
-  AN.hasToken=false; await anCheckToken();
+  AN.hasToken=false; AN.loaded=false; await anCheckToken();
 }
 
 async function anLoad(from, to) {
   if (!AN.hasToken) return;
   var btn = document.getElementById('anRefreshBtn');
   if (btn) btn.disabled=true;
-  ['anMCount','anMSum','anMProfit'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='...';});
-  ['anMCountDelta','anMSumDelta','anMProfitDelta'].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent='';el.className='an-card-delta eq';}});
-  ['anMCountPeriod','anMSumPeriod','anMProfitPeriod'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
+  ['anMCount','anMSum','anMMargin'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='...';});
+  ['anMCountDelta','anMSumDelta','anMMarginDelta'].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent='';el.className='an-card-delta eq';}});
+  ['anMCountPeriod','anMSumPeriod','anMMarginPeriod'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
   document.getElementById('anChartEmpty').style.display='none';
   document.getElementById('anCanvas').style.display='block';
   try {
@@ -2119,13 +2803,19 @@ async function anLoad(from, to) {
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
     var now=new Date();
     var rateStr = d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
-    document.getElementById('anUpdatedAt').textContent=now.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+rateStr;
+    var cache=d.cache||{}, sources=[cache.orders,cache.finance].filter(Boolean);
+    var isStale=sources.some(function(source){return source.stale;});
+    var isCached=sources.some(function(source){return source.cached;});
+    var dataLabel=isStale ? ' · сохранённые данные' : isCached ? ' · кэш WB' : ' · данные WB';
+    var sourceTimes=sources.map(function(source){return new Date(source.fetchedAt||0).getTime();}).filter(Boolean);
+    var dataTime=sourceTimes.length ? new Date(Math.min.apply(null,sourceTimes)) : now;
+    document.getElementById('anUpdatedAt').textContent=dataTime.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+dataLabel+rateStr;
   } catch(e) { anShowErr('Ошибка соединения'); }
   finally { if(btn) btn.disabled=false; }
 }
 
 function anShowErr(msg) {
-  ['anMCount','anMSum','anMProfit'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='—';});
+  ['anMCount','anMSum','anMMargin'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='—';});
   var empty=document.getElementById('anChartEmpty');
   var canvas=document.getElementById('anCanvas');
   if(empty){empty.style.display='block';document.getElementById('anChartEmptyText').textContent=msg;}
@@ -2253,11 +2943,261 @@ function anSwitchTab(tab) {
   document.querySelectorAll('.an-tab-panel').forEach(function(p){p.classList.remove('on');});
   document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('on');
   if (tab === 'stats') {
+    document.getElementById('anMain').style.display = 'block';
     document.getElementById('tabPanelStats').classList.add('on');
   } else if (tab === 'weekly') {
+    document.getElementById('anMain').style.display = 'none';
     document.getElementById('tabPanelWeekly').classList.add('on');
     if (!WR.loaded) wrLoad();
+  } else if (tab === 'managers') {
+    document.getElementById('anMain').style.display = 'none';
+    document.getElementById('tabPanelManagers').classList.add('on');
+    mgrInit();
   }
+}
+
+// ════════════════════════════════════════════
+//  МЕНЕДЖЕРЫ РЕКЛАМЫ
+// ════════════════════════════════════════════
+var MGR = { initialized:false, campaigns:[], assignments:[] };
+
+function mgrFmtMoney(value) {
+  return (Math.round(Number(value) || 0)).toLocaleString('ru') + ' ₸';
+}
+
+function mgrFmtNumber(value) {
+  return Math.round(Number(value) || 0).toLocaleString('ru');
+}
+
+function mgrSetMessage(message, isError) {
+  var element = document.getElementById('mgrMessage');
+  if (!element) return;
+  element.textContent = message || '';
+  element.style.color = isError ? 'var(--red)' : 'var(--muted)';
+}
+
+async function mgrRequest(url, options) {
+  var request = options || {};
+  request.headers = Object.assign({}, request.headers || {}, { Authorization:'Bearer ' + token });
+  var response = await fetch(url, request);
+  var body;
+  try { body = await response.json(); } catch(e) { body = {}; }
+  if (!response.ok) throw new Error(body.error || ('Ошибка сервера ' + response.status));
+  return body;
+}
+
+function mgrCreate(tag, text, className) {
+  var element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined && text !== null) element.textContent = text;
+  return element;
+}
+
+function mgrSetDefaultDates() {
+  var from = document.getElementById('mgrDateFrom');
+  var to = document.getElementById('mgrDateTo');
+  if (!from || !to || from.value || to.value) return;
+  var end = new Date();
+  var start = new Date(end);
+  start.setDate(start.getDate() - 29);
+  from.value = start.toISOString().slice(0, 10);
+  to.value = end.toISOString().slice(0, 10);
+}
+
+async function mgrInit() {
+  mgrSetDefaultDates();
+  if (MGR.initialized) return;
+  MGR.initialized = true;
+  await Promise.all([mgrLoadAssignments(), mgrLoadCampaigns(true)]);
+}
+
+async function mgrLoadCampaigns(silent) {
+  var button = document.querySelector('#tabPanelManagers button[onclick="mgrLoadCampaigns()"]');
+  if (button) button.disabled = true;
+  if (!silent) mgrSetMessage('Загружаем кампании из WB…');
+  try {
+    var data = await mgrRequest('/api/wb-advert-campaigns');
+    MGR.campaigns = data.campaigns || [];
+    mgrRenderCampaignOptions();
+    mgrSetMessage(MGR.campaigns.length ? 'Кампаний WB: ' + MGR.campaigns.length : 'В WB не найдено рекламных кампаний.');
+  } catch(e) {
+    MGR.campaigns = [];
+    mgrRenderCampaignOptions();
+    mgrSetMessage(e.message, true);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function mgrRenderCampaignOptions() {
+  var select = document.getElementById('mgrCampaign');
+  if (!select) return;
+  var current = select.value;
+  select.replaceChildren();
+  select.appendChild(new Option(MGR.campaigns.length ? 'Выберите кампанию' : 'Нет доступных кампаний', ''));
+  MGR.campaigns.forEach(function(campaign) {
+    select.appendChild(new Option(campaign.name + ' · #' + campaign.id, String(campaign.id)));
+  });
+  if (MGR.campaigns.some(function(campaign) { return String(campaign.id) === current; })) select.value = current;
+}
+
+async function mgrLoadAssignments() {
+  try {
+    var data = await mgrRequest('/api/manager-campaigns');
+    MGR.assignments = data.assignments || [];
+    mgrRenderAssignments();
+  } catch(e) {
+    mgrSetMessage(e.message, true);
+  }
+}
+
+function mgrRenderAssignments() {
+  var root = document.getElementById('mgrAssignments');
+  if (!root) return;
+  root.replaceChildren();
+  if (!MGR.assignments.length) {
+    root.textContent = 'Пока нет назначенных кампаний.';
+    root.className = 'mgr-muted';
+    return;
+  }
+  root.className = '';
+  var table = mgrCreate('table', null, 'mgr-table');
+  var head = document.createElement('thead');
+  var headRow = document.createElement('tr');
+  ['Менеджер', 'Кампания', ''].forEach(function(label) { headRow.appendChild(mgrCreate('th', label)); });
+  head.appendChild(headRow);
+  var body = document.createElement('tbody');
+  MGR.assignments.forEach(function(assignment) {
+    var row = document.createElement('tr');
+    row.appendChild(mgrCreate('td', assignment.manager_name));
+    row.appendChild(mgrCreate('td', (assignment.campaign_name || 'Кампания') + ' · #' + assignment.campaign_id));
+    var actions = document.createElement('td');
+    actions.style.textAlign = 'right';
+    var remove = mgrCreate('button', 'Убрать');
+    remove.type = 'button';
+    remove.style.cssText = 'padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--red);font:inherit;font-size:11px;cursor:pointer';
+    remove.addEventListener('click', function() { mgrRemoveAssignment(assignment.id); });
+    actions.appendChild(remove);
+    row.appendChild(actions);
+    body.appendChild(row);
+  });
+  table.appendChild(head);
+  table.appendChild(body);
+  root.appendChild(table);
+}
+
+async function mgrAssignCampaign() {
+  var nameInput = document.getElementById('mgrName');
+  var campaignSelect = document.getElementById('mgrCampaign');
+  var campaign = MGR.campaigns.find(function(item) { return String(item.id) === campaignSelect.value; });
+  var managerName = nameInput.value.trim();
+  if (!managerName) { mgrSetMessage('Введите имя менеджера.', true); nameInput.focus(); return; }
+  if (!campaign) { mgrSetMessage('Сначала выберите кампанию WB.', true); campaignSelect.focus(); return; }
+  var button = document.getElementById('mgrAssignBtn');
+  button.disabled = true;
+  try {
+    await mgrRequest('/api/manager-campaigns', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ manager_name:managerName, campaign_id:campaign.id, campaign_name:campaign.name })
+    });
+    campaignSelect.value = '';
+    mgrSetMessage('Кампания назначена менеджеру «' + managerName + '».');
+    await mgrLoadAssignments();
+  } catch(e) {
+    mgrSetMessage(e.message, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function mgrRemoveAssignment(id) {
+  try {
+    await mgrRequest('/api/manager-campaigns/' + encodeURIComponent(id), { method:'DELETE' });
+    await mgrLoadAssignments();
+    mgrSetMessage('Назначение удалено.');
+  } catch(e) {
+    mgrSetMessage(e.message, true);
+  }
+}
+
+async function mgrLoadReport() {
+  var from = document.getElementById('mgrDateFrom').value;
+  var to = document.getElementById('mgrDateTo').value;
+  if (!from || !to) { mgrSetMessage('Выберите период отчёта.', true); return; }
+  var button = document.getElementById('mgrReportBtn');
+  var root = document.getElementById('mgrReport');
+  button.disabled = true;
+  root.className = 'mgr-muted';
+  root.textContent = 'Загружаем данные рекламных кампаний из WB…';
+  try {
+    var report = await mgrRequest('/api/wb-manager-report?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
+    mgrRenderReport(report);
+  } catch(e) {
+    root.className = 'mgr-muted';
+    root.style.color = 'var(--red)';
+    root.textContent = e.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function mgrMetricCard(label, value, color) {
+  var card = mgrCreate('div', null, 'mgr-card');
+  card.appendChild(mgrCreate('div', label, 'mgr-card-label'));
+  var valueElement = mgrCreate('div', value, 'mgr-card-value');
+  if (color) valueElement.style.color = color;
+  card.appendChild(valueElement);
+  return card;
+}
+
+function mgrRenderReport(report) {
+  var root = document.getElementById('mgrReport');
+  root.replaceChildren();
+  root.style.color = '';
+  if (!report.managers || !report.managers.length) {
+    root.className = 'mgr-muted';
+    root.textContent = 'Нет назначенных кампаний. Сначала свяжите кампанию с менеджером выше.';
+    return;
+  }
+  root.className = '';
+  report.managers.forEach(function(manager) {
+    var section = mgrCreate('section', null, 'mgr-section');
+    var heading = mgrCreate('div', null, 'mgr-section-head');
+    heading.appendChild(mgrCreate('strong', manager.name));
+    heading.appendChild(mgrCreate('span', 'ДРР: ' + (Number(manager.drr) || 0).toLocaleString('ru') + '%', 'mgr-muted'));
+    section.appendChild(heading);
+    var cards = mgrCreate('div', null, 'mgr-grid');
+    cards.appendChild(mgrMetricCard('Расход на рекламу', mgrFmtMoney(manager.spend), '#e74c3c'));
+    cards.appendChild(mgrMetricCard('Сумма заказов из рекламы', mgrFmtMoney(manager.revenue), '#0071e3'));
+    cards.appendChild(mgrMetricCard('Результат до себестоимости', mgrFmtMoney(manager.result), manager.result >= 0 ? 'var(--green)' : 'var(--red)'));
+    cards.appendChild(mgrMetricCard('Заказы / клики', mgrFmtNumber(manager.orders) + ' / ' + mgrFmtNumber(manager.clicks)));
+    section.appendChild(cards);
+    var table = mgrCreate('table', null, 'mgr-table');
+    var head = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    ['Кампания', 'Расход', 'Заказы', 'Выручка', 'Результат'].forEach(function(label) { headRow.appendChild(mgrCreate('th', label)); });
+    head.appendChild(headRow);
+    var body = document.createElement('tbody');
+    manager.campaigns.forEach(function(campaign) {
+      var row = document.createElement('tr');
+      row.appendChild(mgrCreate('td', campaign.name + ' · #' + campaign.id));
+      row.appendChild(mgrCreate('td', mgrFmtMoney(campaign.spend)));
+      row.appendChild(mgrCreate('td', mgrFmtNumber(campaign.orders)));
+      row.appendChild(mgrCreate('td', mgrFmtMoney(campaign.revenue)));
+      var result = mgrCreate('td', mgrFmtMoney(campaign.result));
+      result.style.color = campaign.result >= 0 ? 'var(--green)' : 'var(--red)';
+      row.appendChild(result);
+      body.appendChild(row);
+    });
+    table.appendChild(head);
+    table.appendChild(body);
+    section.appendChild(table);
+    root.appendChild(section);
+  });
+  var note = mgrCreate('p', '«Результат до себестоимости» = сумма заказов из рекламы − расходы на рекламу. Это не чистая прибыль по товару: комиссия WB, логистика и себестоимость в нём не вычтены.', 'mgr-muted');
+  note.style.margin = '12px 0 0';
+  root.appendChild(note);
 }
 
 // ════════════════════════════════════════════
@@ -2509,7 +3449,7 @@ init();
 <div id="isPastePopup" style="display:none">
   <div class="pp-title">Куда вставить?</div>
   <button onclick="isPasteConfirm('prod')"><span data-icon="image" aria-hidden="true"></span> Фото товара</button>
-  <button onclick="isPasteConfirm('ref')"><span data-icon="palette" aria-hidden="true"></span> Стиль (reference)</button>
+  <button onclick="isPasteConfirm('ref')"><span data-icon="image" aria-hidden="true"></span> Референс стиля</button>
   <button onclick="isPasteConfirm('cancel')" style="color:var(--muted)">Отмена</button>
 </div>
 <!-- ═══ МОДАЛ: СЕБЕСТОИМОСТЬ ТОВАРОВ ═══ -->

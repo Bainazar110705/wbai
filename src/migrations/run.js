@@ -1,4 +1,8 @@
-const migrations = [require('./001_initial')];
+const migrations = [
+  require('./001_initial'),
+  require('./002_manager_campaigns'),
+  require('./003_wb_analytics_cache')
+];
 const logger = require('../platform/logger');
 
 async function runMigrations(pool) {

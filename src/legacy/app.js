@@ -1062,6 +1062,79 @@ app.get('/api/wb-token/status', authMiddleware, async (req, res) => {
   res.json({ hasToken: !!u?.wb_api_token, tokenPreview: u?.wb_api_token ? '****'+u.wb_api_token.slice(-6) : null });
 });
 
+// WB обновляет заказы примерно раз в 30 минут, но пользователь может часто
+// переключать фильтры. Кэш снимает повторные запросы, а не подменяет данные.
+const WB_ANALYTICS_CACHE_TTL_MS = {
+  orders: 5 * 60 * 1000,
+  finance: 30 * 60 * 1000
+};
+const wbAnalyticsSourceRequests = new Map();
+
+function parseAnalyticsCachePayload(value) {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return null; }
+}
+
+function analyticsCacheInfo(row, cached, stale) {
+  return {
+    payload: parseAnalyticsCachePayload(row.payload),
+    cached: !!cached,
+    stale: !!stale,
+    fetchedAt: new Date(row.fetched_at).toISOString()
+  };
+}
+
+async function findAnalyticsSourceCache(userId, source, dateFrom, dateTo, freshAfter) {
+  const params = [userId, source, dateFrom, dateTo];
+  let freshness = '';
+  if (freshAfter) {
+    params.push(freshAfter);
+    freshness = 'AND fetched_at >= ?';
+  }
+  return db.getAsync(
+    `SELECT payload, fetched_at
+     FROM wb_analytics_source_cache
+     WHERE user_id=? AND source=? AND date_from<=?::date AND date_to>=?::date ${freshness}
+     ORDER BY fetched_at DESC LIMIT 1`,
+    params
+  );
+}
+
+async function loadAnalyticsSource({ userId, source, dateFrom, dateTo, fetchSource }) {
+  const ttl = WB_ANALYTICS_CACHE_TTL_MS[source];
+  const freshAfter = new Date(Date.now() - ttl).toISOString();
+  const cached = await findAnalyticsSourceCache(userId, source, dateFrom, dateTo, freshAfter);
+  if (cached) return analyticsCacheInfo(cached, true, false);
+
+  const requestKey = `${userId}:${source}:${dateFrom}:${dateTo}`;
+  let pending = wbAnalyticsSourceRequests.get(requestKey);
+  if (!pending) {
+    pending = (async () => {
+      const payload = await fetchSource();
+      const fetchedAt = new Date().toISOString();
+      await db.runAsync(
+        `INSERT INTO wb_analytics_source_cache (user_id, source, date_from, date_to, payload, fetched_at)
+         VALUES (?, ?, ?, ?, ?::jsonb, ?)
+         ON CONFLICT (user_id, source, date_from, date_to) DO UPDATE
+           SET payload=EXCLUDED.payload, fetched_at=EXCLUDED.fetched_at`,
+        [userId, source, dateFrom, dateTo, JSON.stringify(payload), fetchedAt]
+      );
+      return { payload, fetchedAt };
+    })().finally(() => wbAnalyticsSourceRequests.delete(requestKey));
+    wbAnalyticsSourceRequests.set(requestKey, pending);
+  }
+
+  try {
+    const result = await pending;
+    return { payload: result.payload, cached: false, stale: false, fetchedAt: result.fetchedAt };
+  } catch (error) {
+    // Если WB временно недоступен, не стираем ранее полученные данные за тот же период.
+    const stale = await findAnalyticsSourceCache(userId, source, dateFrom, dateTo);
+    if (stale) return analyticsCacheInfo(stale, true, true);
+    throw error;
+  }
+}
+
 // GET /api/wb-analytics
 app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const { period, from, to } = req.query;
@@ -1109,18 +1182,34 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const inRange     = d => d >= dateFrom && d <= dateTo;
     const prevInRange = d => d >= prevFrom  && d <= prevTo;
 
-    // ОДИН запрос от prevFrom — покрывает и текущий, и предыдущий период.
-    // Два отдельных запроса бьют по rate-limit WB (1 req/min) → второй падает тихо → prevTotals=0.
-    const allOrdersRaw = await wbFetch(`/api/v1/supplier/orders?dateFrom=${prevFrom}`);
-    await new Promise(r => setTimeout(r, 600));
+    // ОДИН запрос от prevFrom покрывает текущий и предыдущий период. Повторные
+    // открытия за 5 минут получают данные из PostgreSQL, а не идут в WB.
+    const ordersSource = await loadAnalyticsSource({
+      userId: req.user.id,
+      source: 'orders',
+      dateFrom: prevFrom,
+      dateTo,
+      fetchSource: () => wbFetch(`/api/v1/supplier/orders?dateFrom=${prevFrom}`)
+    });
+    const allOrdersRaw = Array.isArray(ordersSource.payload) ? ordersSource.payload : [];
 
     // Финансовый отчёт для прибыли (задержка 5-7 дней от WB)
-    let reportRaw = [];
+    let reportRaw = [], financeSource = null;
     try {
       const repFrom = new Date(dateFrom); repFrom.setDate(repFrom.getDate()-7);
-      const rr = await wbFetch(`/api/v1/supplier/reportDetailByPeriod?dateFrom=${repFrom.toISOString().slice(0,10)}&dateTo=${dateTo}&rrdid=0`);
-      reportRaw = Array.isArray(rr) ? rr : [];
-    } catch(e) { reportRaw = []; }
+      const financeFrom = repFrom.toISOString().slice(0,10);
+      financeSource = await loadAnalyticsSource({
+        userId: req.user.id,
+        source: 'finance',
+        dateFrom: financeFrom,
+        dateTo,
+        fetchSource: () => wbFetch(`/api/v1/supplier/reportDetailByPeriod?dateFrom=${financeFrom}&dateTo=${dateTo}&rrdid=0`)
+      });
+      reportRaw = Array.isArray(financeSource.payload) ? financeSource.payload : [];
+    } catch(e) {
+      console.warn('[WBai] financial analytics unavailable:', e.message);
+      reportRaw = [];
+    }
 
     // Загружаем себестоимости пользователя
     const costsRows = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
@@ -1245,7 +1334,47 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const kztPrevTotals = { orders: prevTotals.orders };
     kztFields.forEach(f => kztPrevTotals[f] = toKzt(prevTotals[f]));
 
-    res.json({ rows: kztRows, totals: kztTotals, prevTotals: kztPrevTotals, dateFrom, dateTo, prevFrom, prevTo, rubKztRate: rubKzt });
+    const response = {
+      rows: kztRows,
+      totals: kztTotals,
+      prevTotals: kztPrevTotals,
+      dateFrom,
+      dateTo,
+      prevFrom,
+      prevTo,
+      rubKztRate: rubKzt,
+      cache: {
+        orders: {
+          cached: ordersSource.cached,
+          stale: ordersSource.stale,
+          fetchedAt: ordersSource.fetchedAt
+        },
+        finance: financeSource ? {
+          cached: financeSource.cached,
+          stale: financeSource.stale,
+          fetchedAt: financeSource.fetchedAt
+        } : { unavailable: true }
+      }
+    };
+    await db.runAsync(
+      `INSERT INTO wb_analytics_snapshots
+       (user_id, date_from, date_to, payload, orders_fetched_at, finance_fetched_at, calculated_at)
+       VALUES (?, ?, ?, ?::jsonb, ?, ?, NOW())
+       ON CONFLICT (user_id, date_from, date_to) DO UPDATE
+         SET payload=EXCLUDED.payload,
+             orders_fetched_at=EXCLUDED.orders_fetched_at,
+             finance_fetched_at=EXCLUDED.finance_fetched_at,
+             calculated_at=NOW()`,
+      [
+        req.user.id,
+        dateFrom,
+        dateTo,
+        JSON.stringify(response),
+        ordersSource.fetchedAt,
+        financeSource?.fetchedAt || null
+      ]
+    );
+    res.json(response);
   } catch(e) {
     console.error('[WBai] wb-analytics error:', e.message);
     res.status(500).json({ error: e.message });
@@ -1291,6 +1420,214 @@ app.get('/api/wb-weekly-report', authMiddleware, async (req, res) => {
   } catch(e) {
     console.error('[WBai] wb-weekly-report error:', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Отчёт по менеджерам рекламы ──────────────────────────────────────────────
+// Менеджер в WBai — это владелец выбранных рекламных кампаний. Назначения
+// хранятся отдельно для каждого пользователя, а значения всегда запрашиваются
+// из WB по его сохранённому токену.
+function managerReportDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? date.getTime() : null;
+}
+
+function managerCampaignId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function managerNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function managerDayKey(value) {
+  const key = String(value || '').slice(0, 10);
+  return managerReportDate(key) === null ? null : key;
+}
+
+function managerReportRange(query) {
+  const today = new Date();
+  const defaultTo = today.toISOString().slice(0, 10);
+  const defaultFromDate = new Date(today);
+  defaultFromDate.setDate(defaultFromDate.getDate() - 29);
+  const dateFrom = query.from || defaultFromDate.toISOString().slice(0, 10);
+  const dateTo = query.to || defaultTo;
+  const fromTime = managerReportDate(dateFrom);
+  const toTime = managerReportDate(dateTo);
+  if (fromTime === null || toTime === null || fromTime > toTime) return null;
+  // Both WB Promotion endpoints used below accept a maximum 31-day interval.
+  if ((toTime - fromTime) / 86400000 > 30) return null;
+  return { dateFrom, dateTo };
+}
+
+async function managerWbFetch(url, token) {
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    signal: AbortSignal.timeout(20_000)
+  });
+  if (response.status === 401) throw Object.assign(new Error('Токен WB недействителен.'), { status: 400 });
+  if (response.status === 403) throw Object.assign(new Error('В токене WB нет доступа «Продвижение». Добавьте его в настройках WB.'), { status: 403 });
+  if (response.status === 429) throw Object.assign(new Error('WB временно ограничил запросы. Повторите через минуту.'), { status: 429 });
+  if (!response.ok) throw Object.assign(new Error(`WB API вернул ошибку ${response.status}.`), { status: 502 });
+  return response.json();
+}
+
+app.get('/api/manager-campaigns', authMiddleware, async (req, res) => {
+  const assignments = await db.allAsync(
+    `SELECT id, manager_name, campaign_id, campaign_name, created_at, updated_at
+     FROM manager_campaigns WHERE user_id=? ORDER BY manager_name, campaign_name, campaign_id`,
+    [req.user.id]
+  );
+  res.json({ assignments });
+});
+
+app.post('/api/manager-campaigns', authMiddleware, async (req, res) => {
+  const body = req.body || {};
+  const managerName = String(body.manager_name || '').trim().replace(/\s+/g, ' ');
+  const campaignId = managerCampaignId(body.campaign_id);
+  const campaignName = String(body.campaign_name || '').trim().slice(0, 200);
+  if (!managerName || managerName.length > 80) return res.status(400).json({ error: 'Введите имя менеджера длиной до 80 символов.' });
+  if (!campaignId) return res.status(400).json({ error: 'Выберите корректную рекламную кампанию.' });
+
+  await db.runAsync(
+    `INSERT INTO manager_campaigns (user_id, manager_name, campaign_id, campaign_name, updated_at)
+     VALUES (?, ?, ?, ?, NOW())
+     ON CONFLICT (user_id, campaign_id) DO UPDATE
+       SET manager_name=EXCLUDED.manager_name, campaign_name=EXCLUDED.campaign_name, updated_at=NOW()`,
+    [req.user.id, managerName, campaignId, campaignName]
+  );
+  res.json({ ok: true });
+});
+
+app.delete('/api/manager-campaigns/:id', authMiddleware, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'Некорректное назначение.' });
+  await db.runAsync('DELETE FROM manager_campaigns WHERE id=? AND user_id=?', [id, req.user.id]);
+  res.json({ ok: true });
+});
+
+app.get('/api/wb-advert-campaigns', authMiddleware, async (req, res) => {
+  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  try {
+    const payload = await managerWbFetch('https://advert-api.wildberries.ru/api/advert/v2/adverts', user.wb_api_token);
+    const source = Array.isArray(payload?.adverts) ? payload.adverts : (Array.isArray(payload) ? payload : []);
+    const campaigns = source.flatMap(group => {
+      const items = Array.isArray(group?.advert_list) ? group.advert_list.map(item => ({ ...group, ...item })) : [group];
+      return items.map(item => {
+        const id = managerCampaignId(item?.advertId ?? item?.id);
+        if (!id) return null;
+        return {
+          id,
+          name: String(item.name || item.settings?.name || `Кампания ${id}`).slice(0, 200),
+          status: item.status ?? null,
+          type: item.type ?? null
+        };
+      }).filter(Boolean);
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    res.json({ campaigns });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message || 'Не удалось получить рекламные кампании WB.' });
+  }
+});
+
+app.get('/api/wb-manager-report', authMiddleware, async (req, res) => {
+  const range = managerReportRange(req.query);
+  if (!range) return res.status(400).json({ error: 'Укажите корректный период не более 31 дня.' });
+
+  const assignments = await db.allAsync(
+    `SELECT manager_name, campaign_id, campaign_name
+     FROM manager_campaigns WHERE user_id=? ORDER BY manager_name, campaign_id`,
+    [req.user.id]
+  );
+  if (!assignments.length) return res.json({ dateFrom: range.dateFrom, dateTo: range.dateTo, managers: [], rubKztRate: null });
+
+  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+
+  try {
+    const assignmentByCampaign = new Map(assignments.map(item => [Number(item.campaign_id), item]));
+    const campaignIds = [...assignmentByCampaign.keys()];
+    const spendByCampaign = new Map(campaignIds.map(id => [id, 0]));
+    const statsByCampaign = new Map(campaignIds.map(id => [id, { views: 0, clicks: 0, orders: 0, revenue: 0 }]));
+
+    const charges = await managerWbFetch(
+      `https://advert-api.wildberries.ru/adv/v1/upd?from=${range.dateFrom}&to=${range.dateTo}`,
+      user.wb_api_token
+    );
+    for (const charge of Array.isArray(charges) ? charges : []) {
+      const campaignId = managerCampaignId(charge?.advertId ?? charge?.id);
+      const day = managerDayKey(charge?.updTime);
+      if (!campaignId || !day || !assignmentByCampaign.has(campaignId)) continue;
+      const amount = managerNumber(charge.updSum);
+      if (amount > 0) spendByCampaign.set(campaignId, spendByCampaign.get(campaignId) + amount);
+    }
+
+    // WB разрешает несколько id в fullstats; небольшие пакеты не упираются в лимит URL.
+    for (let index = 0; index < campaignIds.length; index += 50) {
+      // У fullstats лимит 20 секунд между запросами на кабинет.
+      if (index > 0) await new Promise(resolve => setTimeout(resolve, 20_000));
+      const ids = campaignIds.slice(index, index + 50).join(',');
+      const stats = await managerWbFetch(
+        `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${ids}&beginDate=${range.dateFrom}&endDate=${range.dateTo}`,
+        user.wb_api_token
+      );
+      for (const campaign of Array.isArray(stats) ? stats : []) {
+        const campaignId = managerCampaignId(campaign?.advertId ?? campaign?.id);
+        if (!campaignId || !statsByCampaign.has(campaignId)) continue;
+        const target = statsByCampaign.get(campaignId);
+        for (const day of Array.isArray(campaign.days) ? campaign.days : []) {
+          const date = managerDayKey(day?.date);
+          if (!date || date < range.dateFrom || date > range.dateTo) continue;
+          target.views += Math.max(0, Math.trunc(managerNumber(day.views)));
+          target.clicks += Math.max(0, Math.trunc(managerNumber(day.clicks)));
+          target.orders += Math.max(0, Math.trunc(managerNumber(day.orders)));
+          target.revenue += Math.max(0, managerNumber(day.sum_price ?? day.sumPrice));
+        }
+      }
+    }
+
+    const rubKztRate = await getRubKztRate();
+    const grouped = new Map();
+    for (const [campaignId, assignment] of assignmentByCampaign) {
+      const metrics = statsByCampaign.get(campaignId);
+      const item = grouped.get(assignment.manager_name) || {
+        name: assignment.manager_name,
+        campaigns: [], views: 0, clicks: 0, orders: 0, spend: 0, revenue: 0
+      };
+      const spend = Math.round((spendByCampaign.get(campaignId) || 0) * rubKztRate);
+      const revenue = Math.round((metrics.revenue || 0) * rubKztRate);
+      const campaign = {
+        id: campaignId,
+        name: assignment.campaign_name || `Кампания ${campaignId}`,
+        views: metrics.views,
+        clicks: metrics.clicks,
+        orders: metrics.orders,
+        spend,
+        revenue,
+        result: revenue - spend
+      };
+      item.campaigns.push(campaign);
+      item.views += campaign.views;
+      item.clicks += campaign.clicks;
+      item.orders += campaign.orders;
+      item.spend += campaign.spend;
+      item.revenue += campaign.revenue;
+      grouped.set(assignment.manager_name, item);
+    }
+    const managers = [...grouped.values()].map(item => ({
+      ...item,
+      result: item.revenue - item.spend,
+      drr: item.revenue > 0 ? Math.round(item.spend / item.revenue * 10000) / 100 : 0,
+      campaigns: item.campaigns.sort((a, b) => b.spend - a.spend)
+    })).sort((a, b) => b.spend - a.spend);
+
+    res.json({ dateFrom: range.dateFrom, dateTo: range.dateTo, managers, rubKztRate });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message || 'Не удалось получить отчёт по менеджерам.' });
   }
 });
 
