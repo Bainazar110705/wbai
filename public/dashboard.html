@@ -1633,8 +1633,8 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
       <div class="an-period-bar" id="anPeriodBar">
         <button class="an-period-btn" data-p="today">Сегодня</button>
-        <button class="an-period-btn on" data-p="week">Неделя</button>
-        <button class="an-period-btn" data-p="2weeks">2 недели</button>
+        <button class="an-period-btn" data-p="week">Неделя</button>
+        <button class="an-period-btn on" data-p="2weeks">2 недели</button>
         <button class="an-period-btn" data-p="month">Месяц</button>
         <button class="an-period-btn" data-p="3months">3 месяца</button>
         <button class="an-period-btn" data-p="halfyear">Полгода</button>
@@ -1662,11 +1662,11 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-period" id="anMSumPeriod"></div>
         </div>
         <div class="an-card" style="border-color:#22d37a33;background:linear-gradient(135deg,rgba(34,211,122,.04),transparent)">
-          <div class="an-card-lbl" style="color:#22d37a">Маржа (чистая)</div>
+          <div class="an-card-lbl" style="color:#22d37a">Расчётная прибыль</div>
           <div class="an-card-val" id="anMMargin" style="color:#22d37a">—</div>
           <span class="an-card-delta eq" id="anMMarginDelta"></span>
           <div class="an-card-period" id="anMMarginPeriod"></div>
-          <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.6">Данные с задержкой 5–7 дней</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.6">По отчётам реализации WB</div>
         </div>
       </div>
 
@@ -1679,11 +1679,15 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <!-- Разбивка расходов -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
         <div class="an-card" style="padding:12px 14px">
-          <div class="an-card-lbl" style="font-size:11px">К выплате WB</div>
+          <div class="an-card-lbl" style="font-size:11px">К перечислению за товары</div>
           <div class="an-card-val" id="anMPayable" style="font-size:18px">—</div>
         </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#0071e333">
+          <div class="an-card-lbl" style="font-size:11px;color:#0071e3">Реализованный оборот WB</div>
+          <div class="an-card-val" id="anMRetailAmount" style="font-size:18px;color:#0071e3">—</div>
+        </div>
         <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
-          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Себестоимость</div>
+          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Себестоимость реализаций</div>
           <div class="an-card-val" id="anMCogs" style="font-size:18px;color:#e74c3c">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#ff6b3533">
@@ -1702,6 +1706,18 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Штрафы</div>
           <div class="an-card-val" id="anMPenalty" style="font-size:18px;color:#e74c3c">—</div>
         </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#d3540033">
+          <div class="an-card-lbl" style="font-size:11px;color:#d35400">Удержания</div>
+          <div class="an-card-val" id="anMDeduction" style="font-size:18px;color:#d35400">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#8e44ad33">
+          <div class="an-card-lbl" style="font-size:11px;color:#8e44ad">Платная приёмка</div>
+          <div class="an-card-val" id="anMAcceptance" style="font-size:18px;color:#8e44ad">—</div>
+        </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#27ae6033">
+          <div class="an-card-lbl" style="font-size:11px;color:#27ae60">Доплаты WB</div>
+          <div class="an-card-val" id="anMAdditionalPayment" style="font-size:18px;color:#27ae60">—</div>
+        </div>
       </div>
 
       <div class="an-chart-card">
@@ -1710,7 +1726,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-legend">
             <div class="an-legend-item"><div class="an-legend-dot" style="background:var(--p)"></div>Заказы</div>
             <div class="an-legend-item"><div class="an-legend-dot" style="background:#0071e3"></div>Выручка</div>
-            <div class="an-legend-item"><div class="an-legend-dot" style="background:#22d37a"></div>Маржа</div>
+            <div class="an-legend-item"><div class="an-legend-dot" style="background:#22d37a"></div>Расчётная прибыль</div>
           </div>
         </div>
         <div class="an-chart-wrap">
@@ -2702,7 +2718,7 @@ function isRenderHistory(){
 // ═══════════════════════════════════════════════════
 //  АНАЛИТИКА (WB API)
 // ═══════════════════════════════════════════════════
-var AN = { period:'week', data:[], animFrame:null, animStart:null, initialized:false, loaded:false, hasToken:false };
+var AN = { period:'2weeks', data:[], animFrame:null, animStart:null, initialized:false, loaded:false, hasToken:false, financeReady:false };
 var AN_MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 
 async function anInit() {
@@ -2782,7 +2798,7 @@ async function anDisconnectToken() {
   AN.hasToken=false; AN.loaded=false; await anCheckToken();
 }
 
-async function anLoad(from, to) {
+async function anLoad(from, to, forceRefresh) {
   if (!AN.hasToken) return;
   var btn = document.getElementById('anRefreshBtn');
   if (btn) btn.disabled=true;
@@ -2794,18 +2810,24 @@ async function anLoad(from, to) {
   try {
     var url = '/api/wb-analytics?period='+AN.period;
     if (from&&to) url='/api/wb-analytics?from='+from+'&to='+to;
+    if(forceRefresh) url += '&refresh=1';
     var r = await fetch(url, {headers:{Authorization:'Bearer '+token}});
     var d;
     try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
     if (!r.ok) { anShowErr(d.error||'Ошибка'); return; }
-    anUpdateMetrics(d.totals, d.prevTotals, AN.period);
+    AN.financeReady = !!(d.finance && d.finance.status === 'ready');
+    anUpdateMetrics(d.totals, d.prevTotals, AN.period, d.finance);
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
     var now=new Date();
     var rateStr = d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
-    var cache=d.cache||{}, sources=[cache.orders,cache.finance].filter(Boolean);
+    var cache=d.cache||{}, sources=[cache.salesFunnel,cache.salesFunnelBuckets].filter(Boolean);
     var isStale=sources.some(function(source){return source.stale;});
     var isCached=sources.some(function(source){return source.cached;});
-    var dataLabel=isStale ? ' · сохранённые данные' : isCached ? ' · кэш WB' : ' · данные WB';
+    var refreshLimited=sources.some(function(source){return source.refreshLimited;});
+    var dataLabel=isStale ? ' · сохранённая воронка WB' : isCached ? ' · кэш воронки WB' : ' · воронка WB';
+    if(refreshLimited) dataLabel += ' · обновить можно через минуту';
+    if(d.finance && d.finance.status === 'unavailable') dataLabel += ' · финансы недоступны';
+    else if(d.finance && d.finance.status === 'pending') dataLabel += ' · финотчёт ещё не сформирован';
     var sourceTimes=sources.map(function(source){return new Date(source.fetchedAt||0).getTime();}).filter(Boolean);
     var dataTime=sourceTimes.length ? new Date(Math.min.apply(null,sourceTimes)) : now;
     document.getElementById('anUpdatedAt').textContent=dataTime.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+dataLabel+rateStr;
@@ -2831,8 +2853,8 @@ async function anApplyCustom() {
 function anRefresh() {
   var icon=document.getElementById('anRefreshIcon');
   if(icon){icon.style.animation='spin 1s linear infinite';setTimeout(function(){icon.style.animation='';},800);}
-  if(AN.period==='custom') anLoad(document.getElementById('anDateFrom').value, document.getElementById('anDateTo').value);
-  else anLoad();
+  if(AN.period==='custom') anLoad(document.getElementById('anDateFrom').value, document.getElementById('anDateTo').value, true);
+  else anLoad(null, null, true);
 }
 
 function anFmt(n){n=parseInt(n)||0;if(n>=1e9)return(n/1e9).toFixed(1).replace('.',',')+' млрд';if(n>=1e6)return(n/1e6).toFixed(1).replace('.',',')+' млн';return n.toLocaleString('ru');}
@@ -2852,58 +2874,100 @@ function anSetMetric(valId,deltaId,periodId,val,prev,lbl,isCnt){
 
 function anSetVal(id,val){var el=document.getElementById(id);if(el)el.textContent=anFmtCur(val);}
 
-function anUpdateMetrics(totals,prev,period){
+function anSetUnavailable(id){var el=document.getElementById(id);if(el)el.textContent='—';}
+
+function anUpdateMetrics(totals,prev,period,finance){
   var labels={today:'от вчера',week:'за прошлую неделю','2weeks':'за предыдущие 2 нед.',month:'от прошлого месяца','3months':'за 3 предыдущих мес.',halfyear:'за предыдущие полгода',year:'за прошлый год',custom:'за предыдущий период'};
   var lbl=labels[period]||'';
   anSetMetric('anMCount','anMCountDelta','anMCountPeriod',totals.orders||0,prev.orders||0,lbl,true);
   anSetMetric('anMSum','anMSumDelta','anMSumPeriod',totals.revenue||0,prev.revenue||0,lbl,false);
-  // Если есть себестоимость — показываем чистую прибыль, иначе маржу до себестоимости
-  var hasNetMargin = (totals.cogs || 0) > 0;
-  var marginVal = hasNetMargin ? (totals.net_margin||0) : (totals.margin||0);
-  var prevMarginVal = hasNetMargin ? (prev.net_margin||0) : (prev.margin||0);
-  anSetMetric('anMMargin','anMMarginDelta','anMMarginPeriod', marginVal, prevMarginVal, lbl, false);
   var lbl2 = document.getElementById('anMMargin');
-  if(lbl2) lbl2.closest('.an-card').querySelector('.an-card-lbl').textContent = hasNetMargin ? 'Чистая прибыль' : 'Маржа (без себест.)';
+  var financeReady = !!(finance && finance.status === 'ready' && finance.currentAvailable);
+  var hasNetMargin = financeReady && totals.cogs !== null && totals.cogs !== undefined;
+  if(financeReady){
+    var marginVal = hasNetMargin ? totals.net_margin : totals.margin;
+    if(finance.previousAvailable){
+      var prevMarginVal = hasNetMargin ? prev.net_margin : prev.margin;
+      anSetMetric('anMMargin','anMMarginDelta','anMMarginPeriod', marginVal, prevMarginVal, lbl, false);
+    } else {
+      if(lbl2) lbl2.textContent=anFmtCur(marginVal);
+      var marginDelta=document.getElementById('anMMarginDelta');
+      if(marginDelta){marginDelta.textContent='';marginDelta.className='an-card-delta eq';}
+      var marginPeriod=document.getElementById('anMMarginPeriod');
+      if(marginPeriod) marginPeriod.textContent='нет финансовых данных для сравнения';
+    }
+  } else {
+    anSetUnavailable('anMMargin');
+    var marginDelta=document.getElementById('anMMarginDelta');
+    if(marginDelta){marginDelta.textContent='';marginDelta.className='an-card-delta eq';}
+    var marginPeriod=document.getElementById('anMMarginPeriod');
+    if(marginPeriod) marginPeriod.textContent=finance && finance.status==='pending' ? 'отчёт WB ещё не сформирован' : 'финансовые данные недоступны';
+  }
+  if(lbl2) lbl2.closest('.an-card').querySelector('.an-card-lbl').textContent = hasNetMargin ? 'Расчётная прибыль' : 'Финансовый результат WB';
   // Разбивка расходов
-  anSetVal('anMPayable',    totals.payable    || 0);
-  anSetVal('anMCogs',       totals.cogs       || 0);
-  anSetVal('anMCommission', totals.commission || 0);
-  anSetVal('anMLogistics',  totals.logistics  || 0);
-  anSetVal('anMStorage',    totals.storage    || 0);
-  anSetVal('anMPenalty',    totals.penalty    || 0);
+  ['anMPayable','anMRetailAmount','anMCogs','anMCommission','anMLogistics','anMStorage','anMPenalty','anMDeduction','anMAcceptance','anMAdditionalPayment'].forEach(function(id){
+    if(!financeReady) anSetUnavailable(id);
+  });
+  if(financeReady){
+    anSetVal('anMPayable', totals.payable);
+    anSetVal('anMRetailAmount', totals.retailAmount);
+    anSetVal('anMCogs', totals.cogs);
+    anSetVal('anMCommission', totals.commission);
+    anSetVal('anMLogistics', totals.logistics);
+    anSetVal('anMStorage', totals.storage);
+    anSetVal('anMPenalty', totals.penalty);
+    anSetVal('anMDeduction', totals.deduction);
+    anSetVal('anMAcceptance', totals.acceptance);
+    anSetVal('anMAdditionalPayment', totals.additionalPayment);
+  }
   // Подсказка
   var hint = document.getElementById('anCogsHint');
-  if(hint) hint.textContent = hasNetMargin ? 'Себестоимость учтена в расчёте прибыли' : 'Введите себестоимость товаров для расчёта чистой прибыли';
+  if(hint){
+    if(!financeReady) hint.textContent = finance && finance.status==='pending' ? 'Финансовый отчёт WB за этот период ещё не сформирован' : 'Финансовые данные WB недоступны — прибыль не рассчитана';
+    else if((totals.unpriced_units||0)>0) hint.textContent = 'Не указана себестоимость для '+totals.unpriced_units+' реализованных ед.: '+(totals.unpriced_articles||[]).join(', ')+' — прибыль завышена';
+    else hint.textContent = hasNetMargin ? 'Прибыль сопоставлена с '+(totals.realized_units||0)+' реализованными ед. и удержаниями WB' : 'Введите себестоимость товаров для расчёта прибыли';
+  }
 }
 
 function anBuildChart(rows,dateFrom,dateTo,period){
   if(!rows||!rows.length){anShowErr('Нет данных за выбранный период');AN.data=[];return;}
   document.getElementById('anChartEmpty').style.display='none';
   document.getElementById('anCanvas').style.display='block';
+  var points=[];
+  var hasBuckets=rows.some(function(r){return r.bucketStart&&r.bucketEnd;});
+  if(hasBuckets){
+    points=rows.map(function(r){
+      var start=new Date(r.bucketStart+'T00:00:00');
+      var end=new Date(r.bucketEnd+'T00:00:00');
+      var startLabel=start.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'});
+      var endLabel=end.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'});
+      return {label:startLabel===endLabel?startLabel:startLabel+'–'+endLabel,count:r.orders||0,sum:r.revenue||0,margin:r.net_margin||0};
+    });
+  }
   var byDate={};
   rows.forEach(function(r){byDate[r.date]=r;});
-  var points=[],from=new Date(dateFrom),to=new Date(dateTo),diffDays=Math.round((to-from)/86400000)+1;
-  if(period==='today'){
+  var from=new Date(dateFrom),to=new Date(dateTo),diffDays=Math.round((to-from)/86400000)+1;
+  if(!hasBuckets&&period==='today'){
     var r=byDate[dateFrom]||{};
-    for(var h=0;h<24;h++){var f=Math.max(0,Math.sin(Math.PI*(h-7)/15));points.push({label:String(h).padStart(2,'0'),count:Math.round((r.orders||0)*f/8),sum:Math.round((r.revenue||0)*f/8),margin:Math.round((r.margin||0)*f/8)});}
-  } else if(period==='week'){
+    points.push({label:'Сегодня',count:r.orders||0,sum:r.revenue||0,margin:r.net_margin||0});
+  } else if(!hasBuckets&&period==='week'){
     var days=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-    for(var i=0;i<7;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:days[d.getDay()],count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
-  } else if(period==='2weeks'||(period==='custom'&&diffDays<=31)){
-    for(var i=0;i<diffDays;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
-  } else if(period==='month'){
+    for(var i=0;i<7;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:days[d.getDay()],count:rr.orders||0,sum:rr.revenue||0,margin:rr.net_margin||0});}
+  } else if(!hasBuckets&&(period==='2weeks'||(period==='custom'&&diffDays<=31))){
+    for(var i=0;i<diffDays;i++){var d=new Date(from);d.setDate(d.getDate()+i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:rr.orders||0,sum:rr.revenue||0,margin:rr.net_margin||0});}
+  } else if(!hasBuckets&&period==='month'){
     var dim=new Date(from.getFullYear(),from.getMonth()+1,0).getDate();
-    for(var i=1;i<=dim;i++){var d=new Date(from.getFullYear(),from.getMonth(),i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:String(i),count:rr.orders||0,sum:rr.revenue||0,margin:rr.margin||0});}
-  } else if(period==='3months'||(period==='custom'&&diffDays>31&&diffDays<=180)){
+    for(var i=1;i<=dim;i++){var d=new Date(from.getFullYear(),from.getMonth(),i);var ds=d.toISOString().slice(0,10);var rr=byDate[ds]||{};points.push({label:String(i),count:rr.orders||0,sum:rr.revenue||0,margin:rr.net_margin||0});}
+  } else if(!hasBuckets&&(period==='3months'||(period==='custom'&&diffDays>31&&diffDays<=180))){
     var weeks=Math.ceil(diffDays/7);
-    for(var w=0;w<weeks;w++){var ws=new Date(from);ws.setDate(ws.getDate()+w*7);var we=new Date(ws);we.setDate(we.getDate()+6);var wo=0,wr=0,wp=0;for(var d2=new Date(ws);d2<=we&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};wo+=rr.orders||0;wr+=rr.revenue||0;wp+=rr.margin||0;}points.push({label:ws.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:wo,sum:wr,margin:wp});}
-  } else {
+    for(var w=0;w<weeks;w++){var ws=new Date(from);ws.setDate(ws.getDate()+w*7);var we=new Date(ws);we.setDate(we.getDate()+6);var wo=0,wr=0,wp=0;for(var d2=new Date(ws);d2<=we&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};wo+=rr.orders||0;wr+=rr.revenue||0;wp+=rr.net_margin||0;}points.push({label:ws.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'}),count:wo,sum:wr,margin:wp});}
+  } else if(!hasBuckets) {
     var mc=Math.ceil(diffDays/30);
-    for(var m=0;m<mc;m++){var ms=new Date(from);ms.setMonth(ms.getMonth()+m);ms.setDate(1);var me=new Date(ms);me.setMonth(me.getMonth()+1);me.setDate(0);var mo=0,mr=0,mp=0;for(var d2=new Date(ms);d2<=me&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};mo+=rr.orders||0;mr+=rr.revenue||0;mp+=rr.margin||0;}points.push({label:AN_MONTHS[ms.getMonth()],count:mo,sum:mr,margin:mp});}
+    for(var m=0;m<mc;m++){var ms=new Date(from);ms.setMonth(ms.getMonth()+m);ms.setDate(1);var me=new Date(ms);me.setMonth(me.getMonth()+1);me.setDate(0);var mo=0,mr=0,mp=0;for(var d2=new Date(ms);d2<=me&&d2<=to;d2.setDate(d2.getDate()+1)){var rr=byDate[d2.toISOString().slice(0,10)]||{};mo+=rr.orders||0;mr+=rr.revenue||0;mp+=rr.net_margin||0;}points.push({label:AN_MONTHS[ms.getMonth()],count:mo,sum:mr,margin:mp});}
   }
   AN.data=points;
-  var titles={today:'График за сегодня (по часам)',week:'График за неделю','2weeks':'График за 2 недели',month:'График за месяц','3months':'График за 3 месяца',halfyear:'График за полгода',year:'График за год',custom:'График за выбранный период'};
-  document.getElementById('anChartTitle').textContent=titles[period]||'График';
+  var titles={today:'Итог за сегодня',week:'График за неделю','2weeks':'График за 2 недели',month:'График за месяц','3months':'График за 3 месяца',halfyear:'График за полгода',year:'График за год',custom:'График за выбранный период'};
+  document.getElementById('anChartTitle').textContent=hasBuckets?'Заказы и реализованная прибыль по интервалам':(titles[period]||'График');
   var c=document.getElementById('anXLabels');c.innerHTML='';var n=points.length,step=Math.max(1,Math.ceil(n/12));
   points.forEach(function(p,i){var el=document.createElement('div');el.className='an-xlabel';el.textContent=(i%step===0||i===n-1)?p.label:'';c.appendChild(el);});
   anAnimate();
@@ -2922,15 +2986,15 @@ function anDrawChart(progress){
   for(var i=0;i<=4;i++){var y=padT+cH-cH*i/4;ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+cW,y);ctx.stroke();ctx.fillStyle='#8888aa';ctx.font='9px monospace';ctx.textAlign='right';ctx.fillText(Math.round(maxCount*i/4),padL-6,y+3);}
   var getX=function(i){return padL+i*step;};
   var getY=function(v,max){return padT+cH-cH*(v/max)*anEaseOut(progress);};
-  function drawLine(key,max,color){ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.globalAlpha=1;ctx.lineJoin='round';ctx.lineCap='round';data.forEach(function(d,i){i===0?ctx.moveTo(getX(i),getY(d[key],max)):ctx.lineTo(getX(i),getY(d[key],max));});ctx.stroke();ctx.globalAlpha=0.07;ctx.fillStyle=color;ctx.lineTo(getX(n-1),padT+cH);ctx.lineTo(getX(0),padT+cH);ctx.closePath();ctx.fill();ctx.globalAlpha=1;}
-  drawLine('sum',maxSum,'#0071e3');drawLine('margin',maxMargin,'#22d37a');drawLine('count',maxCount,'#7b2ff7');
+  function drawLine(key,max,color){ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.globalAlpha=1;ctx.lineJoin='round';ctx.lineCap='round';data.forEach(function(d,i){i===0?ctx.moveTo(getX(i),getY(d[key],max)):ctx.lineTo(getX(i),getY(d[key],max));});ctx.stroke();if(n===1){ctx.beginPath();ctx.arc(getX(0),getY(data[0][key],max),4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();return;}ctx.globalAlpha=0.07;ctx.fillStyle=color;ctx.lineTo(getX(n-1),padT+cH);ctx.lineTo(getX(0),padT+cH);ctx.closePath();ctx.fill();ctx.globalAlpha=1;}
+  drawLine('sum',maxSum,'#0071e3');if(AN.financeReady)drawLine('margin',maxMargin,'#22d37a');drawLine('count',maxCount,'#7b2ff7');
   data.forEach(function(d,i){ctx.beginPath();ctx.arc(getX(i),getY(d.count,maxCount),3,0,Math.PI*2);ctx.fillStyle='#7b2ff7';ctx.fill();ctx.strokeStyle='#0f0f1a';ctx.lineWidth=1.5;ctx.stroke();});
 }
 function anAnimate(){if(AN.animFrame)cancelAnimationFrame(AN.animFrame);AN.animStart=null;function step(ts){if(!AN.animStart)AN.animStart=ts;var p=Math.min((ts-AN.animStart)/500,1);anDrawChart(p);if(p<1)AN.animFrame=requestAnimationFrame(step);}AN.animFrame=requestAnimationFrame(step);}
 function anSetupTooltip(){
   var canvas=document.getElementById('anCanvas'),tooltip=document.getElementById('anTooltip');
   if(!canvas||!tooltip)return;
-  canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Выручка</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Маржа</span><span class="an-tooltip-val green">'+anFmtCur(d.margin)+'</span></div>';});
+  canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=n===1?0:Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';var marginRow=AN.financeReady?'<div class="an-tooltip-row"><span class="an-tooltip-key">Расчётная прибыль</span><span class="an-tooltip-val green">'+anFmtCur(d.margin)+'</span></div>':'';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Выручка</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div>'+marginRow;});
   canvas.addEventListener('mouseleave',function(){tooltip.style.display='none';});
 }
 
@@ -3460,12 +3524,12 @@ init();
       <div id="cogsTitle" style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px"><span data-icon="settings" aria-hidden="true"></span> Себестоимость товаров</div>
       <button type="button" onclick="closeCogsModal()" aria-label="Закрыть окно себестоимости" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1"><span data-icon="x" aria-hidden="true"></span></button>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Цена закупки + доставка до WB, в рублях. Выберите несколько артикулов и задайте им одну цену сразу.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Цена закупки + доставка до WB, в тенге. Выберите несколько артикулов и задайте им одну цену сразу.</div>
 
     <!-- Панель массового заполнения -->
     <div id="cogsBulkBar" style="display:none;background:var(--surface2);border:1px solid var(--p);border-radius:10px;padding:10px 14px;margin-bottom:10px;align-items:center;gap:10px;flex-wrap:wrap">
       <div style="font-size:12px;font-weight:600;color:var(--p);flex:1" id="cogsBulkLabel">Выбрано 0 артикулов</div>
-      <label class="sr-only" for="cogsBulkInput">Себестоимость для выбранных товаров, рублей</label><input type="number" id="cogsBulkInput" min="0" step="1" placeholder="Себестоимость ₽" style="width:150px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit">
+      <label class="sr-only" for="cogsBulkInput">Себестоимость для выбранных товаров, тенге</label><input type="number" id="cogsBulkInput" min="0" step="1" placeholder="Себестоимость ₸" style="width:150px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit">
       <button onclick="applyBulkCogs()" style="padding:7px 14px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Применить к выбранным</button>
     </div>
 
@@ -3520,7 +3584,7 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 
 function renderCogsTable(articles) {
   if (!articles.length) {
-    document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Нет заказов за последние 90 дней</div>';
+    document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Нет товаров с заказами за последние 30 дней</div>';
     return;
   }
   var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
@@ -3528,7 +3592,7 @@ function renderCogsTable(articles) {
     '<th style="padding:8px 10px;width:32px"></th>' +
     '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">АРТИКУЛ</th>' +
     '<th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:600;font-size:11px">НАЗВАНИЕ</th>' +
-    '<th style="text-align:right;padding:8px 10px;color:var(--muted);font-weight:600;font-size:11px">СЕБЕСТ. ₽</th>' +
+    '<th style="text-align:right;padding:8px 10px;color:var(--muted);font-weight:600;font-size:11px">СЕБЕСТ. ₸</th>' +
     '</tr></thead><tbody id="cogsTbody">';
 
   articles.forEach(function(a, i) {
