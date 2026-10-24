@@ -20,7 +20,7 @@ const { registerStaticRoutes } = require('../routes/static.routes');
 const { createTemplatesRepository } = require('../repositories/templates.repository');
 const { createAuthService } = require('../services/auth.service');
 const { createTemplatesService } = require('../services/templates.service');
-const { createSalesFunnelService } = require('../services/wb-sales-funnel.service');
+const { createSalesFunnelService, funnelCacheTtlMs } = require('../services/wb-sales-funnel.service');
 const { createFinanceService, convertMoneyToKzt, calculateRealizedCogs } = require('../services/wb-finance.service');
 const { extractAdvertisingCampaigns, resolveAdvertisingCurrency } = require('../services/wb-advertising.service');
 const { createAuthController } = require('../controllers/auth.controller');
@@ -1153,9 +1153,10 @@ async function loadAnalyticsSource({
   fetchSource,
   exactRange = false,
   force = false,
-  minRefreshAgeMs = 60 * 1000
+  minRefreshAgeMs = 60 * 1000,
+  ttlMs
 }) {
-  const ttl = WB_ANALYTICS_CACHE_TTL_MS[source];
+  const ttl = ttlMs || WB_ANALYTICS_CACHE_TTL_MS[source];
   if (!ttl) throw new Error(`Не задан TTL для источника ${source}`);
   const maxAge = force ? minRefreshAgeMs : ttl;
   const freshAfter = new Date(Date.now() - maxAge).toISOString();
@@ -1200,12 +1201,13 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const wbToken = u.wb_api_token;
 
   const now = new Date();
+  const moscowToday = dateInTimeZone(now, 'Europe/Moscow');
   let dateFrom, dateTo;
   if (from && to) {
     dateFrom = from;
     dateTo = to;
   } else {
-    dateTo = dateInTimeZone(now, 'Europe/Moscow');
+    dateTo = moscowToday;
     const d = new Date(`${dateTo}T12:00:00.000Z`);
     switch(period) {
       case 'today': break;
@@ -1231,6 +1233,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const prevFrom = new Date(dateFromMs - diffMs - 86400000).toISOString().slice(0, 10);
   const inRange = day => day >= dateFrom && day <= dateTo;
   const prevInRange = day => day >= prevFrom && day <= prevTo;
+  const funnelTtlMs = funnelCacheTtlMs(dateTo, moscowToday);
 
   try {
     // Карточки, график и себестоимость используют один источник — Sales Funnel WB.
@@ -1241,6 +1244,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       dateTo,
       exactRange: true,
       force: forceRefresh,
+      ttlMs: funnelTtlMs,
       fetchSource: () => salesFunnelService.getPeriodSummary({
         token: wbToken,
         selectedPeriod: { start: dateFrom, end: dateTo },

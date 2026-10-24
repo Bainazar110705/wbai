@@ -4,6 +4,7 @@ const {
   createSalesFunnelService,
   aggregateProducts,
   calculateProductCogs,
+  funnelCacheTtlMs,
   splitPeriod,
   PAGE_SIZE
 } = require('../src/services/wb-sales-funnel.service');
@@ -182,4 +183,25 @@ test('calculateProductCogs uses funnel order counts and saved vendor costs', () 
 
   assert.equal(calculateProductCogs(metrics, costs), 1300);
   assert.equal(calculateProductCogs(metrics, costs, 'previousOrders'), 450);
+});
+
+test('funnelCacheTtlMs keeps today short-lived and closed periods hourly', () => {
+  assert.equal(funnelCacheTtlMs('2026-10-23', '2026-10-23'), 5 * 60 * 1000);
+  assert.equal(funnelCacheTtlMs('2026-10-22', '2026-10-23'), 60 * 60 * 1000);
+});
+
+test('getPeriodSummary keeps KZT funnel sums as WB Partners shows them', async () => {
+  const fetchImpl = async () => jsonResponse(200, { data: { currency: 'KZT', products: [
+    { product: { nmId: 1469134943, vendorCode: 'PURO FX-200' }, statistic: { selected: { orderCount: 1, orderSum: 66928 }, past: { orderCount: 0, orderSum: 0 } } },
+    { product: { nmId: 1429883545, vendorCode: 'PURO FX-201' }, statistic: { selected: { orderCount: 2, orderSum: 143267 }, past: { orderCount: 1, orderSum: 69691 } } }
+  ] } });
+  const summary = await createSalesFunnelService({ fetchImpl }).getPeriodSummary({
+    token: 'token',
+    selectedPeriod: { start: '2026-10-23', end: '2026-10-23' },
+    pastPeriod: { start: '2026-10-16', end: '2026-10-16' }
+  });
+
+  assert.equal(summary.currency, 'KZT');
+  assert.deepEqual(summary.current, { orders: 3, revenue: 210195 });
+  assert.deepEqual(summary.previous, { orders: 1, revenue: 69691 });
 });

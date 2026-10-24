@@ -2819,7 +2819,8 @@ async function anLoad(from, to, forceRefresh) {
     anUpdateMetrics(d.totals, d.prevTotals, AN.period, d.finance);
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
     var now=new Date();
-    var rateStr = d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
+    var usesRub = d.metricCurrency === 'RUB' || (d.finance && d.finance.currency === 'RUB');
+    var rateStr = usesRub && d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
     var cache=d.cache||{}, sources=[cache.salesFunnel,cache.salesFunnelBuckets].filter(Boolean);
     var isStale=sources.some(function(source){return source.stale;});
     var isCached=sources.some(function(source){return source.cached;});

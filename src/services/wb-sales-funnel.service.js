@@ -1,6 +1,10 @@
 const SALES_FUNNEL_URL = 'https://seller-analytics-api.wildberries.ru/api/analytics/v3/sales-funnel/products';
 const PAGE_SIZE = 1000;
 const PAGE_DELAY_MS = 20_100;
+// WB дописывает свежие заказы в воронку в течение дня, поэтому «сегодня»
+// кэшируем коротко, а закрытые периоды уже не меняются и живут час.
+const OPEN_PERIOD_CACHE_TTL_MS = 5 * 60 * 1000;
+const CLOSED_PERIOD_CACHE_TTL_MS = 60 * 60 * 1000;
 
 function wbAnalyticsError(status) {
   const messages = {
@@ -104,6 +108,10 @@ function deriveRemainingProductMetrics(totalMetrics, bucketMetrics) {
     currentOrders: Math.max(0, number(metric.currentOrders) - (used.get(metricKey(metric)) || 0)),
     previousOrders: 0
   }));
+}
+
+function funnelCacheTtlMs(periodEnd, today) {
+  return periodEnd >= today ? OPEN_PERIOD_CACHE_TTL_MS : CLOSED_PERIOD_CACHE_TTL_MS;
 }
 
 function createSalesFunnelService({ fetchImpl = fetch, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
@@ -255,6 +263,7 @@ module.exports = {
   aggregateProducts,
   productOrderMetrics,
   calculateProductCogs,
+  funnelCacheTtlMs,
   splitPeriod,
   deriveRemainingProductMetrics,
   wbAnalyticsError,
