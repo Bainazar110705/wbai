@@ -912,6 +912,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .an-token-block{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:16px;max-width:600px}
 .an-token-status{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap}
 .an-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.an-metrics.an-metrics-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.an-metrics.an-metrics-4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.an-metrics{grid-template-columns:1fr}}
 .an-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden}
 .an-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
@@ -1656,7 +1658,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-period" id="anMCountPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Выручка</div>
+          <div class="an-card-lbl">Заказали на сумму</div>
           <div class="an-card-val" id="anMSum">—</div>
           <span class="an-card-delta eq" id="anMSumDelta"></span>
           <div class="an-card-period" id="anMSumPeriod"></div>
@@ -1667,6 +1669,34 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <span class="an-card-delta eq" id="anMMarginDelta"></span>
           <div class="an-card-period" id="anMMarginPeriod"></div>
           <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.6">По отчётам реализации WB</div>
+        </div>
+      </div>
+
+      <!-- Выкупы и отмены — те же поля, что в «Этапах воронки продаж» WB -->
+      <div class="an-metrics an-metrics-4">
+        <div class="an-card">
+          <div class="an-card-lbl">Выкупили, шт</div>
+          <div class="an-card-val" id="anMBuyCount">—</div>
+          <span class="an-card-delta eq" id="anMBuyCountDelta"></span>
+          <div class="an-card-period" id="anMBuyCountPeriod"></div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-lbl">Выкупили на сумму</div>
+          <div class="an-card-val" id="anMBuySum">—</div>
+          <span class="an-card-delta eq" id="anMBuySumDelta"></span>
+          <div class="an-card-period" id="anMBuySumPeriod"></div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-lbl">Отменили и вернули, шт</div>
+          <div class="an-card-val" id="anMCancelCount">—</div>
+          <span class="an-card-delta eq" id="anMCancelCountDelta"></span>
+          <div class="an-card-period" id="anMCancelCountPeriod"></div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-lbl">Отменили и вернули на сумму</div>
+          <div class="an-card-val" id="anMCancelSum">—</div>
+          <span class="an-card-delta eq" id="anMCancelSumDelta"></span>
+          <div class="an-card-period" id="anMCancelSumPeriod"></div>
         </div>
       </div>
 
@@ -2798,13 +2828,15 @@ async function anDisconnectToken() {
   AN.hasToken=false; AN.loaded=false; await anCheckToken();
 }
 
+var AN_METRIC_IDS=['anMCount','anMSum','anMMargin','anMBuyCount','anMBuySum','anMCancelCount','anMCancelSum'];
+
 async function anLoad(from, to, forceRefresh) {
   if (!AN.hasToken) return;
   var btn = document.getElementById('anRefreshBtn');
   if (btn) btn.disabled=true;
-  ['anMCount','anMSum','anMMargin'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='...';});
-  ['anMCountDelta','anMSumDelta','anMMarginDelta'].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent='';el.className='an-card-delta eq';}});
-  ['anMCountPeriod','anMSumPeriod','anMMarginPeriod'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='';});
+  AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='...';});
+  AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id+'Delta');if(el){el.textContent='';el.className='an-card-delta eq';}});
+  AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id+'Period');if(el)el.textContent='';});
   document.getElementById('anChartEmpty').style.display='none';
   document.getElementById('anCanvas').style.display='block';
   try {
@@ -2837,7 +2869,7 @@ async function anLoad(from, to, forceRefresh) {
 }
 
 function anShowErr(msg) {
-  ['anMCount','anMSum','anMMargin'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='—';});
+  AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='—';});
   var empty=document.getElementById('anChartEmpty');
   var canvas=document.getElementById('anCanvas');
   if(empty){empty.style.display='block';document.getElementById('anChartEmptyText').textContent=msg;}
@@ -2861,11 +2893,13 @@ function anRefresh() {
 function anFmt(n){n=parseInt(n)||0;if(n>=1e9)return(n/1e9).toFixed(1).replace('.',',')+' млрд';if(n>=1e6)return(n/1e6).toFixed(1).replace('.',',')+' млн';return n.toLocaleString('ru');}
 function anFmtCur(n){return(parseInt(n)||0).toLocaleString('ru')+' ₸';}
 
-function anSetMetric(valId,deltaId,periodId,val,prev,lbl,isCnt){
+function anSetMetric(valId,deltaId,periodId,val,prev,lbl,isCnt,lowerIsBetter){
   var vEl=document.getElementById(valId); if(vEl)vEl.textContent=isCnt?anFmt(val):anFmtCur(val);
   var diff=val-prev;
   var dEl=document.getElementById(deltaId);
-  if(dEl){dEl.className='an-card-delta '+(diff>0?'up':diff<0?'dn':'eq');
+  // Для отмен рост — плохо: стрелка та же, цвет обратный.
+  var good=lowerIsBetter?diff<0:diff>0, bad=lowerIsBetter?diff>0:diff<0;
+  if(dEl){dEl.className='an-card-delta '+(good?'up':bad?'dn':'eq');
   var arrow=diff>0?'↑':diff<0?'↓':'→';
   var dVal=isCnt?Math.abs(diff).toLocaleString('ru'):anFmtCur(Math.abs(diff));
   var pct=prev?' ('+Math.abs(Math.round(diff/prev*100))+'%)':'';
@@ -2882,6 +2916,10 @@ function anUpdateMetrics(totals,prev,period,finance){
   var lbl=labels[period]||'';
   anSetMetric('anMCount','anMCountDelta','anMCountPeriod',totals.orders||0,prev.orders||0,lbl,true);
   anSetMetric('anMSum','anMSumDelta','anMSumPeriod',totals.revenue||0,prev.revenue||0,lbl,false);
+  anSetMetric('anMBuyCount','anMBuyCountDelta','anMBuyCountPeriod',totals.buyouts||0,prev.buyouts||0,lbl,true);
+  anSetMetric('anMBuySum','anMBuySumDelta','anMBuySumPeriod',totals.buyout_revenue||0,prev.buyout_revenue||0,lbl,false);
+  anSetMetric('anMCancelCount','anMCancelCountDelta','anMCancelCountPeriod',totals.cancels||0,prev.cancels||0,lbl,true,true);
+  anSetMetric('anMCancelSum','anMCancelSumDelta','anMCancelSumPeriod',totals.cancel_revenue||0,prev.cancel_revenue||0,lbl,false,true);
   var lbl2 = document.getElementById('anMMargin');
   var financeReady = !!(finance && finance.status === 'ready' && finance.currentAvailable);
   var hasNetMargin = financeReady && totals.cogs !== null && totals.cogs !== undefined;

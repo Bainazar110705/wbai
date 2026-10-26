@@ -25,18 +25,33 @@ function number(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Поля «Этапов воронки продаж» WB: заказы включают позже отменённые,
+// cancelCount/cancelSum — «Отменили и вернули» за тот же период.
+const PERIOD_METRICS = {
+  orders: 'orderCount',
+  revenue: 'orderSum',
+  buyouts: 'buyoutCount',
+  buyoutRevenue: 'buyoutSum',
+  cancels: 'cancelCount',
+  cancelRevenue: 'cancelSum'
+};
+
+function emptyPeriodMetrics() {
+  return Object.fromEntries(Object.keys(PERIOD_METRICS).map(key => [key, 0]));
+}
+
 function aggregateProducts(products) {
   return products.reduce((result, item) => {
     const selected = item?.statistic?.selected || {};
     const past = item?.statistic?.past || {};
-    result.current.orders += number(selected.orderCount);
-    result.current.revenue += number(selected.orderSum);
-    result.previous.orders += number(past.orderCount);
-    result.previous.revenue += number(past.orderSum);
+    for (const [key, field] of Object.entries(PERIOD_METRICS)) {
+      result.current[key] += number(selected[field]);
+      result.previous[key] += number(past[field]);
+    }
     return result;
   }, {
-    current: { orders: 0, revenue: 0 },
-    previous: { orders: 0, revenue: 0 }
+    current: emptyPeriodMetrics(),
+    previous: emptyPeriodMetrics()
   });
 }
 

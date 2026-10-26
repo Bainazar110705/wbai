@@ -1104,6 +1104,7 @@ app.get('/api/wb-token/status', authMiddleware, async (req, res) => {
 const WB_ANALYTICS_CACHE_TTL_MS = {
   salesFunnel: 60 * 60 * 1000,
   salesFunnelV2: 60 * 60 * 1000,
+  salesFunnelV3: 60 * 60 * 1000,
   salesFunnelBucketsV1: 60 * 60 * 1000,
   salesFunnelArticles: 60 * 60 * 1000,
   orders: 5 * 60 * 1000,
@@ -1239,7 +1240,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     // Карточки, график и себестоимость используют один источник — Sales Funnel WB.
     const salesFunnelSource = await loadAnalyticsSource({
       userId: req.user.id,
-      source: 'salesFunnelV2',
+      source: 'salesFunnelV3',
       dateFrom: prevFrom,
       dateTo,
       exactRange: true,
@@ -1346,6 +1347,10 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const kztTotals = {
       orders: numberOrZero(salesFunnel?.current?.orders),
       revenue: funnelMoneyToKzt(salesFunnel?.current?.revenue),
+      buyouts: numberOrZero(salesFunnel?.current?.buyouts),
+      buyout_revenue: funnelMoneyToKzt(salesFunnel?.current?.buyoutRevenue),
+      cancels: numberOrZero(salesFunnel?.current?.cancels),
+      cancel_revenue: funnelMoneyToKzt(salesFunnel?.current?.cancelRevenue),
       cogs: currentFinanceAvailable ? Math.round(currentCogs.cogs) : null,
       realized_units: currentCogs.netUnits,
       unpriced_units: currentCogs.unpricedUnits,
@@ -1355,6 +1360,10 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const kztPrevTotals = {
       orders: numberOrZero(salesFunnel?.previous?.orders),
       revenue: funnelMoneyToKzt(salesFunnel?.previous?.revenue),
+      buyouts: numberOrZero(salesFunnel?.previous?.buyouts),
+      buyout_revenue: funnelMoneyToKzt(salesFunnel?.previous?.buyoutRevenue),
+      cancels: numberOrZero(salesFunnel?.previous?.cancels),
+      cancel_revenue: funnelMoneyToKzt(salesFunnel?.previous?.cancelRevenue),
       cogs: previousFinanceAvailable ? Math.round(previousCogs.cogs) : null,
       realized_units: previousCogs.netUnits,
       unpriced_units: previousCogs.unpricedUnits,

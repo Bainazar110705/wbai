@@ -24,8 +24,28 @@ test('aggregateProducts sums selected and past funnel metrics', () => {
   ]);
 
   assert.deepEqual(result, {
-    current: { orders: 3, revenue: 192196.53 },
-    previous: { orders: 1, revenue: 60000 }
+    current: { orders: 3, revenue: 192196.53, buyouts: 0, buyoutRevenue: 0, cancels: 0, cancelRevenue: 0 },
+    previous: { orders: 1, revenue: 60000, buyouts: 0, buyoutRevenue: 0, cancels: 0, cancelRevenue: 0 }
+  });
+});
+
+test('aggregateProducts sums WB buyouts and cancellations like the funnel stages report', () => {
+  const result = aggregateProducts([
+    { statistic: {
+      selected: { orderCount: 15, orderSum: 980000, buyoutCount: 14, buyoutSum: 910000, cancelCount: 0, cancelSum: 0 },
+      past: { orderCount: 100, orderSum: 6500000, buyoutCount: 90, buyoutSum: 5800000, cancelCount: 3, cancelSum: 190000 }
+    } },
+    { statistic: {
+      selected: { orderCount: 6, orderSum: 394930, buyoutCount: 5, buyoutSum: 341537, cancelCount: 0, cancelSum: 0 },
+      past: { orderCount: 26, orderSum: 1505643, buyoutCount: 20, buyoutSum: 1100000, cancelCount: 1, cancelSum: 60000 }
+    } }
+  ]);
+
+  assert.deepEqual(result.current, {
+    orders: 21, revenue: 1374930, buyouts: 19, buyoutRevenue: 1251537, cancels: 0, cancelRevenue: 0
+  });
+  assert.deepEqual(result.previous, {
+    orders: 126, revenue: 8005643, buyouts: 110, buyoutRevenue: 6900000, cancels: 4, cancelRevenue: 250000
   });
 });
 
@@ -58,8 +78,10 @@ test('getPeriodSummary preserves report currency and aggregates all pages', asyn
   assert.equal(requests[1].offset, PAGE_SIZE);
   assert.equal(result.currency, 'KZT');
   assert.equal(result.productCount, PAGE_SIZE + 1);
-  assert.deepEqual(result.current, { orders: PAGE_SIZE + 2, revenue: PAGE_SIZE * 10 + 20 });
-  assert.deepEqual(result.previous, { orders: 1, revenue: 5 });
+  assert.equal(result.current.orders, PAGE_SIZE + 2);
+  assert.equal(result.current.revenue, PAGE_SIZE * 10 + 20);
+  assert.equal(result.previous.orders, 1);
+  assert.equal(result.previous.revenue, 5);
 });
 
 test('getProducts returns the product records for filtering by monthly orders', async () => {
@@ -202,6 +224,8 @@ test('getPeriodSummary keeps KZT funnel sums as WB Partners shows them', async (
   });
 
   assert.equal(summary.currency, 'KZT');
-  assert.deepEqual(summary.current, { orders: 3, revenue: 210195 });
-  assert.deepEqual(summary.previous, { orders: 1, revenue: 69691 });
+  assert.equal(summary.current.orders, 3);
+  assert.equal(summary.current.revenue, 210195);
+  assert.equal(summary.previous.orders, 1);
+  assert.equal(summary.previous.revenue, 69691);
 });
