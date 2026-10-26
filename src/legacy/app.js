@@ -27,6 +27,7 @@ const { createAuthController } = require('../controllers/auth.controller');
 const { createTemplatesController } = require('../controllers/templates.controller');
 const { registerAuthRoutes } = require('../routes/auth.routes');
 const { registerTemplatesRoutes } = require('../routes/templates.routes');
+const { parseFalError } = require('../services/fal-errors');
 
 const app = express();
 wrapAsyncRoutes(app);
@@ -678,13 +679,9 @@ async function callFalApi(endpoint, body) {
   console.log('[WBai] fal.ai status:', resp.status);
   if (!resp.ok) {
     const errText = await resp.text().catch(() => '{}');
-    console.error('[WBai] fal.ai error response:', resp.status, errText);
-    let err = {};
-    try { err = JSON.parse(errText); } catch(e) {}
-    const msg = typeof err?.detail === 'string' ? err.detail
-      : Array.isArray(err?.detail) ? JSON.stringify(err.detail)
-      : err?.message || err?.error || errText || `fal.ai error ${resp.status}`;
-    throw new Error(msg);
+    const error = parseFalError(resp.status, errText);
+    logger.warn('fal_request_failed', { endpoint, status: resp.status, types: error.falTypes });
+    throw error;
   }
   const resultJson = await resp.json();
   console.log('[WBai] fal.ai success, keys:', Object.keys(resultJson || {}));
@@ -849,7 +846,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
       }
     }
     console.error('[WBai] generate-image error:', e.message, e.cause || '');
-    res.status(500).json({ error: 'Ошибка генерации: ' + e.message });
+    res.status(e.userFacing ? e.status : 500).json({ error: 'Ошибка генерации: ' + e.message });
   }
 });
 
