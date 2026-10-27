@@ -56,9 +56,13 @@ function normalizeFinanceRows(rows) {
     }
     currencies.add(currency);
 
-    const payable = moneyNumber(row.forPay);
-    const retailAmount = moneyNumber(row.retailAmount);
-    const commission = moneyNumber(row.ppvzSalesCommission) + moneyNumber(row.acquiringFee);
+    // WB присылает возвраты с положительными суммами — как в отчёте реализации,
+    // они уменьшают продажи, перечисление продавцу и комиссию.
+    const documentType = String(row.docTypeName || '').trim();
+    const direction = documentType.toLocaleLowerCase('ru') === 'возврат' ? -1 : 1;
+    const payable = direction * moneyNumber(row.forPay);
+    const retailAmount = direction * moneyNumber(row.retailAmount);
+    const commission = direction * (moneyNumber(row.ppvzSalesCommission) + moneyNumber(row.acquiringFee));
     const logistics = moneyNumber(row.deliveryService);
     const storage = moneyNumber(row.paidStorage);
     const penalty = moneyNumber(row.penalty);
@@ -73,7 +77,7 @@ function normalizeFinanceRows(rows) {
       vendorCode: String(row.vendorCode || '').trim(),
       quantity: Math.abs(moneyNumber(row.quantity)),
       operation: String(row.sellerOperName || '').trim(),
-      documentType: String(row.docTypeName || '').trim(),
+      documentType,
       retailAmount,
       payable,
       commission,

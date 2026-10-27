@@ -1,2 +1,4 @@
 node_modules/
 .env
+finance-oct*.txt
+finance-oct*.json

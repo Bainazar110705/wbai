@@ -134,3 +134,26 @@ test('getDetailedReport preserves Finance API permission errors', async () => {
     error => error.status === 403 && error.code === 'WB_FINANCE_403'
   );
 });
+
+test('normalizeFinanceRows subtracts WB returns like the realization report', () => {
+  // Реальная сверка октября 2026: 263 продажи и 5 возвратов дают «Продажа» 13 496 880,62
+  // и «К перечислению» 12 934 868,44 в списке финансовых отчётов WB Partners.
+  const { rows } = normalizeFinanceRows([
+    {
+      currency: 'KZT', rrDate: '2026-10-20', docTypeName: 'Продажа', sellerOperName: 'Продажа', quantity: 263,
+      retailAmount: '13762098.72', forPay: '13185970.70', ppvzSalesCommission: '-9850.61', acquiringFee: '587554.90'
+    },
+    {
+      currency: 'KZT', rrDate: '2026-10-20', docTypeName: 'Возврат', sellerOperName: 'Возврат', quantity: 5,
+      retailAmount: '265218.10', forPay: '251102.26', ppvzSalesCommission: '2233.20', acquiringFee: '11525.34'
+    },
+    { currency: 'KZT', rrDate: '2026-10-20', sellerOperName: 'Логистика', deliveryService: '1319034.13' }
+  ]);
+  const total = field => Math.round(rows.reduce((sum, row) => sum + row[field], 0) * 100) / 100;
+
+  assert.equal(total('retailAmount'), 13496880.62);
+  assert.equal(total('payable'), 12934868.44);
+  assert.equal(total('commission'), 563945.75);
+  assert.equal(total('logistics'), 1319034.13);
+  assert.equal(total('margin'), 11615834.31);
+});
