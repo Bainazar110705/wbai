@@ -1713,7 +1713,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-val" id="anMPayable" style="font-size:18px">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#0071e333">
-          <div class="an-card-lbl" style="font-size:11px;color:#0071e3">Реализованный оборот WB</div>
+          <div class="an-card-lbl" style="font-size:11px;color:#0071e3" title="По вашей цене до скидки WB (СПП), как «Продажи» в балансе WB Partners">Продажи</div>
           <div class="an-card-val" id="anMRetailAmount" style="font-size:18px;color:#0071e3">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
@@ -1721,7 +1721,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-val" id="anMCogs" style="font-size:18px;color:#e74c3c">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#ff6b3533">
-          <div class="an-card-lbl" style="font-size:11px;color:#ff6b35">Комиссия WB</div>
+          <div class="an-card-lbl" style="font-size:11px;color:#ff6b35" title="Продажи минус «К перечислению»: комиссия WB от вашей цены и эквайринг">Комиссия WB и эквайринг</div>
           <div class="an-card-val" id="anMCommission" style="font-size:18px;color:#ff6b35">—</div>
         </div>
         <div class="an-card" style="padding:12px 14px;border-color:#f5a62333">
@@ -2949,7 +2949,7 @@ function anUpdateMetrics(totals,prev,period,finance){
   });
   if(financeReady){
     anSetVal('anMPayable', totals.payable);
-    anSetVal('anMRetailAmount', totals.retailAmount);
+    anSetVal('anMRetailAmount', totals.sales != null ? totals.sales : totals.retailAmount);
     anSetVal('anMCogs', totals.cogs);
     anSetVal('anMCommission', totals.commission);
     anSetVal('anMLogistics', totals.logistics);

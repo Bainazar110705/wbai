@@ -9,6 +9,7 @@ const FINANCE_FIELDS = [
   'docTypeName',
   'sellerOperName',
   'retailAmount',
+  'retailPriceWithDisc',
   'forPay',
   'ppvzSalesCommission',
   'acquiringFee',
@@ -60,9 +61,14 @@ function normalizeFinanceRows(rows) {
     // они уменьшают продажи, перечисление продавцу и комиссию.
     const documentType = String(row.docTypeName || '').trim();
     const direction = documentType.toLocaleLowerCase('ru') === 'возврат' ? -1 : 1;
+    const isGoodsRow = realizedOperationDirection(documentType) !== 0;
     const payable = direction * moneyNumber(row.forPay);
     const retailAmount = direction * moneyNumber(row.retailAmount);
-    const commission = direction * (moneyNumber(row.ppvzSalesCommission) + moneyNumber(row.acquiringFee));
+    // Продажи — по цене продавца, как в «Балансе» WB Partners. Скидку WB (СПП)
+    // покупателю оплачивает WB, поэтому продавцу перечисляют сумму от этой цены.
+    const sales = isGoodsRow ? direction * moneyNumber(row.retailPriceWithDisc) * Math.abs(moneyNumber(row.quantity)) : 0;
+    // Всё, что WB оставил себе с продажи: комиссия от цены продавца и эквайринг.
+    const commission = isGoodsRow ? sales - payable : 0;
     const logistics = moneyNumber(row.deliveryService);
     const storage = moneyNumber(row.paidStorage);
     const penalty = moneyNumber(row.penalty);
@@ -79,6 +85,7 @@ function normalizeFinanceRows(rows) {
       operation: String(row.sellerOperName || '').trim(),
       documentType,
       retailAmount,
+      sales,
       payable,
       commission,
       logistics,

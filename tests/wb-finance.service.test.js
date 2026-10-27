@@ -26,6 +26,7 @@ test('normalizeFinanceRows maps current Finance API fields without losing decima
     docTypeName: 'Продажа',
     sellerOperName: 'Продажа',
     retailAmount: '1500.50',
+    retailPriceWithDisc: '900.00',
     forPay: '1000.25',
     ppvzSalesCommission: '120.10',
     acquiringFee: '14.40',
@@ -46,8 +47,9 @@ test('normalizeFinanceRows maps current Finance API fields without losing decima
     operation: 'Продажа',
     documentType: 'Продажа',
     retailAmount: 1500.5,
+    sales: 1800,
     payable: 1000.25,
-    commission: 134.5,
+    commission: 799.75,
     logistics: 60.5,
     storage: 10.25,
     penalty: 3,
@@ -153,7 +155,32 @@ test('normalizeFinanceRows subtracts WB returns like the realization report', ()
 
   assert.equal(total('retailAmount'), 13496880.62);
   assert.equal(total('payable'), 12934868.44);
-  assert.equal(total('commission'), 563945.75);
   assert.equal(total('logistics'), 1319034.13);
   assert.equal(total('margin'), 11615834.31);
+});
+
+test('normalizeFinanceRows counts sales at the seller price like WB Partners balance', () => {
+  // Строки PURO FX-200 из отчёта 01.10.2026: покупатель заплатил 52 933,15 со скидкой WB 17%,
+  // но «Баланс» WB показывает продажу по цене продавца 63 777,96.
+  const { rows } = normalizeFinanceRows([
+    {
+      currency: 'KZT', rrDate: '2026-10-01', docTypeName: 'Продажа', sellerOperName: 'Продажа', quantity: 1,
+      retailAmount: '52933.15', retailPriceWithDisc: '63777.96', forPay: '49064.5', ppvzSalesCommission: '1509.77', acquiringFee: '2117.32'
+    },
+    {
+      currency: 'KZT', rrDate: '2026-10-02', docTypeName: 'Возврат', sellerOperName: 'Возврат', quantity: 1,
+      retailAmount: '52933.15', retailPriceWithDisc: '63777.96', forPay: '49064.5'
+    },
+    {
+      currency: 'KZT', rrDate: '2026-10-02', docTypeName: 'Продажа', sellerOperName: 'Возмещение за выдачу и возврат товаров на ПВЗ',
+      quantity: 0, retailPriceWithDisc: '63777.96', ppvzReward: '40'
+    }
+  ]);
+
+  assert.equal(rows[0].sales, 63777.96);
+  assert.equal(Math.round(rows[0].commission * 100) / 100, 14713.46);
+  assert.equal(rows[1].sales, -63777.96);
+  assert.equal(Math.round(rows[1].commission * 100) / 100, -14713.46);
+  assert.equal(rows[2].sales, 0);
+  assert.equal(rows[2].commission, 0);
 });

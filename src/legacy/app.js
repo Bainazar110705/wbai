@@ -1108,7 +1108,8 @@ const WB_ANALYTICS_CACHE_TTL_MS = {
   finance: 30 * 60 * 1000,
   financeV1: 30 * 60 * 1000,
   financeV2: 30 * 60 * 1000,
-  financeV3: 30 * 60 * 1000
+  financeV3: 30 * 60 * 1000,
+  financeV4: 30 * 60 * 1000
 };
 const wbAnalyticsSourceRequests = new Map();
 
@@ -1281,7 +1282,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     try {
       financeSource = await loadAnalyticsSource({
         userId: req.user.id,
-        source: 'financeV3',
+        // V4: продажи по цене продавца и знак возвратов, старый кэш без этих полей.
+        source: 'financeV4',
         dateFrom: prevFrom,
         dateTo,
         // Более широкий свежий финотчёт безопасно покрывает узкий период и
@@ -1304,7 +1306,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     const costsMap = Object.fromEntries(costsRows.map(row => [String(row.supplier_article || '').trim(), numberOrZero(row.cost_price)]));
 
     const financeFields = [
-      'retailAmount', 'payable', 'commission', 'logistics', 'storage',
+      'retailAmount', 'sales', 'payable', 'commission', 'logistics', 'storage',
       'penalty', 'deduction', 'acceptance', 'additionalPayment', 'margin'
     ];
     const emptyFinance = () => Object.fromEntries(financeFields.map(field => [field, 0]));
