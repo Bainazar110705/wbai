@@ -22,7 +22,7 @@ const { createAuthService } = require('../services/auth.service');
 const { createTemplatesService } = require('../services/templates.service');
 const { createSalesFunnelService, funnelCacheTtlMs } = require('../services/wb-sales-funnel.service');
 const { createFinanceService, convertMoneyToKzt, calculateRealizedCogs } = require('../services/wb-finance.service');
-const { extractAdvertisingCampaigns, resolveAdvertisingCurrency } = require('../services/wb-advertising.service');
+const { extractAdvertisingCampaigns, resolveAdvertisingCurrency, createAdvertisingStatsService } = require('../services/wb-advertising.service');
 const { createAuthController } = require('../controllers/auth.controller');
 const { createTemplatesController } = require('../controllers/templates.controller');
 const { registerAuthRoutes } = require('../routes/auth.routes');
@@ -40,6 +40,7 @@ const authService = createAuthService({ usersRepository, bcrypt, jwt, jwtSecret:
 const templatesService = createTemplatesService(templatesRepository);
 const salesFunnelService = createSalesFunnelService();
 const financeService = createFinanceService();
+const advertisingStatsService = createAdvertisingStatsService();
 const {
   auth: authMiddleware,
   subscription: checkSubscription,
@@ -1109,7 +1110,8 @@ const WB_ANALYTICS_CACHE_TTL_MS = {
   financeV1: 30 * 60 * 1000,
   financeV2: 30 * 60 * 1000,
   financeV3: 30 * 60 * 1000,
-  financeV4: 30 * 60 * 1000
+  financeV4: 30 * 60 * 1000,
+  advertisingStatsV1: 60 * 60 * 1000
 };
 const wbAnalyticsSourceRequests = new Map();
 
@@ -1627,6 +1629,66 @@ app.get('/api/wb-advert-campaigns', authMiddleware, async (req, res) => {
     res.json({ campaigns });
   } catch (error) {
     res.status(error.status || 502).json({ error: error.message || 'Не удалось получить рекламные кампании WB.' });
+  }
+});
+
+// GET /api/wb-advertising — затраты на рекламу как на странице «Статистика» WB Продвижение.
+// Отдельно от /api/wb-analytics: fullstats отдаёт 50 кампаний раз в 20 секунд.
+const ADVERTISING_OPEN_PERIOD_TTL_MS = 15 * 60 * 1000;
+const ADVERTISING_MAX_PERIOD_DAYS = 93;
+
+app.get('/api/wb-advertising', authMiddleware, async (req, res) => {
+  const { from, to, refresh } = req.query;
+  const fromTime = managerReportDate(from);
+  const toTime = managerReportDate(to);
+  if (fromTime === null || toTime === null || fromTime > toTime || (toTime - fromTime) / 86400000 >= ADVERTISING_MAX_PERIOD_DAYS) {
+    return res.status(400).json({ error: `Укажите корректный период не более ${ADVERTISING_MAX_PERIOD_DAYS} дней.` });
+  }
+  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
+  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+
+  try {
+    const moscowToday = dateInTimeZone(new Date(), 'Europe/Moscow');
+    const source = await loadAnalyticsSource({
+      userId: req.user.id,
+      source: 'advertisingStatsV1',
+      dateFrom: from,
+      dateTo: to,
+      exactRange: true,
+      force: refresh === '1',
+      ttlMs: to >= moscowToday ? ADVERTISING_OPEN_PERIOD_TTL_MS : undefined,
+      fetchSource: () => advertisingStatsService.getPeriodStats({ token: user.wb_api_token, dateFrom: from, dateTo: to })
+    });
+    const stats = source.payload || {};
+    const raw = stats.totals || {};
+    const currency = stats.currency || 'KZT';
+    const rubKztRate = currency === 'RUB' ? await getRubKztRate() : null;
+    const spend = numberOrZero(raw.spend);
+    const orderSum = numberOrZero(raw.orderSum);
+    const views = numberOrZero(raw.views);
+    const clicks = numberOrZero(raw.clicks);
+    res.json({
+      dateFrom: from,
+      dateTo: to,
+      currency,
+      rubKztRate,
+      campaignCount: numberOrZero(stats.campaignCount),
+      totals: {
+        spend: convertMoneyToKzt(spend, currency, rubKztRate),
+        orderSum: convertMoneyToKzt(orderSum, currency, rubKztRate),
+        orders: numberOrZero(raw.orders),
+        views,
+        clicks,
+        // Доли считаем по исходным суммам, как WB, чтобы не терять точность на округлении.
+        drr: orderSum > 0 ? Math.round(spend / orderSum * 10000) / 100 : null,
+        roas: spend > 0 ? Math.round(orderSum / spend * 100) / 100 : null,
+        ctr: views > 0 ? Math.round(clicks / views * 10000) / 100 : null
+      },
+      cache: { cached: source.cached, stale: source.stale, refreshLimited: source.refreshLimited, fetchedAt: source.fetchedAt }
+    });
+  } catch (error) {
+    logger.warn('wb_advertising_unavailable', { userId: req.user.id, code: error.code, status: error.status });
+    res.status(error.status || 502).json({ error: error.message || 'Не удалось получить статистику рекламы WB.' });
   }
 });
 

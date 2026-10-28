@@ -1740,6 +1740,10 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <div class="an-card-lbl" style="font-size:11px;color:#d35400">Удержания</div>
           <div class="an-card-val" id="anMDeduction" style="font-size:18px;color:#d35400">—</div>
         </div>
+        <div class="an-card" style="padding:12px 14px;border-color:#c0392b33">
+          <div class="an-card-lbl" id="anAdSpendLbl" style="font-size:11px;color:#c0392b" title="Затраты на рекламу, как в WB Продвижение → Статистика">Реклама</div>
+          <div class="an-card-val" id="anAdSpend" style="font-size:18px;color:#c0392b">—</div>
+        </div>
         <div class="an-card" style="padding:12px 14px;border-color:#8e44ad33">
           <div class="an-card-lbl" style="font-size:11px;color:#8e44ad">Платная приёмка</div>
           <div class="an-card-val" id="anMAcceptance" style="font-size:18px;color:#8e44ad">—</div>
@@ -2850,6 +2854,7 @@ async function anLoad(from, to, forceRefresh) {
     AN.financeReady = !!(d.finance && d.finance.status === 'ready');
     anUpdateMetrics(d.totals, d.prevTotals, AN.period, d.finance);
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
+    anLoadAds(d.dateFrom, d.dateTo, forceRefresh);
     var now=new Date();
     var usesRub = d.metricCurrency === 'RUB' || (d.finance && d.finance.currency === 'RUB');
     var rateStr = usesRub && d.rubKztRate ? ' · 1₽ = ' + d.rubKztRate.toFixed(2) + '₸' : '';
@@ -2866,6 +2871,35 @@ async function anLoad(from, to, forceRefresh) {
     document.getElementById('anUpdatedAt').textContent=dataTime.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+dataLabel+rateStr;
   } catch(e) { anShowErr('Ошибка соединения'); }
   finally { if(btn) btn.disabled=false; }
+}
+
+var anAdsRequestSeq=0;
+
+// Затраты на рекламу грузятся отдельно: WB отдаёт статистику кампаний раз в 20 секунд.
+async function anLoadAds(from, to, forceRefresh) {
+  var seq=++anAdsRequestSeq;
+  var el=document.getElementById('anAdSpend');
+  var lbl=document.getElementById('anAdSpendLbl');
+  var hint='Затраты на рекламу, как в WB Продвижение → Статистика';
+  if(el) el.textContent='...';
+  try {
+    var url='/api/wb-advertising?from='+from+'&to='+to+(forceRefresh?'&refresh=1':'');
+    var r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+    var d;
+    try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
+    if(seq!==anAdsRequestSeq) return;
+    if(!r.ok){
+      anSetUnavailable('anAdSpend');
+      if(lbl) lbl.title=d.error||'Затраты на рекламу недоступны';
+      return;
+    }
+    anSetVal('anAdSpend', (d.totals||{}).spend);
+    if(lbl) lbl.title=hint;
+  } catch(e) {
+    if(seq!==anAdsRequestSeq) return;
+    anSetUnavailable('anAdSpend');
+    if(lbl) lbl.title='Ошибка соединения';
+  }
 }
 
 function anShowErr(msg) {
