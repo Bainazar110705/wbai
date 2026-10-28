@@ -1111,6 +1111,7 @@ const WB_ANALYTICS_CACHE_TTL_MS = {
   financeV2: 30 * 60 * 1000,
   financeV3: 30 * 60 * 1000,
   financeV4: 30 * 60 * 1000,
+  financeV5: 30 * 60 * 1000,
   advertisingStatsV1: 60 * 60 * 1000
 };
 const wbAnalyticsSourceRequests = new Map();
@@ -1284,8 +1285,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     try {
       financeSource = await loadAnalyticsSource({
         userId: req.user.id,
-        // V4: продажи по цене продавца и знак возвратов, старый кэш без этих полей.
-        source: 'financeV4',
+        // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
+        source: 'financeV5',
         dateFrom: prevFrom,
         dateTo,
         // Более широкий свежий финотчёт безопасно покрывает узкий период и

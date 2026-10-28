@@ -64,11 +64,11 @@ function normalizeFinanceRows(rows) {
     const isGoodsRow = realizedOperationDirection(documentType) !== 0;
     const payable = direction * moneyNumber(row.forPay);
     const retailAmount = direction * moneyNumber(row.retailAmount);
-    // Продажи — по цене продавца, как в «Балансе» WB Partners. Скидку WB (СПП)
-    // покупателю оплачивает WB, поэтому продавцу перечисляют сумму от этой цены.
+    // Продажи по цене продавца до скидки WB (СПП), как в «Балансе» WB Partners.
     const sales = isGoodsRow ? direction * moneyNumber(row.retailPriceWithDisc) * Math.abs(moneyNumber(row.quantity)) : 0;
-    // Всё, что WB оставил себе с продажи: комиссия от цены продавца и эквайринг.
-    const commission = isGoodsRow ? sales - payable : 0;
+    // Комиссия как в ежедневном отчёте WB: «Продажа» минус «К перечислению за товар».
+    // Она уже уменьшена на компенсацию скидки WB, поэтому бывает отрицательной.
+    const commission = isGoodsRow ? retailAmount - payable : 0;
     const logistics = moneyNumber(row.deliveryService);
     const storage = moneyNumber(row.paidStorage);
     const penalty = moneyNumber(row.penalty);

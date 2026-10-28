@@ -49,7 +49,7 @@ test('normalizeFinanceRows maps current Finance API fields without losing decima
     retailAmount: 1500.5,
     sales: 1800,
     payable: 1000.25,
-    commission: 799.75,
+    commission: 500.25,
     logistics: 60.5,
     storage: 10.25,
     penalty: 3,
@@ -159,9 +159,10 @@ test('normalizeFinanceRows subtracts WB returns like the realization report', ()
   assert.equal(total('margin'), 11615834.31);
 });
 
-test('normalizeFinanceRows counts sales at the seller price like WB Partners balance', () => {
+test('normalizeFinanceRows keeps seller-price sales and takes commission from the daily report', () => {
   // Строки PURO FX-200 из отчёта 01.10.2026: покупатель заплатил 52 933,15 со скидкой WB 17%,
-  // но «Баланс» WB показывает продажу по цене продавца 63 777,96.
+  // «Баланс» WB показывает продажу по цене продавца 63 777,96, а комиссия в ежедневном
+  // отчёте — «Продажа» 52 933,15 минус «К перечислению» 49 064,5.
   const { rows } = normalizeFinanceRows([
     {
       currency: 'KZT', rrDate: '2026-10-01', docTypeName: 'Продажа', sellerOperName: 'Продажа', quantity: 1,
@@ -178,9 +179,9 @@ test('normalizeFinanceRows counts sales at the seller price like WB Partners bal
   ]);
 
   assert.equal(rows[0].sales, 63777.96);
-  assert.equal(Math.round(rows[0].commission * 100) / 100, 14713.46);
+  assert.equal(Math.round(rows[0].commission * 100) / 100, 3868.65);
   assert.equal(rows[1].sales, -63777.96);
-  assert.equal(Math.round(rows[1].commission * 100) / 100, -14713.46);
+  assert.equal(Math.round(rows[1].commission * 100) / 100, -3868.65);
   assert.equal(rows[2].sales, 0);
   assert.equal(rows[2].commission, 0);
 });
