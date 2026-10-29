@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 /* WBai: editorial violet interface layer. */
 :root{
@@ -14,7 +14,7 @@
 *{scrollbar-color:#c8b5ee #f5f0ff}
 body{background:var(--bg)!important;color:var(--text)!important;line-height:1.55}
 body::before{display:none!important}
-body,button,a,input,select,textarea{font-family:'Outfit',sans-serif!important}
+body,button,a,input,select,textarea{font-family:'Manrope',sans-serif!important}
 button,a,input,select,textarea{font:inherit}
 button{touch-action:manipulation}
 [data-icon]{display:inline-flex;align-items:center;justify-content:center;line-height:1}
@@ -64,7 +64,7 @@ body:has(.hero) .mobile-menu{background:#f0fdfa!important}
 .auth-layout{width:min(100%,1050px);display:grid;grid-template-columns:minmax(0,1fr) 410px;gap:clamp(28px,6vw,92px);align-items:center}
 .auth-showcase{max-width:550px;color:var(--ink)}
 .auth-kicker,.workspace-kicker{display:inline-flex;gap:8px;align-items:center;color:var(--p2);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 11px}
-.auth-showcase h2{font-family:'Outfit',sans-serif;font-size:clamp(27px,3.6vw,47px);line-height:1.18;letter-spacing:-.05em;margin:22px 0 18px}
+.auth-showcase h2{font-family:'Manrope',sans-serif;font-size:clamp(27px,3.6vw,47px);line-height:1.18;letter-spacing:-.05em;margin:22px 0 18px}
 .auth-showcase p{font-size:17px;color:var(--muted);max-width:470px}
 .auth-points{list-style:none;display:grid;gap:14px;margin-top:32px;padding:0;color:var(--ink);font-weight:700}
 .auth-points li{display:flex;align-items:center;gap:11px}
@@ -100,7 +100,7 @@ body:has(.sidebar) .page-title{font-size:22px!important;margin-bottom:20px!impor
 body:has(.sidebar) .page-subtitle{margin:30px 0 14px;color:var(--ink);font-size:16px;font-weight:800}
 body:has(.sidebar) .page-title [data-icon],body:has(.sidebar) .card-title [data-icon]{color:var(--p2);vertical-align:-.08em;margin-right:5px}
 body:has(.sidebar) .workspace-hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;background:#fff;border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:14px;padding:28px;margin:-2px 0 20px}
-body:has(.sidebar) .workspace-hero h1{font-family:'Outfit',sans-serif;color:var(--ink);font-size:clamp(21px,3vw,34px);line-height:1.25;letter-spacing:-.04em;max-width:700px;margin:15px 0 8px}
+body:has(.sidebar) .workspace-hero h1{font-family:'Manrope',sans-serif;color:var(--ink);font-size:clamp(21px,3vw,34px);line-height:1.25;letter-spacing:-.04em;max-width:700px;margin:15px 0 8px}
 body:has(.sidebar) .workspace-hero p{color:var(--muted);max-width:650px}
 body:has(.sidebar) .workspace-hero-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
 body:has(.sidebar) .menu-btn,body:has(.sidebar) .download-btn,body:has(.sidebar) .outline-btn,body:has(.sidebar) .kaspi-btn,body:has(.sidebar) .is-mode-btn,body:has(.sidebar) .is-gen,body:has(.sidebar) .an-tab,body:has(.sidebar) .video-link{align-items:center;gap:7px}
@@ -131,7 +131,7 @@ body:has(.sidebar) .dot.green{box-shadow:none!important}
 body:has(.sidebar) .sidebar-overlay{background:rgba(19,78,74,.25)!important;backdrop-filter:none!important}
 
 /* Admin and policy pages */
-.admin-page{font-family:Outfit,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important}
+.admin-page{font-family:Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important}
 .admin-page #loginScreen{background:#f0fdfa!important}
 .admin-page .login-card{background:#fff!important;border-color:var(--border)!important;border-radius:16px!important;box-shadow:none!important}
 .admin-auth-mark{width:44px;height:44px;display:grid;place-items:center;background:var(--p3);border:1px solid var(--border);border-radius:10px;color:var(--p2);font-size:22px;margin-bottom:20px}
@@ -250,7 +250,7 @@ body:has(.sidebar) .mgr-card-value,
 .admin-page .login-logo,
 .admin-page .header-logo,
 .admin-page .table-title{
-  font-family:'Outfit',sans-serif!important;
+  font-family:'Manrope',sans-serif!important;
   letter-spacing:-.035em!important;
 }
 
