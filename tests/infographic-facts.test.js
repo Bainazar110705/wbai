@@ -151,7 +151,8 @@ test('route validates strict context and returns 400 before credit reservation',
   }
   assert.equal(await validate({ body: { ...input, strictProductFacts: true, imageBase64: 'photo' } }, res), 'validated');
   assert.equal(await validate({ body: { strictProductFacts: 'true', imageBase64: 'photo' } }, res), 'validated');
-  assert.match(route, /const extraText = strictProductFacts \? strictContext\.extraText : prompt \|\| ''/);
+  // Строгий контекст важнее авто-брифа и текста пользователя.
+  assert.match(route, /const extraText = strictProductFacts \? strictContext\.extraText : briefParts \? briefParts\.extraText : prompt \|\| ''/);
   assert.match(route, /const accessoriesBlock = strictProductFacts \? '' : buildAccessoriesInstructions/);
   assert.match(route, /mode === 'redesign' && !strictProductFacts/);
   assert.match(route, /mode: strictProductFacts \? 'create' : mode \|\| 'create', strictProductFacts/);

@@ -2584,6 +2584,10 @@ async function isGenerate(){
       var sc=document.getElementById('statCredits');if(sc)sc.textContent=currentUser.photo_credits;
     }
     var userPrompt=[body.productName,body.specs,body.prompt].filter(Boolean).join(' · ').slice(0,100)||'Без описания';
+    // Авто-бриф: показываем, какой заголовок и плашки Claude выбрал по фото.
+    if(data.autoBrief&&data.autoBrief.title){
+      userPrompt=('Авто-бриф: «'+data.autoBrief.title+'» · '+(data.autoBrief.badges||[]).join(', ')).slice(0,160);
+    }
     var entry={id:jobId,images:imgs,prompt:userPrompt,ratio:IS.ratio,ts:Date.now(),liked:false};
     isSaveHistory(entry);
     // Replace placeholders with real images

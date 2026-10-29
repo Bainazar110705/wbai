@@ -28,6 +28,7 @@ const { createTemplatesController } = require('../controllers/templates.controll
 const { registerAuthRoutes } = require('../routes/auth.routes');
 const { registerTemplatesRoutes } = require('../routes/templates.routes');
 const { buildStrictProductContext, STRICT_PRODUCT_FACTS_RULES } = require('../services/infographic-facts');
+const { createInfographicBriefService, briefToPromptParts, needsAutoBrief } = require('../services/infographic-brief');
 const { parseFalError } = require('../services/fal-errors');
 
 const app = express();
@@ -42,6 +43,7 @@ const templatesService = createTemplatesService(templatesRepository);
 const salesFunnelService = createSalesFunnelService();
 const financeService = createFinanceService();
 const advertisingStatsService = createAdvertisingStatsService();
+const infographicBriefService = createInfographicBriefService({ apiKey: CLAUDE_API_KEY });
 const {
   auth: authMiddleware,
   subscription: checkSubscription,
@@ -764,18 +766,25 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
   try {
-    // Шаг 1: Claude анализирует стиль для ВСЕХ моделей — описание иконок критично
-    let styleAnalysis = null;
-    if (styleImageBase64) {
-      styleAnalysis = await analyzeStyleWithClaude(styleImageBase64);
-    }
+    // Шаг 1: Claude анализирует стиль для ВСЕХ моделей — описание иконок критично.
+    // Если клиент не дал ни названия, ни характеристик, параллельно Claude составляет авто-бриф по фото.
+    const autoBriefWanted = needsAutoBrief({ strictProductFacts, mode, productName, specs });
+    const [styleAnalysis, autoBrief] = await Promise.all([
+      styleImageBase64 ? analyzeStyleWithClaude(styleImageBase64) : null,
+      autoBriefWanted
+        ? infographicBriefService.createBrief({ imageBase64, userRequest: prompt || '', hasStyleRef: !!styleImageBase64 })
+          .catch(error => { console.error('[WBai] auto-brief error:', error.message); return null; })
+        : null
+    ]);
+    const briefParts = autoBrief ? briefToPromptParts(autoBrief, prompt || '') : null;
+    if (autoBrief) console.log(`[WBai] Авто-бриф: ${autoBrief.product} · «${autoBrief.title}» · ${autoBrief.badges.join(' | ')}`);
 
     // Шаг 2: Парсим данные товара
-    const specLines = strictProductFacts ? strictContext.specLines : specs ? specs.split('\n').filter(l => l.trim()).slice(0, 6) : [];
+    const specLines = strictProductFacts ? strictContext.specLines : briefParts ? briefParts.specLines : specs ? specs.split('\n').filter(l => l.trim()).slice(0, 6) : [];
     const primarySpec = specLines.length > 0 ? (strictProductFacts ? specLines[0] : specLines[0].trim()) : '';
     const secondarySpecs = specLines.slice(1);
-    const title = strictProductFacts ? strictContext.title : productName || '';
-    const extraText = strictProductFacts ? strictContext.extraText : prompt || '';
+    const title = strictProductFacts ? strictContext.title : briefParts ? briefParts.title : productName || '';
+    const extraText = strictProductFacts ? strictContext.extraText : briefParts ? briefParts.extraText : prompt || '';
     const accessoriesBlock = strictProductFacts ? '' : buildAccessoriesInstructions(productName, specs);
 
     // Шаг 3: Промпт под модель — для редизайна используем style transfer промпт
@@ -884,7 +893,8 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
 
     // Возвращаем URL напрямую — клиент грузит сам (быстро, без скачивания на сервере)
     res.json({ imageUrls: allUrls, images: allUrls, imageBase64: allUrls[0], credits_left: remaining?.photo_credits || 0, credits_used: usedCredits, modelUsed: selectedModelId,
-      ...(strictProductFacts ? { strictProductFactsApplied: true } : {}) });
+      ...(strictProductFacts ? { strictProductFactsApplied: true } : {}),
+      ...(autoBrief ? { autoBrief: { title: autoBrief.title, badges: autoBrief.badges } } : {}) });
 
   } catch(e) {
     if (!generationCompleted && reservedCredits > 0) {
