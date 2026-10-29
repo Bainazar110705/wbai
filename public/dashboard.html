@@ -2315,18 +2315,21 @@ async function isGenerateSeries() {
       var sc=document.getElementById('statCredits'); if(sc) sc.textContent=data.credits_left;
     }
 
-    (data.results||[]).forEach(function(res){
+    var seriesRatio=IS.ratio;
+    for(var ri=0; ri<(data.results||[]).length; ri++){
+      var res=data.results[ri];
       var ph = document.getElementById(jobId+'_'+res.idx);
-      if(!ph) return;
+      if(!ph) continue;
       if(res.error || !res.url) {
         ph.innerHTML='<div style="font-size:11px;color:#fca5a5;padding:10px;text-align:center">Ошибка: '+(res.error||'Ошибка')+'</div>';
-        return;
+        continue;
       }
+      var pageUrl=await isCropImage(res.url, seriesRatio);
       var label='Серия стр.'+(res.idx+1);
-      var entry={id:jobId+'_'+res.idx,images:[res.url],prompt:label,ratio:IS.ratio,ts:Date.now(),liked:false};
+      var entry={id:jobId+'_'+res.idx,images:[pageUrl],prompt:label,ratio:seriesRatio,ts:Date.now(),liked:false};
       isSaveHistory(entry);
-      ph.parentNode.replaceChild(isCard(res.url, label, jobId+'_'+res.idx, jobId+'_'+res.idx), ph);
-    });
+      if(ph.parentNode) ph.parentNode.replaceChild(isCard(pageUrl, label, jobId+'_'+res.idx, jobId+'_'+res.idx), ph);
+    }
     isRefreshHistCount();
   } catch(e) {
     pages.forEach(function(_,i){
@@ -2574,6 +2577,7 @@ async function isGenerate(){
       return;
     }
     var imgs = data.imageUrls || data.images || [data.imageBase64].filter(Boolean);
+    imgs = await Promise.all(imgs.map(function(u){ return isCropImage(u, body.aspectRatio); }));
     if(currentUser){
       currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-(data.credits_used||IS.count*(IS_MODEL_CREDITS[body.modelId]||1)));
       document.getElementById('isCreditsNum').textContent=currentUser.photo_credits;
@@ -2653,7 +2657,41 @@ function isShowError(msg){
 }
 
 function isLoadHistory(){try{return JSON.parse(localStorage.getItem(IS_HIST_KEY)||'[]');}catch(e){return[];}}
-function isSaveHistory(entry){var h=isLoadHistory();h.unshift(entry);if(h.length>50)h=h.slice(0,50);localStorage.setItem(IS_HIST_KEY,JSON.stringify(h));isRefreshHistCount();}
+function isSaveHistory(entry){
+  var h=isLoadHistory();h.unshift(entry);if(h.length>50)h=h.slice(0,50);
+  // Обрезанные 800×500 хранятся целиком, поэтому при нехватке места убираем самые старые записи.
+  while(h.length){
+    try{localStorage.setItem(IS_HIST_KEY,JSON.stringify(h));break;}
+    catch(e){if(h.length===1)break;h.pop();}
+  }
+  isRefreshHistCount();
+}
+
+// fal.ai отдаёт 16:9 вместо 8:5 — обрезаем по центру до точных 800×500.
+// CDN fal разрешает CORS, но если картинка не загрузится, оставляем исходную.
+var IS_RATIO_CROP={'8:5':{w:800,h:500}};
+function isCropImage(url, ratio){
+  var size=IS_RATIO_CROP[ratio];
+  if(!size||!url) return Promise.resolve(url);
+  return new Promise(function(resolve){
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){
+      try{
+        var target=size.w/size.h, sw=img.naturalWidth, sh=img.naturalHeight;
+        if(sw/sh>target) sw=Math.round(sh*target); else sh=Math.round(sw/target);
+        var canvas=document.createElement('canvas');
+        canvas.width=size.w; canvas.height=size.h;
+        var ctx=canvas.getContext('2d');
+        ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,(img.naturalWidth-sw)/2,(img.naturalHeight-sh)/2,sw,sh,0,0,size.w,size.h);
+        resolve(canvas.toDataURL('image/jpeg',0.92));
+      }catch(e){resolve(url);}
+    };
+    img.onerror=function(){resolve(url);};
+    img.src=url;
+  });
+}
 function isRefreshHistCount(){document.getElementById('isHistCount').textContent=isLoadHistory().length;}
 function isIsLiked(id){var e=isLoadHistory().find(function(x){return x.id===id;});return e?e.liked:false;}
 

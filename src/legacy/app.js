@@ -494,6 +494,11 @@ const AI_MODELS = {
   },
 };
 
+// Nano Banana не умеет 8:5 (800×500): просим ближайший 16:9, браузер обрежет по центру.
+function falAspectRatio(ratio) {
+  return ratio === '8:5' ? '16:9' : ratio;
+}
+
 // Сколько фото-кредитов стоит одно изображение модели.
 function modelCredits(model) {
   return model?.credits || 1;
@@ -716,6 +721,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
   const requestedCount = Math.min(Math.max(parseInt(numImages) || 1, 1), 4);
   const validRatios = ['3:4', '1:1', '8:5', '4:3', '16:9', '9:16'];
   const requestedRatio = validRatios.includes(aspectRatio) ? aspectRatio : '3:4';
+  const falRatio = falAspectRatio(requestedRatio);
 
   const selectedModelId = (modelId && AI_MODELS[modelId]) ? modelId : 'nano-banana-2';
   const model = AI_MODELS[selectedModelId] || AI_MODELS['nano-banana-2'];
@@ -792,7 +798,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
       falBody = {
         prompt: finalPrompt,
         image_urls: editImageUrls,
-        aspect_ratio: requestedRatio,
+        aspect_ratio: falRatio,
         num_images: requestedCount,
         safety_tolerance: '5',
         ...(model.resolution ? { resolution: model.resolution } : {}),
@@ -1841,6 +1847,7 @@ app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan(
 
     const pageList = pages.slice(0, 5).filter(Boolean);
     const requestedRatio = ['3:4','1:1','8:5','4:3','16:9'].includes(aspectRatio) ? aspectRatio : '3:4';
+    const falRatio = falAspectRatio(requestedRatio);
 
     // Резервируем весь объём серии одним условным UPDATE. Неуспешные страницы
     // вернут неиспользованный остаток после обработки.
@@ -1869,7 +1876,7 @@ app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan(
         const falBody = {
           prompt: seriesPrompt,
           image_urls: [prepareImageForFal(pageList[idx]), prepareImageForFal(styleImageBase64)],
-          aspect_ratio: requestedRatio,
+          aspect_ratio: falRatio,
           num_images: 1,
           safety_tolerance: '5',
         };
