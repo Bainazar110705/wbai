@@ -949,56 +949,64 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-input:focus{outline:none;border-color:var(--p)}
 .an-btn{padding:9px 18px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .an-err{background:var(--red-bg);border:1px solid var(--red);border-radius:7px;padding:7px 10px;color:var(--red);font-size:12px;margin-top:8px;display:none}
-/* WEEKLY REPORTS */
-.an-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
-.an-tab{padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Outfit',sans-serif}
-.an-tab:hover{color:var(--text)}
-.an-tab.on{color:var(--p2);border-bottom-color:var(--p)}
-.an-tab-panel{display:none}
-.an-tab-panel.on{display:block}
-.wr-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:4px}
-.wr-table{width:100%;border-collapse:collapse}
-.wr-table th{background:var(--surface2);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
-.wr-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
-.wr-table tr:last-child td{border-bottom:none}
-.wr-table tr:hover td{background:var(--surface2)}
-.wr-table .num{font-variant-numeric:tabular-nums;white-space:nowrap}
-.wr-table .pos{color:var(--green);font-weight:600}
-.wr-table .neg{color:var(--red);font-weight:600}
-.wr-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
-.wr-badge.paid{background:var(--green-bg);color:var(--green)}
-.wr-badge.pending{background:rgba(251,191,36,0.12);color:#fbbf24}
-.wr-badge.new{background:var(--p3);color:var(--p2)}
-.wr-load-btn{padding:7px 18px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
-.wr-load-btn:hover{border-color:var(--p);color:var(--p2)}
-.wr-empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px}
-.wr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.wr-scard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
-.wr-scard-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.wr-scard-val{font-size:18px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--text);line-height:1.1}
-.wr-scard-sub{font-size:10px;color:var(--muted);margin-top:4px}
-.wr-detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
-.wr-detail-row:last-child{border-bottom:none}
-.wr-detail-row .lbl{color:var(--muted)}
-.wr-detail-row .val{font-weight:600;font-family:'Outfit',sans-serif;font-size:13px}
-.wr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;backdrop-filter:blur(4px);align-items:center;justify-content:center}
-.wr-modal-overlay.open{display:flex}
-.wr-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:480px;max-height:85vh;overflow-y:auto}
-.wr-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.wr-modal-title{font-size:15px;font-weight:700}
-.wr-modal-close{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
-/* MANAGER ADVERT REPORT */
-.mgr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
-.mgr-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
-.mgr-card-label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.mgr-card-value{font-size:17px;font-weight:800;font-family:'Outfit',sans-serif;line-height:1.2}
-.mgr-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:12px}
-.mgr-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.mgr-table{width:100%;border-collapse:collapse;font-size:12px}
-.mgr-table th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px;border-bottom:1px solid var(--border)}
-.mgr-table td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
-.mgr-table tr:last-child td{border-bottom:none}
-.mgr-muted{font-size:12px;color:var(--muted);line-height:1.5}
+/* ПОДСКАЗКИ «?» */
+.an-help{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:5px;padding:0;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font:700 10px/1 'Outfit',sans-serif;letter-spacing:0;text-transform:none;cursor:help;vertical-align:1px;position:relative;transition:color .15s,border-color .15s}
+.an-help,.an-help:is(button){width:16px;height:16px;min-width:16px;min-height:16px;flex:none}
+.an-help::after{content:'';position:absolute;inset:-14px}
+.an-help:hover,.an-help:focus-visible,.an-help[aria-expanded="true"]{color:var(--p2);border-color:var(--p)}
+.an-help:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.an-help-tip{position:fixed;z-index:1200;max-width:280px;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.45);color:var(--text);font-size:12px;line-height:1.5;font-weight:500;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
+.an-help-tip.on{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
+/* ОТЧЁТ О ПРИБЫЛИ */
+.an-pnl{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 18px 8px;margin-bottom:16px}
+.an-pnl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.an-pnl-title{font-size:16px;font-weight:800;color:var(--text);margin:0}
+.an-pnl-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.an-pnl-btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:7px 14px;border-radius:9px;border:1px solid var(--p);background:transparent;color:var(--p2);font:700 12px 'Outfit',sans-serif;cursor:pointer;transition:background .15s}
+.an-pnl-btn:hover{background:var(--p3)}
+.an-pnl-btn:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.an-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:900px){.an-kpis{grid-template-columns:repeat(2,1fr)}}
+.an-kpi{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px}
+.an-kpi-lbl{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;display:flex;align-items:center}
+.an-kpi-val{font-size:20px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
+.an-kpi-note{font-size:11px;color:var(--muted);margin-top:4px}
+.an-pnl-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
+.an-pnl-table{width:100%;border-collapse:collapse;min-width:520px}
+.an-pnl-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)}
+.an-pnl-table th.num,.an-pnl-table td.num{text-align:right}
+.an-pnl-table td{padding:11px 10px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border2);vertical-align:middle}
+.an-pnl-table td.num{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.an-pnl-sign{display:inline-block;width:16px;color:var(--muted);font-weight:700}
+.an-pnl-name{display:inline-flex;align-items:center}
+.an-pnl-desc{display:block;font-size:11px;color:var(--muted);margin:2px 0 0 16px}
+.an-pnl-share{display:flex;align-items:center;justify-content:flex-end;gap:8px;color:var(--muted);font-weight:500}
+.an-pnl-bar{width:64px;height:6px;border-radius:3px;background:var(--border2);overflow:hidden;flex-shrink:0}
+.an-pnl-bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--row-color,var(--p));transition:width .3s ease-out}
+@media(prefers-reduced-motion:reduce){.an-pnl-bar i{transition:none}}
+.an-pnl-row.is-zero td,.an-pnl-row.is-zero td.num{color:var(--muted);font-weight:500}
+.an-pnl-row.is-sub td{background:var(--p3);font-weight:700}
+.an-pnl-row.is-sub td:first-child{border-radius:8px 0 0 8px}
+.an-pnl-row.is-sub td:last-child{border-radius:0 8px 8px 0}
+.an-pnl-row.is-total td{font-size:15px;font-weight:800;border-bottom:none;padding-top:14px;padding-bottom:14px}
+.an-pnl-row.is-total td.num{color:var(--green)}
+.an-pnl-row.is-total.is-loss td.num{color:var(--red)}
+.an-pnl-row.is-total{--row-color:var(--green)}
+.an-pnl-row.is-total.is-loss{--row-color:var(--red)}
+.an-pnl-row.is-ref td{color:var(--muted);border-bottom:none;font-size:12px}
+.an-pnl-row.is-ref td.num{color:var(--muted)}
+.an-pnl-hint{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--muted);line-height:1.5;padding:10px 0 12px;border-top:1px solid var(--border2);margin-top:4px}
+.an-pnl-hint.warn{color:#f5a623}
+@media(max-width:640px){
+  .an-pnl{padding:14px 14px 6px}
+  .an-pnl-wrap{margin:0 -14px;padding:0 14px}
+  .an-pnl-table{min-width:0}
+  .an-pnl-table th:nth-child(3),.an-pnl-table td:nth-child(3){display:none}
+  .an-pnl-table td{padding:10px 6px}
+  .an-pnl-row.is-total td{font-size:14px}
+  .an-kpi-val{font-size:17px}
+}
 
 /* ── Paste button & popup — Glass ── */
 .is-paste-btn{position:absolute;top:6px;right:36px;width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;transition:all .2s}
@@ -1652,107 +1660,110 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <!-- Основные метрики -->
       <div class="an-metrics">
         <div class="an-card">
-          <div class="an-card-lbl">Заказы</div>
+          <div class="an-card-lbl">Заказы<button type="button" class="an-help" data-tip="Сколько заказов покупатели оформили за период. Это ещё не деньги: часть заказов отменят или не выкупят. Как в WB «Воронка продаж»." aria-label="Что такое «Заказы»">?</button></div>
           <div class="an-card-val" id="anMCount">—</div>
           <span class="an-card-delta eq" id="anMCountDelta"></span>
           <div class="an-card-period" id="anMCountPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Заказали на сумму</div>
+          <div class="an-card-lbl">Заказали на сумму<button type="button" class="an-help" data-tip="Сумма оформленных заказов по цене покупателя. Деньги придут только за выкупленные товары." aria-label="Что такое «Заказали на сумму»">?</button></div>
           <div class="an-card-val" id="anMSum">—</div>
           <span class="an-card-delta eq" id="anMSumDelta"></span>
           <div class="an-card-period" id="anMSumPeriod"></div>
         </div>
         <div class="an-card" style="border-color:#22d37a33;background:linear-gradient(135deg,rgba(34,211,122,.04),transparent)">
-          <div class="an-card-lbl" style="color:#22d37a">Расчётная прибыль</div>
+          <div class="an-card-lbl" style="color:#22d37a"><span id="anMMarginLbl">Расчётная прибыль</span><button type="button" class="an-help" data-tip="Сколько вы заработали: выплата от WB за вычетом всех удержаний и себестоимости проданных товаров. Подробный расчёт — в «Отчёте о прибыли» ниже. Налог и расходы вне WB не вычтены." aria-label="Как считается расчётная прибыль">?</button></div>
           <div class="an-card-val" id="anMMargin" style="color:#22d37a">—</div>
           <span class="an-card-delta eq" id="anMMarginDelta"></span>
           <div class="an-card-period" id="anMMarginPeriod"></div>
-          <div style="font-size:10px;color:var(--muted);margin-top:6px;opacity:.6">По отчётам реализации WB</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px">По финансовому отчёту WB</div>
         </div>
       </div>
 
       <!-- Выкупы и отмены — те же поля, что в «Этапах воронки продаж» WB -->
       <div class="an-metrics an-metrics-4">
         <div class="an-card">
-          <div class="an-card-lbl">Выкупили, шт</div>
+          <div class="an-card-lbl">Выкупили, шт<button type="button" class="an-help" data-tip="Сколько товаров из заказов этого периода покупатели уже забрали. Заказы прошлых недель сюда не входят." aria-label="Что такое «Выкупили, шт»">?</button></div>
           <div class="an-card-val" id="anMBuyCount">—</div>
           <span class="an-card-delta eq" id="anMBuyCountDelta"></span>
           <div class="an-card-period" id="anMBuyCountPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Выкупили на сумму</div>
+          <div class="an-card-lbl">Выкупили на сумму<button type="button" class="an-help" data-tip="Сумма выкупов из заказов этого периода. Все выкупы за период, включая старые заказы, — в строке «Продажи» отчёта о прибыли ниже." aria-label="Что такое «Выкупили на сумму»">?</button></div>
           <div class="an-card-val" id="anMBuySum">—</div>
           <span class="an-card-delta eq" id="anMBuySumDelta"></span>
           <div class="an-card-period" id="anMBuySumPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Отменили и вернули, шт</div>
+          <div class="an-card-lbl">Отменили и вернули, шт<button type="button" class="an-help" data-tip="Заказы этого периода, которые покупатель отменил, не забрал или вернул." aria-label="Что такое «Отменили и вернули, шт»">?</button></div>
           <div class="an-card-val" id="anMCancelCount">—</div>
           <span class="an-card-delta eq" id="anMCancelCountDelta"></span>
           <div class="an-card-period" id="anMCancelCountPeriod"></div>
         </div>
         <div class="an-card">
-          <div class="an-card-lbl">Отменили и вернули на сумму</div>
+          <div class="an-card-lbl">Отменили и вернули на сумму<button type="button" class="an-help" data-tip="Сумма отменённых и возвращённых заказов этого периода." aria-label="Что такое «Отменили и вернули на сумму»">?</button></div>
           <div class="an-card-val" id="anMCancelSum">—</div>
           <span class="an-card-delta eq" id="anMCancelSumDelta"></span>
           <div class="an-card-period" id="anMCancelSumPeriod"></div>
         </div>
       </div>
 
-      <!-- Кнопка себестоимости -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-        <div style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px" id="anCogsHint"><span data-icon="light-bulb" aria-hidden="true"></span> Введите себестоимость товаров для расчёта чистой прибыли</div>
-        <button onclick="openCogsModal()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--p);background:transparent;color:var(--p);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><span data-icon="settings" aria-hidden="true"></span> Себестоимость товаров</button>
-      </div>
+      <!-- Отчёт о прибыли: как из продаж получается прибыль -->
+      <section class="an-pnl" aria-labelledby="anPnlTitle">
+        <div class="an-pnl-head">
+          <div>
+            <h3 class="an-pnl-title" id="anPnlTitle">Отчёт о прибыли</h3>
+            <div class="an-pnl-sub">Как из продаж получается прибыль. Цифры из финансового отчёта WB, их можно сверить с ежедневным отчётом в WB Partners.</div>
+          </div>
+          <button type="button" class="an-pnl-btn" onclick="openCogsModal()"><span data-icon="settings" aria-hidden="true"></span> Себестоимость товаров</button>
+        </div>
 
-      <!-- Разбивка расходов -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
-        <div class="an-card" style="padding:12px 14px">
-          <div class="an-card-lbl" style="font-size:11px">К перечислению за товары</div>
-          <div class="an-card-val" id="anMPayable" style="font-size:18px">—</div>
+        <div class="an-kpis">
+          <div class="an-kpi">
+            <div class="an-kpi-lbl">Маржинальность<button type="button" class="an-help" data-tip="Какая доля продаж остаётся у вас прибылью. Например, 30% — с каждых 100 ₸ продаж у вас остаётся 30 ₸." aria-label="Что такое маржинальность">?</button></div>
+            <div class="an-kpi-val" id="anKpiMarginPct">—</div>
+            <div class="an-kpi-note">прибыль ÷ продажи</div>
+          </div>
+          <div class="an-kpi">
+            <div class="an-kpi-lbl">Прибыль с 1 штуки<button type="button" class="an-help" data-tip="Сколько в среднем вы зарабатываете на одном проданном товаре." aria-label="Что такое прибыль с 1 штуки">?</button></div>
+            <div class="an-kpi-val" id="anKpiUnitProfit">—</div>
+            <div class="an-kpi-note" id="anKpiUnits">продано —</div>
+          </div>
+          <div class="an-kpi">
+            <div class="an-kpi-lbl">Расходы WB<button type="button" class="an-help" data-tip="Какую долю продаж забирает WB: комиссия, логистика, хранение, штрафы и удержания вместе." aria-label="Что такое расходы WB">?</button></div>
+            <div class="an-kpi-val" id="anKpiWbCostPct">—</div>
+            <div class="an-kpi-note">от продаж</div>
+          </div>
+          <div class="an-kpi">
+            <div class="an-kpi-lbl">Доля рекламы<button type="button" class="an-help" data-tip="ДРР: сколько процентов от продаж ушло на рекламу. Считается по фактическим затратам на рекламу за выбранные дни." aria-label="Что такое доля рекламы">?</button></div>
+            <div class="an-kpi-val" id="anKpiDrr">—</div>
+            <div class="an-kpi-note">реклама ÷ продажи</div>
+          </div>
         </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#0071e333">
-          <div class="an-card-lbl" style="font-size:11px;color:#0071e3" title="Колонка «Продажа» в ежедневном финансовом отчёте WB: цена со скидкой WB (СПП), возвраты вычтены">Продажи</div>
-          <div class="an-card-val" id="anMRetailAmount" style="font-size:18px;color:#0071e3">—</div>
+
+        <div class="an-pnl-wrap">
+          <table class="an-pnl-table">
+            <caption class="sr-only">Отчёт о прибыли за выбранный период</caption>
+            <thead><tr><th scope="col">Показатель</th><th scope="col" class="num">Сумма</th><th scope="col" class="num">Доля от продаж</th></tr></thead>
+            <tbody>
+            <tr class="an-pnl-row is-inc" style="--row-color:#0071e3"><td><span class="an-pnl-sign" aria-hidden="true"></span><span class="an-pnl-name">Продажи<button type="button" class="an-help" data-tip="Все товары, которые покупатели выкупили за период, минус возвраты. Цена — со скидкой WB. В ежедневном финансовом отчёте WB это колонка «Продажа»." aria-label="Что такое «Продажи»">?</button></span><span class="an-pnl-desc">выкупы минус возвраты</span></td><td class="num" id="anMRetailAmount">—</td><td class="num"><span class="an-pnl-share"><span id="anMRetailAmountShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMRetailAmountBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#ff6b35"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Комиссия WB и эквайринг<button type="button" class="an-help" data-tip="Что WB оставил себе с продаж: комиссия и оплата картой. Уже уменьшена на компенсацию скидки WB, поэтому иногда бывает в плюс." aria-label="Что такое «Комиссия WB и эквайринг»">?</button></span><span class="an-pnl-desc">считается как «Продажа» − «К перечислению»</span></td><td class="num" id="anMCommission">—</td><td class="num"><span class="an-pnl-share"><span id="anMCommissionShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMCommissionBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-sub"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">К перечислению за товары<button type="button" class="an-help" data-tip="Сколько WB должен вам за проданные товары до вычета логистики и других расходов. Колонка «К перечислению за товар» в отчёте WB." aria-label="Что такое «К перечислению за товары»">?</button></span></td><td class="num" id="anMPayable">—</td><td class="num"><span class="an-pnl-share"><span id="anMPayableShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMPayableBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#f5a623"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Логистика<button type="button" class="an-help" data-tip="Доставка товаров покупателям и обратно на склад при отменах и возвратах." aria-label="Что такое «Логистика»">?</button></span></td><td class="num" id="anMLogistics">—</td><td class="num"><span class="an-pnl-share"><span id="anMLogisticsShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMLogisticsBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#9b59b6"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Хранение<button type="button" class="an-help" data-tip="Плата за хранение товаров на складах WB." aria-label="Что такое «Хранение»">?</button></span></td><td class="num" id="anMStorage">—</td><td class="num"><span class="an-pnl-share"><span id="anMStorageShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMStorageBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#8e44ad"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Платная приёмка<button type="button" class="an-help" data-tip="Плата за приёмку поставок на склад WB." aria-label="Что такое «Платная приёмка»">?</button></span></td><td class="num" id="anMAcceptance">—</td><td class="num"><span class="an-pnl-share"><span id="anMAcceptanceShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMAcceptanceBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#e74c3c"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Штрафы<button type="button" class="an-help" data-tip="Штрафы WB, например за нарушения при поставке или маркировке." aria-label="Что такое «Штрафы»">?</button></span></td><td class="num" id="anMPenalty">—</td><td class="num"><span class="an-pnl-share"><span id="anMPenaltyShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMPenaltyBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#d35400"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Удержания<button type="button" class="an-help" data-tip="В основном оплата рекламы WB Продвижения с баланса. WB удерживает её раз в неделю по актам, поэтому сумма может относиться к рекламе прошлой недели." aria-label="Что такое «Удержания»">?</button></span><span class="an-pnl-desc">в т.ч. оплата рекламы</span></td><td class="num" id="anMDeduction">—</td><td class="num"><span class="an-pnl-share"><span id="anMDeductionShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMDeductionBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-inc" style="--row-color:#27ae60"><td><span class="an-pnl-sign" aria-hidden="true">+</span><span class="an-pnl-name">Доплаты WB<button type="button" class="an-help" data-tip="Компенсации и доплаты от WB, например за потерянный товар." aria-label="Что такое «Доплаты WB»">?</button></span></td><td class="num" id="anMAdditionalPayment">—</td><td class="num"><span class="an-pnl-share"><span id="anMAdditionalPaymentShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMAdditionalPaymentBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-sub"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">Итого от WB<button type="button" class="an-help" data-tip="Сколько WB перечислит вам за период. Совпадает с колонкой «Итого к оплате» в финансовом отчёте WB." aria-label="Что такое «Итого от WB»">?</button></span></td><td class="num" id="anPnlWbTotal">—</td><td class="num"><span class="an-pnl-share"><span id="anPnlWbTotalShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anPnlWbTotalBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#e74c3c"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Себестоимость<button type="button" class="an-help" data-tip="Ваша себестоимость, умноженная на число проданных штук (возвраты вычтены). Цены задаются кнопкой «Себестоимость товаров»." aria-label="Что такое «Себестоимость»">?</button></span><span class="an-pnl-desc">проданных товаров</span></td><td class="num" id="anMCogs">—</td><td class="num"><span class="an-pnl-share"><span id="anMCogsShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMCogsBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-total"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">Расчётная прибыль<button type="button" class="an-help" data-tip="Итого от WB минус себестоимость. Налог и расходы вне WB (доставка до склада, упаковка) не вычтены." aria-label="Что такое «Расчётная прибыль»">?</button></span></td><td class="num" id="anPnlProfit">—</td><td class="num"><span class="an-pnl-share"><span id="anPnlProfitShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anPnlProfitBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-ref"><td><span class="an-pnl-sign" aria-hidden="true"></span><span class="an-pnl-name" id="anAdSpendLbl">Справочно: реклама за период<button type="button" class="an-help" data-tip="Сколько реклама реально потратила за выбранные дни, как в WB Продвижение → «Статистика». Не вычитается из прибыли: оплату рекламы WB уже удержал в строке «Удержания»." aria-label="Что такое «реклама за период»">?</button></span></td><td class="num" id="anAdSpend">—</td><td class="num"><span class="an-pnl-share" id="anAdSpendShare">—</span></td></tr>
+            </tbody>
+          </table>
         </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
-          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Себестоимость реализаций</div>
-          <div class="an-card-val" id="anMCogs" style="font-size:18px;color:#e74c3c">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#ff6b3533">
-          <div class="an-card-lbl" style="font-size:11px;color:#ff6b35" title="«Продажа» минус «К перечислению за товар» из ежедневного отчёта WB. Уже уменьшена на компенсацию скидки WB, поэтому бывает отрицательной">Комиссия WB и эквайринг</div>
-          <div class="an-card-val" id="anMCommission" style="font-size:18px;color:#ff6b35">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#f5a62333">
-          <div class="an-card-lbl" style="font-size:11px;color:#f5a623">Логистика</div>
-          <div class="an-card-val" id="anMLogistics" style="font-size:18px;color:#f5a623">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#9b59b633">
-          <div class="an-card-lbl" style="font-size:11px;color:#9b59b6">Хранение</div>
-          <div class="an-card-val" id="anMStorage" style="font-size:18px;color:#9b59b6">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#e74c3c33">
-          <div class="an-card-lbl" style="font-size:11px;color:#e74c3c">Штрафы</div>
-          <div class="an-card-val" id="anMPenalty" style="font-size:18px;color:#e74c3c">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#d3540033">
-          <div class="an-card-lbl" style="font-size:11px;color:#d35400">Удержания</div>
-          <div class="an-card-val" id="anMDeduction" style="font-size:18px;color:#d35400">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#c0392b33">
-          <div class="an-card-lbl" id="anAdSpendLbl" style="font-size:11px;color:#c0392b" title="Затраты на рекламу, как в WB Продвижение → Статистика">Реклама</div>
-          <div class="an-card-val" id="anAdSpend" style="font-size:18px;color:#c0392b">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#8e44ad33">
-          <div class="an-card-lbl" style="font-size:11px;color:#8e44ad">Платная приёмка</div>
-          <div class="an-card-val" id="anMAcceptance" style="font-size:18px;color:#8e44ad">—</div>
-        </div>
-        <div class="an-card" style="padding:12px 14px;border-color:#27ae6033">
-          <div class="an-card-lbl" style="font-size:11px;color:#27ae60">Доплаты WB</div>
-          <div class="an-card-val" id="anMAdditionalPayment" style="font-size:18px;color:#27ae60">—</div>
-        </div>
-      </div>
+        <div class="an-pnl-hint" id="anCogsHint" role="status"><span data-icon="light-bulb" aria-hidden="true"></span> <span id="anCogsHintText">Введите себестоимость товаров для расчёта чистой прибыли</span></div>
+      </section>
 
       <div class="an-chart-card">
         <div class="an-chart-header">
@@ -1775,126 +1786,9 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       </div>
     </div>
 
-    <!-- ════ ВКЛАДКИ ════ (показываем только когда токен подключён) -->
-    <div id="anTabs" style="display:none">
-      <div class="an-tabs">
-        <button class="an-tab on" id="tabStats"   onclick="anSwitchTab('stats')"><span data-icon="chart" aria-hidden="true"></span> Статистика заказов</button>
-        <button class="an-tab"   id="tabWeekly"   onclick="anSwitchTab('weekly')"><span data-icon="clipboard" aria-hidden="true"></span> Финансовые отчёты WB</button>
-        <button class="an-tab"   id="tabManagers" onclick="anSwitchTab('managers')"><span data-icon="user" aria-hidden="true"></span> Менеджеры рекламы</button>
-      </div>
-
-      <!-- ── Панель: статистика (существующий anMain) ── -->
-      <div class="an-tab-panel on" id="tabPanelStats">
-        <!-- пусто — anMain уже рендерится выше, мы просто перемещаем его внутрь вкладки через JS -->
-      </div>
-
-      <!-- ── Панель: недельные отчёты ── -->
-      <div class="an-tab-panel" id="tabPanelWeekly">
-        <div class="wr-summary" id="wrSummary" style="display:none">
-          <div class="wr-scard">
-            <div class="wr-scard-lbl">Всего отчётов</div>
-            <div class="wr-scard-val" id="wrTotalCount">—</div>
-            <div class="wr-scard-sub">за всё время</div>
-          </div>
-          <div class="wr-scard">
-            <div class="wr-scard-lbl">Последний перевод</div>
-            <div class="wr-scard-val" id="wrLastTransfer">—</div>
-            <div class="wr-scard-sub" id="wrLastDate"></div>
-          </div>
-          <div class="wr-scard">
-            <div class="wr-scard-lbl">Ожидает перевода</div>
-            <div class="wr-scard-val" id="wrPending">—</div>
-            <div class="wr-scard-sub">по незакрытым отчётам</div>
-          </div>
-          <div class="wr-scard">
-            <div class="wr-scard-lbl">Итого начислено</div>
-            <div class="wr-scard-val" id="wrTotalSum">—</div>
-            <div class="wr-scard-sub">сумма всех отчётов</div>
-          </div>
-        </div>
-
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Список отчётов</div>
-          <button class="an-refresh-btn" id="wrRefreshBtn" onclick="wrLoad()">
-            <svg id="wrRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Обновить
-          </button>
-        </div>
-
-        <div class="wr-table-wrap">
-          <div class="wr-empty" id="wrEmpty" style="display:none">
-            <div style="font-size:36px;opacity:.2;margin-bottom:8px"><span data-icon="clipboard" aria-hidden="true"></span></div>
-            <div id="wrEmptyText">Загрузка...</div>
-          </div>
-          <table class="wr-table" id="wrTable" style="display:none">
-            <thead>
-              <tr>
-                <th>№ отчёта</th>
-                <th>Период</th>
-                <th>Дата создания</th>
-                <th>К перечислению</th>
-                <th>Статус</th>
-                <th style="text-align:center">Детали</th>
-              </tr>
-            </thead>
-            <tbody id="wrTbody"></tbody>
-          </table>
-        </div>
-
-        <div style="display:flex;justify-content:center;margin-top:14px;gap:8px" id="wrPagination">
-          <button class="wr-load-btn" id="wrPrevBtn" onclick="wrPage(-1)" style="display:none">← Назад</button>
-          <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;padding:0 8px" id="wrPageInfo"></span>
-          <button class="wr-load-btn" id="wrNextBtn" onclick="wrPage(1)" style="display:none">Вперёд →</button>
-        </div>
-      </div>
-
-      <div class="an-tab-panel" id="tabPanelManagers">
-        <div class="mgr-muted">Назначьте рекламные кампании менеджерам. WBai покажет их расходы на рекламу, сумму заказов из рекламы и результат до себестоимости. Для этой вкладки токену нужен доступ <b>«Продвижение»</b>.</div>
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:16px 0">
-          <div style="min-width:180px;flex:1">
-            <label class="field-label" for="mgrName">Менеджер</label>
-            <input class="field-input" id="mgrName" maxlength="80" placeholder="Например, Айдана">
-          </div>
-          <div style="min-width:260px;flex:2">
-            <label class="field-label" for="mgrCampaign">Рекламная кампания</label>
-            <select class="field-input" id="mgrCampaign"><option value="">Загрузите кампании</option></select>
-          </div>
-          <button class="an-btn" id="mgrAssignBtn" onclick="mgrAssignCampaign()">Назначить</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-          <button class="an-refresh-btn" type="button" onclick="mgrLoadCampaigns()">Загрузить кампании WB</button>
-          <span id="mgrMessage" class="mgr-muted" role="status" aria-live="polite"></span>
-        </div>
-        <div id="mgrAssignments" class="mgr-muted">Назначения пока не загружены.</div>
-
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:20px;padding-top:18px">
-          <div>
-            <label class="field-label" for="mgrDateFrom">Период с</label>
-            <input class="field-input" id="mgrDateFrom" type="date">
-          </div>
-          <div>
-            <label class="field-label" for="mgrDateTo">по</label>
-            <input class="field-input" id="mgrDateTo" type="date">
-          </div>
-          <button class="an-btn" id="mgrReportBtn" onclick="mgrLoadReport()">Показать отчёт</button>
-          <span class="mgr-muted">Не более 31 дня</span>
-        </div>
-        <div id="mgrReport" class="mgr-muted" style="margin-top:14px">Выберите период и нажмите «Показать отчёт».</div>
-      </div>
-    </div>
 
   </div>
 
-  <!-- ════ МОДАЛКА ДЕТАЛЕЙ ОТЧЁТА ════ -->
-  <div class="wr-modal-overlay" id="wrModalOverlay" onclick="wrCloseModal(event)" aria-hidden="true">
-    <div class="wr-modal" role="dialog" aria-modal="true" aria-labelledby="wrModalTitle" tabindex="-1">
-      <div class="wr-modal-head">
-        <div class="wr-modal-title" id="wrModalTitle">Детали отчёта</div>
-        <button class="wr-modal-close" type="button" onclick="wrCloseModal()" aria-label="Закрыть детали отчёта"><span data-icon="x" aria-hidden="true"></span></button>
-      </div>
-      <div id="wrModalBody"></div>
-    </div>
-  </div>
 </main>
 <script>
 const token = localStorage.getItem('wbai_token');
@@ -2075,7 +1969,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.profile-btn')&&!e.target.closest('.profile-dropdown')) closeDropdowns();
 });
 document.addEventListener('keydown',event=>{
-  const dialog=document.querySelector('#wrModalOverlay.open .wr-modal') || (document.getElementById('cogsModal')?.style.display==='flex' ? document.getElementById('cogsDialog') : null);
+  const dialog=document.getElementById('cogsModal')?.style.display==='flex' ? document.getElementById('cogsDialog') : null;
   if(event.key==='Tab' && dialog) {
     const focusable=[...dialog.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')];
     if(!focusable.length) return;
@@ -2084,7 +1978,6 @@ document.addEventListener('keydown',event=>{
     else if(!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus(); }
   }
   if(event.key==='Escape') {
-    if(document.getElementById('wrModalOverlay').classList.contains('open')) return wrCloseModal();
     if(document.getElementById('cogsModal')?.style.display==='flex') return closeCogsModal();
     if(document.getElementById('sidebar').classList.contains('open')) return closeSidebar();
     closeDropdowns();
@@ -2790,9 +2683,7 @@ async function anCheckToken() {
     document.getElementById('anTokenBlock').style.display = d.hasToken ? 'none' : 'block';
     document.getElementById('anTokenStatus').style.display = d.hasToken ? 'flex' : 'none';
     var analyticsMain = document.getElementById('anMain');
-    var analyticsTabs = document.getElementById('anTabs');
     if (analyticsMain) analyticsMain.style.display = d.hasToken ? 'block' : 'none';
-    if (analyticsTabs) analyticsTabs.style.display = d.hasToken ? 'block' : 'none';
     if (d.hasToken) {
       document.getElementById('anTokenPreview').textContent = d.tokenPreview || '';
       if (AN.initialized && !AN.loaded) { AN.loaded = true; anLoad(); }
@@ -2802,9 +2693,7 @@ async function anCheckToken() {
     document.getElementById('anTokenBlock').style.display = 'block';
     document.getElementById('anTokenStatus').style.display = 'none';
     var analyticsMain = document.getElementById('anMain');
-    var analyticsTabs = document.getElementById('anTabs');
     if (analyticsMain) analyticsMain.style.display = 'none';
-    if (analyticsTabs) analyticsTabs.style.display = 'none';
   }
 }
 
@@ -2880,7 +2769,7 @@ async function anLoadAds(from, to, forceRefresh) {
   var seq=++anAdsRequestSeq;
   var el=document.getElementById('anAdSpend');
   var lbl=document.getElementById('anAdSpendLbl');
-  var hint='Затраты на рекламу, как в WB Продвижение → Статистика';
+  AN.adSpend=null; anRenderAdShare();
   if(el) el.textContent='...';
   try {
     var url='/api/wb-advertising?from='+from+'&to='+to+(forceRefresh?'&refresh=1':'');
@@ -2893,8 +2782,10 @@ async function anLoadAds(from, to, forceRefresh) {
       if(lbl) lbl.title=d.error||'Затраты на рекламу недоступны';
       return;
     }
-    anSetVal('anAdSpend', (d.totals||{}).spend);
-    if(lbl) lbl.title=hint;
+    AN.adSpend=Number((d.totals||{}).spend)||0;
+    anSetVal('anAdSpend', AN.adSpend);
+    anRenderAdShare();
+    if(lbl) lbl.removeAttribute('title');
   } catch(e) {
     if(seq!==anAdsRequestSeq) return;
     anSetUnavailable('anAdSpend');
@@ -2976,31 +2867,109 @@ function anUpdateMetrics(totals,prev,period,finance){
     var marginPeriod=document.getElementById('anMMarginPeriod');
     if(marginPeriod) marginPeriod.textContent=finance && finance.status==='pending' ? 'отчёт WB ещё не сформирован' : 'финансовые данные недоступны';
   }
-  if(lbl2) lbl2.closest('.an-card').querySelector('.an-card-lbl').textContent = hasNetMargin ? 'Расчётная прибыль' : 'Финансовый результат WB';
-  // Разбивка расходов
-  ['anMPayable','anMRetailAmount','anMCogs','anMCommission','anMLogistics','anMStorage','anMPenalty','anMDeduction','anMAcceptance','anMAdditionalPayment'].forEach(function(id){
-    if(!financeReady) anSetUnavailable(id);
-  });
-  if(financeReady){
-    anSetVal('anMPayable', totals.payable);
-    anSetVal('anMRetailAmount', totals.retailAmount);
-    anSetVal('anMCogs', totals.cogs);
-    anSetVal('anMCommission', totals.commission);
-    anSetVal('anMLogistics', totals.logistics);
-    anSetVal('anMStorage', totals.storage);
-    anSetVal('anMPenalty', totals.penalty);
-    anSetVal('anMDeduction', totals.deduction);
-    anSetVal('anMAcceptance', totals.acceptance);
-    anSetVal('anMAdditionalPayment', totals.additionalPayment);
-  }
-  // Подсказка
-  var hint = document.getElementById('anCogsHint');
-  if(hint){
-    if(!financeReady) hint.textContent = finance && finance.status==='pending' ? 'Финансовый отчёт WB за этот период ещё не сформирован' : 'Финансовые данные WB недоступны — прибыль не рассчитана';
-    else if((totals.unpriced_units||0)>0) hint.textContent = 'Не указана себестоимость для '+totals.unpriced_units+' реализованных ед.: '+(totals.unpriced_articles||[]).join(', ')+' — прибыль завышена';
-    else hint.textContent = hasNetMargin ? 'Прибыль сопоставлена с '+(totals.realized_units||0)+' реализованными ед. и удержаниями WB' : 'Введите себестоимость товаров для расчёта прибыли';
+  var marginLbl=document.getElementById('anMMarginLbl');
+  if(marginLbl) marginLbl.textContent = hasNetMargin ? 'Расчётная прибыль' : 'Финансовый результат WB';
+  anRenderPnl(totals, financeReady, hasNetMargin);
+  // Подсказка под отчётом о прибыли
+  var hint=document.getElementById('anCogsHint'), hintText=document.getElementById('anCogsHintText');
+  if(hint&&hintText){
+    var warn=false, msg;
+    if(!financeReady) msg = finance && finance.status==='pending' ? 'Финансовый отчёт WB за этот период ещё не сформирован' : 'Финансовые данные WB недоступны — прибыль не рассчитана';
+    else if((totals.unpriced_units||0)>0){ warn=true; msg = 'Не указана себестоимость для '+totals.unpriced_units+' проданных шт.: '+(totals.unpriced_articles||[]).join(', ')+'. Прибыль завышена — заполните «Себестоимость товаров».'; }
+    else msg = hasNetMargin ? 'Себестоимость учтена для всех '+(totals.realized_units||0)+' проданных шт. Налог и расходы вне WB не вычтены.' : 'Введите себестоимость товаров, чтобы увидеть прибыль.';
+    hintText.textContent=msg;
+    hint.classList.toggle('warn', warn);
   }
 }
+
+// Строки отчёта о прибыли: id ячейки → поле totals. Расходы показываем со знаком минус.
+var AN_PNL_ROWS=[
+  {id:'anMRetailAmount',field:'retailAmount',sign:1},
+  {id:'anMCommission',field:'commission',sign:-1,flow:true},
+  {id:'anMPayable',field:'payable',sign:1},
+  {id:'anMLogistics',field:'logistics',sign:-1,flow:true},
+  {id:'anMStorage',field:'storage',sign:-1,flow:true},
+  {id:'anMAcceptance',field:'acceptance',sign:-1,flow:true},
+  {id:'anMPenalty',field:'penalty',sign:-1,flow:true},
+  {id:'anMDeduction',field:'deduction',sign:-1,flow:true},
+  {id:'anMAdditionalPayment',field:'additionalPayment',sign:1,flow:true},
+  {id:'anPnlWbTotal',field:'margin',sign:1},
+  {id:'anMCogs',field:'cogs',sign:-1,needsCogs:true,flow:true},
+  {id:'anPnlProfit',field:'net_margin',sign:1,needsCogs:true}
+];
+
+function anFmtPct(v){return v==null||!isFinite(v)?'—':(Math.round(v*10)/10).toLocaleString('ru')+' %';}
+function anFmtSigned(v){var n=Math.round(v)||0;return (n<0?'− ':'')+Math.abs(n).toLocaleString('ru')+' ₸';}
+function anSetText(id,text){var el=document.getElementById(id);if(el)el.textContent=text;}
+
+function anRenderPnl(totals, financeReady, hasNetMargin){
+  var sales=financeReady?Number(totals.retailAmount)||0:0;
+  AN.pnlSales=financeReady?sales:null;
+  AN_PNL_ROWS.forEach(function(row){
+    var available=financeReady&&(!row.needsCogs||hasNetMargin);
+    var value=available?row.sign*(Number(totals[row.field])||0):null;
+    // У расходов и доплат знак +/− показывает, уменьшает строка прибыль или увеличивает.
+    var cell=document.getElementById(row.id);
+    var glyph=cell&&row.flow?cell.closest('tr').querySelector('.an-pnl-sign'):null;
+    if(glyph) glyph.textContent=!value?(row.sign<0?'−':'+'):(value<0?'−':'+');
+    if(cell) cell.closest('tr').classList.toggle('is-zero', financeReady&&!value&&row.flow);
+    anSetText(row.id, value==null?'—':row.flow?Math.abs(Math.round(value)).toLocaleString('ru')+' ₸':anFmtSigned(value));
+    var share=value!=null&&sales?Math.abs(value)/sales*100:null;
+    anSetText(row.id+'Share', anFmtPct(share));
+    var bar=document.getElementById(row.id+'Bar');
+    if(bar) bar.style.width=share==null?'0':Math.min(share,100)+'%';
+  });
+  var profitRow=document.getElementById('anPnlProfit');
+  if(profitRow) profitRow.closest('tr').classList.toggle('is-loss', hasNetMargin&&financeReady&&(Number(totals.net_margin)||0)<0);
+  var units=Number(totals.realized_units)||0;
+  anSetText('anKpiMarginPct', financeReady&&hasNetMargin&&sales?anFmtPct(totals.net_margin/sales*100):'—');
+  anSetText('anKpiUnitProfit', financeReady&&hasNetMargin&&units?anFmtSigned(totals.net_margin/units):'—');
+  anSetText('anKpiUnits', financeReady?'продано '+units.toLocaleString('ru')+' шт.':'продано —');
+  anSetText('anKpiWbCostPct', financeReady&&sales?anFmtPct((sales-(Number(totals.margin)||0))/sales*100):'—');
+  anRenderAdShare();
+}
+
+// Доля рекламы: затраты приходят отдельным запросом, продажи — из финотчёта.
+function anRenderAdShare(){
+  var share=AN.pnlSales&&AN.adSpend!=null?AN.adSpend/AN.pnlSales*100:null;
+  anSetText('anKpiDrr', anFmtPct(share));
+  anSetText('anAdSpendShare', anFmtPct(share));
+}
+
+// Подсказки «?»: одна всплывашка на страницу, открывается наведением, фокусом или нажатием.
+(function(){
+  var tip=document.createElement('div');
+  tip.className='an-help-tip'; tip.id='anHelpTip'; tip.setAttribute('role','tooltip');
+  document.body.appendChild(tip);
+  var current=null;
+  function show(btn){
+    if(current&&current!==btn) hide();
+    current=btn; tip.textContent=btn.getAttribute('data-tip')||'';
+    btn.setAttribute('aria-describedby','anHelpTip'); btn.setAttribute('aria-expanded','true');
+    tip.style.maxWidth=Math.min(280, window.innerWidth-24)+'px'; tip.classList.add('on');
+    place();
+  }
+  function place(){
+    if(!current) return;
+    var r=current.getBoundingClientRect(), tw=tip.offsetWidth, th=tip.offsetHeight;
+    var left=Math.max(12, Math.min(r.left+r.width/2-tw/2, window.innerWidth-tw-12));
+    var top=r.top-th-8; if(top<12) top=r.bottom+8;
+    tip.style.left=left+'px'; tip.style.top=top+'px';
+  }
+  function hide(){
+    if(!current) return;
+    current.removeAttribute('aria-describedby'); current.setAttribute('aria-expanded','false');
+    current=null; tip.classList.remove('on');
+  }
+  document.addEventListener('mouseover',function(e){var b=e.target.closest&&e.target.closest('.an-help');if(b)show(b);});
+  document.addEventListener('mouseout',function(e){var b=e.target.closest&&e.target.closest('.an-help');if(b&&b===current&&document.activeElement!==b)hide();});
+  document.addEventListener('focusin',function(e){var b=e.target.closest&&e.target.closest('.an-help');if(b)show(b);});
+  document.addEventListener('focusout',function(e){if(current&&e.target===current)hide();});
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.an-help');if(b){e.preventDefault();e.stopPropagation();show(b);}else hide();},true);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')hide();});
+  window.addEventListener('scroll',place,{passive:true});
+  window.addEventListener('resize',place);
+})();
 
 function anBuildChart(rows,dateFrom,dateTo,period){
   if(!rows||!rows.length){anShowErr('Нет данных за выбранный период');AN.data=[];return;}
@@ -3071,514 +3040,6 @@ function anSetupTooltip(){
   canvas.addEventListener('mouseleave',function(){tooltip.style.display='none';});
 }
 
-// ════════════════════════════════════════════
-//  ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК АНАЛИТИКИ
-// ════════════════════════════════════════════
-function anSwitchTab(tab) {
-  document.querySelectorAll('.an-tab').forEach(function(t){t.classList.remove('on');});
-  document.querySelectorAll('.an-tab-panel').forEach(function(p){p.classList.remove('on');});
-  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('on');
-  if (tab === 'stats') {
-    document.getElementById('anMain').style.display = 'block';
-    document.getElementById('tabPanelStats').classList.add('on');
-  } else if (tab === 'weekly') {
-    document.getElementById('anMain').style.display = 'none';
-    document.getElementById('tabPanelWeekly').classList.add('on');
-    if (!WR.loaded) wrLoad();
-  } else if (tab === 'managers') {
-    document.getElementById('anMain').style.display = 'none';
-    document.getElementById('tabPanelManagers').classList.add('on');
-    mgrInit();
-  }
-}
-
-// ════════════════════════════════════════════
-//  МЕНЕДЖЕРЫ РЕКЛАМЫ
-// ════════════════════════════════════════════
-var MGR = { initialized:false, campaigns:[], assignments:[] };
-
-function mgrFmtMoney(value) {
-  return (Math.round(Number(value) || 0)).toLocaleString('ru') + ' ₸';
-}
-
-function mgrFmtNumber(value) {
-  return Math.round(Number(value) || 0).toLocaleString('ru');
-}
-
-function mgrSetMessage(message, isError) {
-  var element = document.getElementById('mgrMessage');
-  if (!element) return;
-  element.textContent = message || '';
-  element.style.color = isError ? 'var(--red)' : 'var(--muted)';
-}
-
-async function mgrRequest(url, options) {
-  var request = options || {};
-  request.headers = Object.assign({}, request.headers || {}, { Authorization:'Bearer ' + token });
-  var response = await fetch(url, request);
-  var body;
-  try { body = await response.json(); } catch(e) { body = {}; }
-  if (!response.ok) throw new Error(body.error || ('Ошибка сервера ' + response.status));
-  return body;
-}
-
-function mgrCreate(tag, text, className) {
-  var element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined && text !== null) element.textContent = text;
-  return element;
-}
-
-function mgrSetDefaultDates() {
-  var from = document.getElementById('mgrDateFrom');
-  var to = document.getElementById('mgrDateTo');
-  if (!from || !to || from.value || to.value) return;
-  var end = new Date();
-  var start = new Date(end);
-  start.setDate(start.getDate() - 29);
-  from.value = start.toISOString().slice(0, 10);
-  to.value = end.toISOString().slice(0, 10);
-}
-
-async function mgrInit() {
-  mgrSetDefaultDates();
-  if (MGR.initialized) return;
-  MGR.initialized = true;
-  await Promise.all([mgrLoadAssignments(), mgrLoadCampaigns(true)]);
-}
-
-async function mgrLoadCampaigns(silent) {
-  var button = document.querySelector('#tabPanelManagers button[onclick="mgrLoadCampaigns()"]');
-  if (button) button.disabled = true;
-  if (!silent) mgrSetMessage('Загружаем кампании из WB…');
-  try {
-    var data = await mgrRequest('/api/wb-advert-campaigns');
-    MGR.campaigns = data.campaigns || [];
-    mgrRenderCampaignOptions();
-    mgrSetMessage(MGR.campaigns.length ? 'Кампаний WB: ' + MGR.campaigns.length : 'В WB не найдено рекламных кампаний.');
-  } catch(e) {
-    MGR.campaigns = [];
-    mgrRenderCampaignOptions();
-    mgrSetMessage(e.message, true);
-  } finally {
-    if (button) button.disabled = false;
-  }
-}
-
-function mgrRenderCampaignOptions() {
-  var select = document.getElementById('mgrCampaign');
-  if (!select) return;
-  var current = select.value;
-  select.replaceChildren();
-  select.appendChild(new Option(MGR.campaigns.length ? 'Выберите кампанию' : 'Нет доступных кампаний', ''));
-  MGR.campaigns.forEach(function(campaign) {
-    select.appendChild(new Option(campaign.name + ' · #' + campaign.id, String(campaign.id)));
-  });
-  if (MGR.campaigns.some(function(campaign) { return String(campaign.id) === current; })) select.value = current;
-}
-
-async function mgrLoadAssignments() {
-  try {
-    var data = await mgrRequest('/api/manager-campaigns');
-    MGR.assignments = data.assignments || [];
-    mgrRenderAssignments();
-  } catch(e) {
-    mgrSetMessage(e.message, true);
-  }
-}
-
-function mgrRenderAssignments() {
-  var root = document.getElementById('mgrAssignments');
-  if (!root) return;
-  root.replaceChildren();
-  if (!MGR.assignments.length) {
-    root.textContent = 'Пока нет назначенных кампаний.';
-    root.className = 'mgr-muted';
-    return;
-  }
-  root.className = '';
-  var table = mgrCreate('table', null, 'mgr-table');
-  var head = document.createElement('thead');
-  var headRow = document.createElement('tr');
-  ['Менеджер', 'Кампания', ''].forEach(function(label) { headRow.appendChild(mgrCreate('th', label)); });
-  head.appendChild(headRow);
-  var body = document.createElement('tbody');
-  MGR.assignments.forEach(function(assignment) {
-    var row = document.createElement('tr');
-    row.appendChild(mgrCreate('td', assignment.manager_name));
-    row.appendChild(mgrCreate('td', (assignment.campaign_name || 'Кампания') + ' · #' + assignment.campaign_id));
-    var actions = document.createElement('td');
-    actions.style.textAlign = 'right';
-    var remove = mgrCreate('button', 'Убрать');
-    remove.type = 'button';
-    remove.style.cssText = 'padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--red);font:inherit;font-size:11px;cursor:pointer';
-    remove.addEventListener('click', function() { mgrRemoveAssignment(assignment.id); });
-    actions.appendChild(remove);
-    row.appendChild(actions);
-    body.appendChild(row);
-  });
-  table.appendChild(head);
-  table.appendChild(body);
-  root.appendChild(table);
-}
-
-async function mgrAssignCampaign() {
-  var nameInput = document.getElementById('mgrName');
-  var campaignSelect = document.getElementById('mgrCampaign');
-  var campaign = MGR.campaigns.find(function(item) { return String(item.id) === campaignSelect.value; });
-  var managerName = nameInput.value.trim();
-  if (!managerName) { mgrSetMessage('Введите имя менеджера.', true); nameInput.focus(); return; }
-  if (!campaign) { mgrSetMessage('Сначала выберите кампанию WB.', true); campaignSelect.focus(); return; }
-  var button = document.getElementById('mgrAssignBtn');
-  button.disabled = true;
-  try {
-    await mgrRequest('/api/manager-campaigns', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ manager_name:managerName, campaign_id:campaign.id, campaign_name:campaign.name })
-    });
-    campaignSelect.value = '';
-    mgrSetMessage('Кампания назначена менеджеру «' + managerName + '».');
-    await mgrLoadAssignments();
-  } catch(e) {
-    mgrSetMessage(e.message, true);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function mgrRemoveAssignment(id) {
-  try {
-    await mgrRequest('/api/manager-campaigns/' + encodeURIComponent(id), { method:'DELETE' });
-    await mgrLoadAssignments();
-    mgrSetMessage('Назначение удалено.');
-  } catch(e) {
-    mgrSetMessage(e.message, true);
-  }
-}
-
-async function mgrLoadReport() {
-  var from = document.getElementById('mgrDateFrom').value;
-  var to = document.getElementById('mgrDateTo').value;
-  if (!from || !to) { mgrSetMessage('Выберите период отчёта.', true); return; }
-  var button = document.getElementById('mgrReportBtn');
-  var root = document.getElementById('mgrReport');
-  button.disabled = true;
-  root.className = 'mgr-muted';
-  root.textContent = 'Загружаем данные рекламных кампаний из WB…';
-  try {
-    var report = await mgrRequest('/api/wb-manager-report?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
-    mgrRenderReport(report);
-  } catch(e) {
-    root.className = 'mgr-muted';
-    root.style.color = 'var(--red)';
-    root.textContent = e.message;
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function mgrMetricCard(label, value, color) {
-  var card = mgrCreate('div', null, 'mgr-card');
-  card.appendChild(mgrCreate('div', label, 'mgr-card-label'));
-  var valueElement = mgrCreate('div', value, 'mgr-card-value');
-  if (color) valueElement.style.color = color;
-  card.appendChild(valueElement);
-  return card;
-}
-
-function mgrRenderReport(report) {
-  var root = document.getElementById('mgrReport');
-  root.replaceChildren();
-  root.style.color = '';
-  if (!report.managers || !report.managers.length) {
-    root.className = 'mgr-muted';
-    root.textContent = 'Нет назначенных кампаний. Сначала свяжите кампанию с менеджером выше.';
-    return;
-  }
-  root.className = '';
-  report.managers.forEach(function(manager) {
-    var section = mgrCreate('section', null, 'mgr-section');
-    var heading = mgrCreate('div', null, 'mgr-section-head');
-    heading.appendChild(mgrCreate('strong', manager.name));
-    heading.appendChild(mgrCreate('span', 'ДРР: ' + (Number(manager.drr) || 0).toLocaleString('ru') + '%', 'mgr-muted'));
-    section.appendChild(heading);
-    var cards = mgrCreate('div', null, 'mgr-grid');
-    cards.appendChild(mgrMetricCard('Расход на рекламу', mgrFmtMoney(manager.spend), '#e74c3c'));
-    cards.appendChild(mgrMetricCard('Сумма заказов из рекламы', mgrFmtMoney(manager.revenue), '#0071e3'));
-    cards.appendChild(mgrMetricCard('Результат до себестоимости', mgrFmtMoney(manager.result), manager.result >= 0 ? 'var(--green)' : 'var(--red)'));
-    cards.appendChild(mgrMetricCard('Заказы / клики', mgrFmtNumber(manager.orders) + ' / ' + mgrFmtNumber(manager.clicks)));
-    section.appendChild(cards);
-    var table = mgrCreate('table', null, 'mgr-table');
-    var head = document.createElement('thead');
-    var headRow = document.createElement('tr');
-    ['Кампания', 'Расход', 'Заказы', 'Выручка', 'Результат'].forEach(function(label) { headRow.appendChild(mgrCreate('th', label)); });
-    head.appendChild(headRow);
-    var body = document.createElement('tbody');
-    manager.campaigns.forEach(function(campaign) {
-      var row = document.createElement('tr');
-      row.appendChild(mgrCreate('td', campaign.name + ' · #' + campaign.id));
-      row.appendChild(mgrCreate('td', mgrFmtMoney(campaign.spend)));
-      row.appendChild(mgrCreate('td', mgrFmtNumber(campaign.orders)));
-      row.appendChild(mgrCreate('td', mgrFmtMoney(campaign.revenue)));
-      var result = mgrCreate('td', mgrFmtMoney(campaign.result));
-      result.style.color = campaign.result >= 0 ? 'var(--green)' : 'var(--red)';
-      row.appendChild(result);
-      body.appendChild(row);
-    });
-    table.appendChild(head);
-    table.appendChild(body);
-    section.appendChild(table);
-    root.appendChild(section);
-  });
-  var note = mgrCreate('p', '«Результат до себестоимости» = сумма заказов из рекламы − расходы на рекламу. Это не чистая прибыль по товару: комиссия WB, логистика и себестоимость в нём не вычтены.', 'mgr-muted');
-  note.style.margin = '12px 0 0';
-  root.appendChild(note);
-}
-
-// ════════════════════════════════════════════
-//  ФИНАНСОВЫЕ ОТЧЁТЫ WB (reports-weekly)
-// ════════════════════════════════════════════
-var WR = {
-  loaded: false,
-  page:   0,      // текущая страница (offset = page * limit)
-  limit:  20,
-  total:  0,
-  reports: []     // все загруженные отчёты
-};
-
-async function wrLoad() {
-  var btn = document.getElementById('wrRefreshBtn');
-  var icon = document.getElementById('wrRefreshIcon');
-  if (btn) btn.disabled = true;
-  if (icon) icon.style.animation = 'spin 1s linear infinite';
-
-  wrShowEmpty('Загружаем отчёты...');
-  document.getElementById('wrTable').style.display = 'none';
-
-  var offset = WR.page * WR.limit;
-  var url = '/api/wb-weekly-report?limit=' + WR.limit + '&offset=' + offset;
-
-  try {
-    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-    var d; try { d = await r.json(); } catch(e) { d = { error: 'Ошибка сервера ' + r.status }; }
-
-    if (!r.ok || d.error) {
-      wrShowEmpty(d.error || 'Ошибка загрузки');
-      return;
-    }
-
-    // Нормализуем ответ — WB API может возвращать разные структуры
-    WR.reports = wrNormalize(d);
-    WR.loaded = true;
-
-    if (WR.reports.length === 0) {
-      wrShowEmpty('Отчётов не найдено');
-      return;
-    }
-
-    wrRender();
-    wrUpdateSummary();
-
-  } catch(e) {
-    wrShowEmpty('Ошибка соединения: ' + e.message);
-  } finally {
-    if (btn) btn.disabled = false;
-    if (icon) icon.style.animation = '';
-  }
-}
-
-// Нормализует разные форматы ответа WB API → единый массив
-function wrNormalize(raw) {
-  // Попробуем найти массив отчётов в любом месте ответа
-  var arr = null;
-  if (Array.isArray(raw))               arr = raw;
-  else if (Array.isArray(raw.data))     arr = raw.data;
-  else if (raw.data && Array.isArray(raw.data.reports)) arr = raw.data.reports;
-  else if (Array.isArray(raw.reports))  arr = raw.reports;
-  else {
-    // Неизвестная структура — показываем raw
-    console.warn('[WBai] wrNormalize unknown structure:', JSON.stringify(raw).slice(0, 200));
-    return [];
-  }
-  return arr;
-}
-
-function wrRender() {
-  var tbody = document.getElementById('wrTbody');
-  tbody.innerHTML = '';
-
-  WR.reports.forEach(function(rep, i) {
-    var id       = rep.realizationReportId || rep.reportId || rep.id || ('—');
-    var dateFrom = wrFmtDate(rep.dateFrom || rep.date_from || rep.fromDate || '');
-    var dateTo   = wrFmtDate(rep.dateTo   || rep.date_to   || rep.toDate   || '');
-    var created  = wrFmtDate(rep.createDate || rep.created_at || rep.docDate || '');
-    var transfer = rep.toTransfer != null ? rep.toTransfer
-                 : rep.ppvz_for_pay != null ? rep.ppvz_for_pay
-                 : rep.supplier_reward != null ? rep.supplier_reward : null;
-    var rrdId    = rep.rrdId || rep.rrd_id || '';
-
-    var statusLabel = wrStatus(rep);
-    var tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td class="num" style="font-weight:700;color:var(--p2)">' + (id || '—') + '</td>' +
-      '<td class="num" style="font-size:12px">' +
-        (dateFrom && dateTo ? dateFrom + ' — ' + dateTo : dateFrom || dateTo || '—') +
-      '</td>' +
-      '<td class="num" style="font-size:12px;color:var(--muted)">' + (created || '—') + '</td>' +
-      '<td class="num"><span class="' + (transfer != null ? (transfer >= 0 ? 'pos' : 'neg') : '') + '">' +
-        (transfer != null ? wrFmtCur(transfer) : '—') +
-      '</span></td>' +
-      '<td>' + statusLabel + '</td>' +
-      '<td style="text-align:center">' +
-        '<button onclick="wrOpenDetail(' + i + ')" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.borderColor=\'var(--p)\';this.style.color=\'var(--p2)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">Открыть</button>' +
-      '</td>';
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById('wrEmpty').style.display = 'none';
-  document.getElementById('wrTable').style.display = 'table';
-
-  // Пагинация
-  var prev = document.getElementById('wrPrevBtn');
-  var next = document.getElementById('wrNextBtn');
-  var info = document.getElementById('wrPageInfo');
-  if (prev) prev.style.display = WR.page > 0 ? 'inline-block' : 'none';
-  if (next) next.style.display = WR.reports.length >= WR.limit ? 'inline-block' : 'none';
-  if (info) info.textContent = WR.reports.length > 0 ? 'Страница ' + (WR.page + 1) : '';
-}
-
-function wrUpdateSummary() {
-  var reps = WR.reports;
-  if (!reps.length) return;
-
-  document.getElementById('wrSummary').style.display = 'grid';
-  document.getElementById('wrTotalCount').textContent = reps.length + (reps.length >= WR.limit ? '+' : '');
-
-  // Ищем последний по дате отчёт
-  var sorted = reps.slice().sort(function(a, b) {
-    return new Date(b.createDate || b.created_at || 0) - new Date(a.createDate || a.created_at || 0);
-  });
-  var last = sorted[0];
-  var lastAmt = last.toTransfer != null ? last.toTransfer : last.ppvz_for_pay != null ? last.ppvz_for_pay : null;
-  document.getElementById('wrLastTransfer').textContent = lastAmt != null ? wrFmtCur(lastAmt) : '—';
-  document.getElementById('wrLastDate').textContent = wrFmtDate(last.createDate || last.created_at || '') || '';
-
-  // Ожидают перевода
-  var pending = 0;
-  reps.forEach(function(r) {
-    if (wrStatusCode(r) === 'pending') {
-      var v = r.toTransfer != null ? r.toTransfer : r.ppvz_for_pay != null ? r.ppvz_for_pay : 0;
-      pending += v || 0;
-    }
-  });
-  document.getElementById('wrPending').textContent = pending ? wrFmtCur(pending) : '0 ₸';
-
-  // Итого
-  var total = 0;
-  reps.forEach(function(r) {
-    total += r.toTransfer != null ? r.toTransfer : r.ppvz_for_pay != null ? r.ppvz_for_pay : 0;
-  });
-  document.getElementById('wrTotalSum').textContent = wrFmtCur(total);
-}
-
-function wrOpenDetail(idx) {
-  var rep = WR.reports[idx];
-  if (!rep) return;
-  window.wbaiLastDialogTrigger = document.activeElement;
-  var id = rep.realizationReportId || rep.reportId || rep.id || '—';
-  document.getElementById('wrModalTitle').textContent = 'Отчёт №' + id;
-
-  // Формируем детальные строки из всех полей отчёта
-  var rows = [
-    { lbl: '№ отчёта',          val: id },
-    { lbl: 'Период',            val: wrFmtDate(rep.dateFrom||rep.date_from||rep.fromDate||'') + (rep.dateTo||rep.date_to||rep.toDate ? ' — ' + wrFmtDate(rep.dateTo||rep.date_to||rep.toDate) : '') },
-    { lbl: 'Дата создания',     val: wrFmtDate(rep.createDate||rep.created_at||rep.docDate||'') || '—' },
-    { lbl: 'К перечислению',    val: rep.toTransfer != null ? wrFmtCur(rep.toTransfer) : '—', cls: rep.toTransfer > 0 ? 'pos' : '' },
-    { lbl: 'Вознаграждение WB', val: rep.ppvz_for_pay != null ? wrFmtCur(rep.ppvz_for_pay) : '—' },
-    { lbl: 'Продажи (сумма)',   val: rep.retailAmount != null ? wrFmtCur(rep.retailAmount) : rep.retail_amount != null ? wrFmtCur(rep.retail_amount) : '—' },
-    { lbl: 'Возвраты',          val: rep.returnAmount != null ? wrFmtCur(rep.returnAmount) : rep.return_amount != null ? wrFmtCur(rep.return_amount) : '—', cls: 'neg' },
-    { lbl: 'Комиссия WB',       val: rep.deduction != null ? wrFmtCur(rep.deduction) : rep.penalty != null ? wrFmtCur(rep.penalty) : '—' },
-    { lbl: 'Хранение',          val: rep.storageFee != null ? wrFmtCur(rep.storageFee) : '—' },
-    { lbl: 'Доставка',          val: rep.deliveryCost != null ? wrFmtCur(rep.deliveryCost) : '—' },
-    { lbl: 'Статус',            val: wrStatus(rep) }
-  ];
-
-  var html = rows.map(function(row) {
-    return '<div class="wr-detail-row"><span class="lbl">' + row.lbl + '</span><span class="val ' + (row.cls||'') + '">' + row.val + '</span></div>';
-  }).join('');
-
-  // Если есть неотображённые поля — показать как raw JSON
-  var known = ['realizationReportId','reportId','id','dateFrom','date_from','fromDate','dateTo','date_to','toDate',
-    'createDate','created_at','docDate','toTransfer','ppvz_for_pay','retailAmount','retail_amount',
-    'returnAmount','return_amount','deduction','penalty','storageFee','deliveryCost','rrdId','rrd_id',
-    'status','isPaid','is_paid','supplierName','supplier_name'];
-  var extra = Object.keys(rep).filter(function(k){ return !known.includes(k); });
-  if (extra.length) {
-    html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">';
-    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Прочие поля</div>';
-    extra.forEach(function(k) {
-      html += '<div class="wr-detail-row"><span class="lbl">' + k + '</span><span class="val" style="font-size:12px;font-family:monospace;word-break:break-all">' + JSON.stringify(rep[k]) + '</span></div>';
-    });
-    html += '</div>';
-  }
-
-  document.getElementById('wrModalBody').innerHTML = html;
-  document.getElementById('wrModalOverlay').classList.add('open');
-  document.getElementById('wrModalOverlay').setAttribute('aria-hidden','false');
-  document.querySelector('#wrModalOverlay .wr-modal-close').focus();
-}
-
-function wrCloseModal(e) {
-  if (!e || e.target === document.getElementById('wrModalOverlay')) {
-    document.getElementById('wrModalOverlay').classList.remove('open');
-    document.getElementById('wrModalOverlay').setAttribute('aria-hidden','true');
-    window.wbaiLastDialogTrigger?.focus();
-  }
-}
-
-function wrPage(dir) {
-  WR.page = Math.max(0, WR.page + dir);
-  wrLoad();
-}
-
-function wrShowEmpty(msg) {
-  document.getElementById('wrEmpty').style.display = 'block';
-  document.getElementById('wrEmptyText').textContent = msg;
-  document.getElementById('wrTable').style.display = 'none';
-  document.getElementById('wrSummary').style.display = 'none';
-  document.getElementById('wrPrevBtn').style.display = 'none';
-  document.getElementById('wrNextBtn').style.display = 'none';
-  document.getElementById('wrPageInfo').textContent = '';
-}
-
-function wrFmtDate(s) {
-  if (!s) return '';
-  var d = new Date(s);
-  if (isNaN(d)) return s;
-  return d.toLocaleDateString('ru', { day:'2-digit', month:'short', year:'numeric' });
-}
-
-function wrFmtCur(n) {
-  n = parseFloat(n) || 0;
-  return n.toLocaleString('ru', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₸';
-}
-
-function wrStatusCode(rep) {
-  if (rep.isPaid || rep.is_paid)         return 'paid';
-  if (rep.status === 'paid')             return 'paid';
-  if (rep.status === 'new' || !rep.status) return 'new';
-  return 'pending';
-}
-
-function wrStatus(rep) {
-  var code = wrStatusCode(rep);
-  if (code === 'paid')    return '<span class="wr-badge paid">Выплачен</span>';
-  if (code === 'pending') return '<span class="wr-badge pending">Ожидает</span>';
-  return '<span class="wr-badge new">Новый</span>';
-}
-
-init();
 </script>
 
 <!-- PASTE POPUP -->

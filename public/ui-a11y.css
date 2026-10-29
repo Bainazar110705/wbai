@@ -40,7 +40,7 @@
 button, [role="button"] { touch-action: manipulation; }
 
 @media (max-width: 640px) {
-  button:not(.is-pill):not(.an-period-btn),
+  button:not(.is-pill):not(.an-period-btn):not(.an-help),
   [role="button"] { min-height: var(--touch-target); }
 }
 
