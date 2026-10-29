@@ -364,6 +364,11 @@ app.delete('/api/admin/infographic-styles/:id', adminLimiter, requireAdmin, asyn
 
 // === ГЕНЕРАЦИЯ ИНФОГРАФИКИ ===
 
+// Новые модели Claude отвечают блоком thinking перед текстом, поэтому берём первый текстовый блок.
+function claudeResponseText(data) {
+  return (Array.isArray(data?.content) ? data.content : []).find(block => block?.type === 'text')?.text || '';
+}
+
 // Анализ примера стиля через Claude Vision: извлекаем детальное описание визуального стиля
 // включая цвета текстовых блоков — чтобы Seedream воспроизвёл стиль текста
 async function analyzeStyleWithClaude(styleImageBase64) {
@@ -375,8 +380,11 @@ async function analyzeStyleWithClaude(styleImageBase64) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
+        // Opus 5.5 точнее разбирает стиль референса. Размышление у него не отключается,
+        // поэтому лимит с запасом на thinking, а effort low держит задержку генерации.
+        model: 'claude-opus-5-5',
+        max_tokens: 4000,
+        output_config: { effort: 'low' },
         messages: [{
           role: 'user',
           content: [
@@ -398,7 +406,8 @@ Be concise bullet list. This goes directly into an AI image generator prompt.` }
       })
     });
     const data = await response.json();
-    return data?.content?.[0]?.text || null;
+    if (!response.ok) throw new Error(data?.error?.message || `Claude API ${response.status}`);
+    return claudeResponseText(data) || null;
   } catch(e) {
     console.error('[WBai] analyzeStyle error:', e.message);
     return null;
@@ -871,10 +880,11 @@ app.post('/api/ai', aiLimiter, authMiddleware, checkSubscription, async (req, re
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+        // Короткие тексты (отзывы, карточки): размышление не нужно, весь лимит — под ответ.
+        body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 1000, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: prompt }] })
       });
       const data = await response.json();
-      text = data.content?.[0]?.text || '';
+      text = claudeResponseText(data);
       if (text) break; // Успех — выходим из цикла
       lastError = `Попытка ${attempt}: пустой ответ`;
       if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
