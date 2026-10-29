@@ -464,6 +464,7 @@ const AI_MODELS = {
     badge: 'Рекомендуем',
     endpoint: 'fal-ai/nano-banana-2/edit',
     supportsImageInput: true,
+    credits: 1,
   },
   'nano-banana-pro': {
     name: 'Nano Banana Pro',
@@ -471,6 +472,8 @@ const AI_MODELS = {
     badge: null,
     endpoint: 'fal-ai/nano-banana-pro/edit',
     supportsImageInput: true,
+    // Pro у fal.ai почти вдвое дороже, поэтому одно фото стоит 2 кредита.
+    credits: 2,
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -488,6 +491,11 @@ const AI_MODELS = {
     strength: 0.55,
   },
 };
+
+// Сколько фото-кредитов стоит одно изображение модели.
+function modelCredits(model) {
+  return model?.credits || 1;
+}
 
 // Эндпоинт — список моделей для UI
 app.get('/api/models', authMiddleware, (req, res) => {
@@ -707,23 +715,25 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
   const validRatios = ['3:4', '1:1', '8:5', '4:3', '16:9', '9:16'];
   const requestedRatio = validRatios.includes(aspectRatio) ? aspectRatio : '3:4';
 
+  const selectedModelId = (modelId && AI_MODELS[modelId]) ? modelId : 'nano-banana-2';
+  const model = AI_MODELS[selectedModelId] || AI_MODELS['nano-banana-2'];
+  const creditsPerImage = modelCredits(model);
+  const requestedCredits = requestedCount * creditsPerImage;
+
   // Резервируем кредиты одним условным UPDATE, чтобы параллельные запросы
   // не могли одновременно пройти проверку одного и того же баланса.
-  const reservation = await creditsService.reserve(req.user.id, requestedCount);
+  const reservation = await creditsService.reserve(req.user.id, requestedCredits);
   if (!reservation) {
     const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
     const credits = userCredits?.photo_credits || 0;
     return res.status(403).json({
-      error: `Недостаточно кредитов. Нужно ${requestedCount}, у вас ${credits}.`,
+      error: `Недостаточно кредитов. Нужно ${requestedCredits}, у вас ${credits}.`,
       credits_required: true,
       credits_left: credits
     });
   }
-  let reservedCredits = requestedCount;
+  let reservedCredits = requestedCredits;
   let generationCompleted = false;
-
-  const selectedModelId = (modelId && AI_MODELS[modelId]) ? modelId : 'nano-banana-2';
-  const model = AI_MODELS[selectedModelId] || AI_MODELS['nano-banana-2'];
   console.log('[WBai] modelId received:', modelId, '→ using:', selectedModelId);
   console.log(`[WBai] Генерация через модель: ${selectedModelId}`);
 
@@ -834,9 +844,10 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     // Кредиты уже зарезервированы. Если провайдер вернул меньше изображений,
     // возвращаем неиспользованную часть резерва.
     const used = allUrls.length;
+    const usedCredits = used * creditsPerImage;
     generationCompleted = true;
-    if (used < reservedCredits) {
-      const unusedCredits = reservedCredits - used;
+    if (usedCredits < reservedCredits) {
+      const unusedCredits = reservedCredits - usedCredits;
       await creditsService.release(req.user.id, unusedCredits);
       reservedCredits -= unusedCredits;
     }
@@ -845,7 +856,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     console.log(`[WBai] Готово! Модель: ${selectedModelId}, изображений: ${used}, кредитов осталось: ${remaining?.photo_credits || 0}`);
 
     // Возвращаем URL напрямую — клиент грузит сам (быстро, без скачивания на сервере)
-    res.json({ imageUrls: allUrls, images: allUrls, imageBase64: allUrls[0], credits_left: remaining?.photo_credits || 0, credits_used: used, modelUsed: selectedModelId });
+    res.json({ imageUrls: allUrls, images: allUrls, imageBase64: allUrls[0], credits_left: remaining?.photo_credits || 0, credits_used: usedCredits, modelUsed: selectedModelId });
 
   } catch(e) {
     if (!generationCompleted && reservedCredits > 0) {

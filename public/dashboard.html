@@ -1599,6 +1599,14 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
           <div class="hf-divider"></div>
 
+          <!-- Model Selector: Pro лучше пишет текст, стоит 2 кредита за фото -->
+          <div class="hf-pill-selector" id="isModelSec" role="group" aria-label="Модель генерации">
+            <button type="button" class="hf-pill-btn on" id="isMStd" aria-pressed="true" onclick="isSetModel('nano-banana-2',this)" title="Nano Banana 2 · 1 кредит за фото">Обычная</button>
+            <button type="button" class="hf-pill-btn" id="isMPro" aria-pressed="false" onclick="isSetModel('nano-banana-pro',this)" title="Nano Banana Pro: точнее пишет текст и характеристики на картинке · 2 кредита за фото"><span data-icon="sparkles" aria-hidden="true"></span> Pro · 2 кредита</button>
+          </div>
+
+          <div class="hf-divider"></div>
+
           <!-- Count Selector -->
           <div class="hf-pill-selector">
             <button type="button" class="hf-pill-btn on" id="isN1" onclick="isSetCount(1,this)">1 фото</button>
@@ -2042,7 +2050,9 @@ function checkSubExpiry(sub) {
 // ═══════════════════════════════════════════════════════
 //  INFOGRAPHIC STUDIO
 // ═══════════════════════════════════════════════════════
-var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, activeJobs:0, initialized:false, angleB64:[], mode:'create', seriesPages:[null,null,null,null,null], clipFocus:null };
+// Цена одного фото в кредитах — как modelCredits() на сервере.
+var IS_MODEL_CREDITS = { 'nano-banana-2':1, 'nano-banana-pro':2 };
+var IS = { prodB64:null, refB64:null, ratio:'3:4', count:1, model:'nano-banana-2', activeJobs:0, initialized:false, angleB64:[], mode:'create', seriesPages:[null,null,null,null,null], clipFocus:null };
 var IS_HIST_KEY = 'wbai_inf_v2';
 
 // ── Mode switching ────────────────────────────────────────────────────────────
@@ -2066,6 +2076,9 @@ function isSetMode(mode, btn) {
   var seriesWrap = document.getElementById('isSeriesWrap');
   var countSec   = document.getElementById('isCountSec');
   var genBtn     = document.getElementById('isGenBtn');
+  // Серия генерируется на обычной модели, выбор Pro для неё не действует.
+  var modelSec   = document.getElementById('isModelSec');
+  if(modelSec)   modelSec.style.display   = mode === 'series' ? 'none' : '';
 
   if(mode === 'create') {
     if(prodSec)    prodSec.style.display    = 'block';
@@ -2090,9 +2103,37 @@ function isSetMode(mode, btn) {
   }
 }
 
+function isCreditsLabel(n) {
+  var mod10 = n % 10, mod100 = n % 100;
+  var word = mod10 === 1 && mod100 !== 11 ? 'кредит' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'кредита' : 'кредитов';
+  return n + ' ' + word;
+}
+
+// Сколько кредитов спишет «Генерировать»: серия всегда идёт на обычной модели.
+function isGenerationCost() {
+  if (IS.mode === 'series') return IS.seriesPages.filter(Boolean).length;
+  return IS.count * (IS_MODEL_CREDITS[IS.model] || 1);
+}
+
 function isSetGenerateButton(button, label) {
-  button.innerHTML = '<span data-icon="image" aria-hidden="true"></span> ' + label;
+  button.innerHTML = '<span data-icon="image" aria-hidden="true"></span> ' + label +
+    (IS.mode === 'series' ? '' : ' <span class="hf-btn-cost">' + isCreditsLabel(isGenerationCost()) + '</span>');
   window.wbaiInjectIcons?.(button);
+}
+
+function isRefreshCost() {
+  var cost = document.querySelector('#isGenBtn .hf-btn-cost');
+  if (cost) cost.textContent = isCreditsLabel(isGenerationCost());
+}
+
+function isSetModel(model, btn) {
+  IS.model = IS_MODEL_CREDITS[model] ? model : 'nano-banana-2';
+  ['isMStd','isMPro'].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) { b.classList.remove('on'); b.setAttribute('aria-pressed','false'); }
+  });
+  btn.classList.add('on'); btn.setAttribute('aria-pressed','true');
+  isRefreshCost();
 }
 
 // ── Series page slots ─────────────────────────────────────────────────────────
@@ -2425,6 +2466,7 @@ function isSetCount(n,btn){
   IS.count=n;
   ['isN1','isN2','isN4'].forEach(function(id){document.getElementById(id).classList.remove('on');});
   btn.classList.add('on');
+  isRefreshCost();
 }
 
 function isShowTab(tab){
@@ -2515,7 +2557,7 @@ async function isGenerate(){
     productName:document.getElementById('isName').value.trim(),
     specs:document.getElementById('isSpecs').value.trim(),
     prompt:document.getElementById('isPrompt').value.trim(),
-    modelId:'nano-banana-2',mode:IS.mode==='redesign'?'redesign':'create',
+    modelId:IS.model,mode:IS.mode==='redesign'?'redesign':'create',
     aspectRatio:IS.ratio,numImages:IS.count
   };
 
@@ -2533,7 +2575,7 @@ async function isGenerate(){
     }
     var imgs = data.imageUrls || data.images || [data.imageBase64].filter(Boolean);
     if(currentUser){
-      currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-IS.count);
+      currentUser.photo_credits=data.credits_left!=null?data.credits_left:Math.max(0,(currentUser.photo_credits||0)-(data.credits_used||IS.count*(IS_MODEL_CREDITS[body.modelId]||1)));
       document.getElementById('isCreditsNum').textContent=currentUser.photo_credits;
       var sc=document.getElementById('statCredits');if(sc)sc.textContent=currentUser.photo_credits;
     }
