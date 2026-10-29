@@ -474,6 +474,8 @@ const AI_MODELS = {
     supportsImageInput: true,
     // Pro у fal.ai почти вдвое дороже, поэтому одно фото стоит 2 кредита.
     credits: 2,
+    // У Pro 2K стоит как 1K (дороже только 4K), а мелкий текст на плашках заметно чётче.
+    resolution: '2K',
   },
   'flux-kontext': {
     name: 'FLUX Kontext',
@@ -793,6 +795,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
         aspect_ratio: requestedRatio,
         num_images: requestedCount,
         safety_tolerance: '5',
+        ...(model.resolution ? { resolution: model.resolution } : {}),
       };
     } else if (selectedModelId === 'flux-kontext') {
       falBody = {
