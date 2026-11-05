@@ -1774,7 +1774,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <div class="an-topbar" id="anTopbar">
         <div class="an-topbar-left">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Обновлено в <b id="anUpdatedAt">--:--</b>
+          Обновлено в <b id="anUpdatedAt">--:--</b><button type="button" class="an-help" id="anSourcesHelp" data-tip="Данные ещё загружаются." data-tip-wide aria-label="Откуда данные и когда загружены">?</button>
           <button class="an-refresh-btn" id="anRefreshBtn" onclick="anRefresh()">
             <svg id="anRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             Обновить
@@ -3145,6 +3145,8 @@ async function anLoad(from, to, forceRefresh) {
     var sourceTimes=sources.map(function(source){return new Date(source.fetchedAt||0).getTime();}).filter(Boolean);
     var dataTime=sourceTimes.length ? new Date(Math.min.apply(null,sourceTimes)) : now;
     document.getElementById('anUpdatedAt').textContent=dataTime.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+dataLabel+rateStr;
+    AN.sources={funnel:sources, finance:d.finance||{}, financeCache:cache.finance||null, rubKztRate:usesRub?d.rubKztRate:null, dateTo:d.dateTo, ads:AN.sources&&AN.sources.adsFor===d.dateFrom+d.dateTo?AN.sources.ads:null, adsFor:d.dateFrom+d.dateTo};
+    anRenderSourcesTip();
   } catch(e) { anShowErr('Ошибка соединения'); }
   finally { if(btn) btn.disabled=false; }
 }
@@ -3167,10 +3169,12 @@ async function anLoadAds(from, to, forceRefresh) {
     if(!r.ok){
       anSetUnavailable('anAdSpend');
       if(lbl) lbl.title=d.error||'Затраты на рекламу недоступны';
+      anSetAdsSource({error:d.error||'Затраты на рекламу недоступны'}, from, to);
       return;
     }
     AN.adSpend=Number((d.totals||{}).spend)||0;
     anSetVal('anAdSpend', AN.adSpend);
+    anSetAdsSource({cache:d.cache||null}, from, to);
     anRenderAdShare();
     if(lbl) lbl.removeAttribute('title');
   } catch(e) {
@@ -3178,6 +3182,47 @@ async function anLoadAds(from, to, forceRefresh) {
     anSetUnavailable('anAdSpend');
     if(lbl) lbl.title='Ошибка соединения';
   }
+}
+
+function anSetAdsSource(info, from, to){
+  AN.sources = AN.sources || {};
+  AN.sources.ads = info; AN.sources.adsFor = from+to;
+  anRenderSourcesTip();
+}
+
+// Подсказка «?» у «Обновлено»: откуда каждый блок и когда загружен.
+function anWhen(iso){
+  if(!iso) return null;
+  var d=new Date(iso), now=new Date(), time=d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
+  if(d.toDateString()===now.toDateString()) return 'сегодня в '+time;
+  var y=new Date(now); y.setDate(y.getDate()-1);
+  if(d.toDateString()===y.toDateString()) return 'вчера в '+time;
+  return d.toLocaleDateString('ru',{day:'numeric',month:'long'})+' в '+time;
+}
+function anSourceLine(name, cache){
+  if(!cache) return name+': ещё загружается';
+  var when=anWhen(cache.fetchedAt);
+  if(cache.stored) return name+': из нашей базы, загружено из WB '+when;
+  if(cache.stale) return name+': WB сейчас не ответил — показаны сохранённые данные от '+when;
+  return name+': '+(cache.cached?'из кэша, получено от WB ':'получено от WB ')+when;
+}
+function anRenderSourcesTip(){
+  var btn=document.getElementById('anSourcesHelp'), s=AN.sources;
+  if(!btn||!s) return;
+  var funnel=(s.funnel||[]).slice().sort(function(a,b){return new Date(a.fetchedAt)-new Date(b.fetchedAt);})[0];
+  var lines=['Откуда данные и когда загружены:', '• '+anSourceLine('Заказы, выкупы и график (воронка WB)', funnel)];
+  var f=s.finance||{};
+  if(f.status==='unavailable') lines.push('• Финотчёт WB (прибыль, комиссия, логистика): недоступен'+(f.errorCode?' ('+f.errorCode+')':'')+' — проверьте доступ «Финансы» в токене');
+  else {
+    var finLine='• '+anSourceLine('Финотчёт WB (прибыль, комиссия, логистика)', s.financeCache);
+    if(f.status==='pending') finLine+='. За этот период WB его ещё не сформировал';
+    lines.push(finLine);
+  }
+  var a=s.ads;
+  lines.push(a&&a.error ? '• Реклама: недоступна — '+a.error : '• '+anSourceLine('Реклама', a&&a.cache));
+  if(s.rubKztRate) lines.push('• Курс для пересчёта: 1 ₽ = '+(Math.round(Number(s.rubKztRate)*100)/100).toLocaleString('ru')+' ₸');
+  lines.push('', 'Воронка WB кэшируется на 5 минут, если в периоде есть сегодня, и на час для прошлых периодов. Реклама и финотчёт хранятся у нас и обновляются в фоне каждые 30 минут. Кнопка «Обновить» запрашивает свежие данные.');
+  btn.setAttribute('data-tip', lines.join('\n'));
 }
 
 function anShowErr(msg) {

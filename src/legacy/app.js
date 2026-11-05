@@ -1290,6 +1290,7 @@ async function storedSourcesSync(userId, { force = false } = {}) {
 function storedSourceInfo(payload, loadedAt) {
   return {
     payload,
+    stored: true,
     cached: true,
     stale: false,
     refreshLimited: false,
@@ -1577,7 +1578,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       cached: source.cached,
       stale: source.stale,
       refreshLimited: source.refreshLimited,
-      fetchedAt: source.fetchedAt
+      fetchedAt: source.fetchedAt,
+      ...(source.stored ? { stored: true } : {})
     });
     const response = {
       rows: kztRows,
@@ -1817,7 +1819,7 @@ app.get('/api/wb-advertising', authMiddleware, async (req, res) => {
         roas: spend > 0 ? Math.round(orderSum / spend * 100) / 100 : null,
         ctr: views > 0 ? Math.round(clicks / views * 10000) / 100 : null
       },
-      cache: { cached: source.cached, stale: source.stale, refreshLimited: source.refreshLimited, fetchedAt: source.fetchedAt }
+      cache: { cached: source.cached, stale: source.stale, refreshLimited: source.refreshLimited, fetchedAt: source.fetchedAt, ...(source.stored ? { stored: true } : {}) }
     });
   } catch (error) {
     logger.warn('wb_advertising_unavailable', { userId: req.user.id, code: error.code, status: error.status });
