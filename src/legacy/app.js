@@ -27,6 +27,11 @@ const { createAuthController } = require('../controllers/auth.controller');
 const { createTemplatesController } = require('../controllers/templates.controller');
 const { registerAuthRoutes } = require('../routes/auth.routes');
 const { registerTemplatesRoutes } = require('../routes/templates.routes');
+const { createRnpRepository } = require('../repositories/rnp.repository');
+const { createStatisticsService } = require('../services/wb-statistics.service');
+const { createRnpSyncService } = require('../services/wb-rnp-sync.service');
+const { createRnpController } = require('../controllers/rnp.controller');
+const { registerRnpRoutes } = require('../routes/rnp.routes');
 const { buildStrictProductContext, STRICT_PRODUCT_FACTS_RULES } = require('../services/infographic-facts');
 const { createInfographicBriefService, briefToPromptParts, needsAutoBrief } = require('../services/infographic-brief');
 const { parseFalError } = require('../services/fal-errors');
@@ -44,6 +49,15 @@ const salesFunnelService = createSalesFunnelService();
 const financeService = createFinanceService();
 const advertisingStatsService = createAdvertisingStatsService();
 const infographicBriefService = createInfographicBriefService({ apiKey: CLAUDE_API_KEY });
+const rnpRepository = createRnpRepository(db);
+const rnpSyncService = createRnpSyncService({
+  repository: rnpRepository,
+  statisticsService: createStatisticsService(),
+  salesFunnelService,
+  advertisingService: createAdvertisingStatsService(),
+  financeService,
+  logger
+});
 const {
   auth: authMiddleware,
   subscription: checkSubscription,
@@ -173,6 +187,10 @@ registerTemplatesRoutes(app, {
   controller: templatesController,
   auth: authMiddleware,
   subscription: checkSubscription
+});
+registerRnpRoutes(app, {
+  controller: createRnpController({ repository: rnpRepository, syncService: rnpSyncService, getRubKztRate }),
+  auth: authMiddleware
 });
 
 // === ПРОКСИ ДЛЯ ИЗОБРАЖЕНИЙ (для Canvas) ===
@@ -1955,6 +1973,7 @@ async function start() {
   return new Promise((resolve, reject) => {
     const server = app.listen(PORT, () => {
       logger.info('server_started', { port: PORT });
+      rnpSyncService.startScheduler().catch(error => logger.error('rnp_scheduler_start_failed', { error: error.message }));
       // Пингуем себя каждые 10 минут — не даём серверу уснуть
       const selfUrl = process.env.APP_URL
         ? `${process.env.APP_URL}/api/ping`

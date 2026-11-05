@@ -1,7 +1,9 @@
 const migrations = [
   require('./001_initial'),
   require('./002_manager_campaigns'),
-  require('./003_wb_analytics_cache')
+  require('./003_wb_analytics_cache'),
+  require('./004_wb_rnp'),
+  require('./005_rnp_plans_stocks')
 ];
 const logger = require('../platform/logger');
 

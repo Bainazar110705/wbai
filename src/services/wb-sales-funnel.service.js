@@ -36,6 +36,37 @@ const PERIOD_METRICS = {
   cancelRevenue: 'cancelSum'
 };
 
+// Остатки в воронке WB: склады WB и склад продавца (FBS). Старый отчёт
+// /supplier/stocks WB отключил, теперь это единственный источник одним запросом.
+function funnelStocks(stocks) {
+  if (typeof stocks === 'number' || typeof stocks === 'string') return { wb: Math.max(0, number(stocks)), mp: 0 };
+  const pick = keys => {
+    for (const key of keys) if (stocks?.[key] !== undefined && stocks?.[key] !== null) return Math.max(0, number(stocks[key]));
+    return 0;
+  };
+  return {
+    wb: pick(['wb', 'wbStocks', 'stocksWb', 'wbStock']),
+    mp: pick(['mp', 'mpStocks', 'stocksMp', 'mpStock', 'fbs'])
+  };
+}
+
+function normalizeFunnelProduct(item) {
+  const product = item?.product || {};
+  const nmId = number(product.nmId);
+  if (!nmId) return null;
+  const stocks = funnelStocks(product.stocks);
+  const text = (value, max) => String(value ?? '').trim().slice(0, max);
+  return {
+    nmId,
+    title: text(product.title, 500),
+    vendorCode: text(product.vendorCode, 255),
+    brand: text(product.brandName, 255),
+    subject: text(product.subjectName, 255),
+    stockWb: stocks.wb,
+    stockMp: stocks.mp
+  };
+}
+
 function emptyPeriodMetrics() {
   return Object.fromEntries(Object.keys(PERIOD_METRICS).map(key => [key, 0]));
 }
@@ -270,12 +301,20 @@ function createSalesFunnelService({ fetchImpl = fetch, wait = ms => new Promise(
     });
   }
 
-  return { getProducts, getPeriodSummary, getPeriodBuckets, validateAccess };
+  // Все товары кабинета с названием и текущими остатками.
+  async function getCatalog({ token, date }) {
+    const report = await getProducts({ token, selectedPeriod: { start: date, end: date } });
+    return report.products.map(normalizeFunnelProduct).filter(Boolean);
+  }
+
+  return { getProducts, getPeriodSummary, getPeriodBuckets, validateAccess, getCatalog };
 }
 
 module.exports = {
   createSalesFunnelService,
   aggregateProducts,
+  funnelStocks,
+  normalizeFunnelProduct,
   productOrderMetrics,
   calculateProductCogs,
   funnelCacheTtlMs,

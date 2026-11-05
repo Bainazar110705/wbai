@@ -1051,6 +1051,138 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 }
 .is-series-slot.has-img .sl-rm { display: flex; }
 .is-series-slot .sl-plus { font-size: 18px; color: rgba(255,255,255,0.35); }
+/* РНП — Рука на пульсе */
+.rnp-lead{font-size:13px;color:var(--muted);margin:-12px 0 18px;line-height:1.5;max-width:720px}
+.rnp-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.rnp-box-title{font-size:15px;font-weight:800;color:var(--text);margin:0}
+.rnp-box-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.rnp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:600 12px 'Manrope',sans-serif;cursor:pointer;transition:background .15s,border-color .15s;white-space:nowrap}
+.rnp-btn:hover{border-color:var(--p);background:var(--p3)}
+.rnp-btn:focus-visible,.rnp-seg button:focus-visible,.rnp-input:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.rnp-btn:disabled{opacity:.5;cursor:default}
+.rnp-btn.primary{background:var(--p);border-color:var(--p);color:#fff}
+.rnp-btn.primary:hover{background:var(--p2)}
+.rnp-empty{text-align:center;padding:36px 18px}
+.rnp-empty p{color:var(--muted);font-size:13px;margin:8px auto 16px;max-width:460px;line-height:1.6}
+/* Первая загрузка */
+.rnp-steps{list-style:none;margin:16px 0 12px;display:grid;gap:10px}
+.rnp-step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.rnp-step b{color:var(--text);font-weight:600}
+.rnp-step-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;border:2px solid var(--border);font-size:11px;font-weight:800;color:#fff}
+.rnp-step.rnp-is-running .rnp-step-dot{border-color:var(--p);border-top-color:transparent;animation:rnpSpin .9s linear infinite}
+.rnp-step.rnp-is-done .rnp-step-dot{background:var(--green);border-color:var(--green)}
+.rnp-step.rnp-is-error .rnp-step-dot{background:var(--red);border-color:var(--red)}
+.rnp-step-count{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px}
+@keyframes rnpSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.rnp-step.rnp-is-running .rnp-step-dot{animation:none;border-top-color:var(--p)}}
+.rnp-note{font-size:12px;color:var(--muted);line-height:1.6;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border2)}
+.rnp-note.rnp-is-error{color:var(--red);background:var(--red-bg);border-color:transparent}
+.rnp-notes{display:grid;gap:8px;margin-bottom:14px}
+.rnp-notes:empty{display:none}
+/* Панель периода */
+.rnp-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.rnp-seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+.rnp-seg button{border:0;background:transparent;color:var(--muted);font:600 12px 'Manrope',sans-serif;padding:6px 14px;border-radius:7px;cursor:pointer}
+.rnp-seg button[aria-pressed="true"]{background:var(--p);color:#fff}
+.rnp-input{min-height:36px;border:1px solid var(--border);border-radius:9px;padding:6px 10px;font:500 13px 'Manrope',sans-serif;color:var(--text);background:var(--surface)}
+.rnp-range{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rnp-range[hidden]{display:none}
+.rnp-updated{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+/* Плитки */
+.rnp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.rnp-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;min-width:0}
+.rnp-kpi-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center}
+.rnp-kpi-val{font-size:22px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rnp-kpi-sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.rnp-kpi.rnp-is-profit .rnp-kpi-val{color:var(--green)}
+.rnp-kpi.rnp-is-profit.rnp-is-loss .rnp-kpi-val{color:var(--red)}
+/* Тепловая таблица */
+.rnp-scroll{overflow-x:auto;margin:12px -18px 0;padding:0 18px 4px;-webkit-overflow-scrolling:touch;scrollbar-color:var(--border) transparent}
+.rnp-table{border-collapse:separate;border-spacing:2px;font-size:12px;font-variant-numeric:tabular-nums}
+.rnp-table th{font-size:10px;font-weight:700;color:var(--muted);padding:4px 6px;text-align:center;white-space:nowrap}
+.rnp-table th.rnp-is-today{color:var(--p2)}
+.rnp-table .rnp-row-name{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;font-size:12px;font-weight:600;color:var(--text);padding:5px 10px 5px 0;white-space:nowrap}
+.rnp-table td{min-width:64px;padding:5px 7px;text-align:right;border-radius:5px;white-space:nowrap;color:var(--text);background:var(--surface2)}
+.rnp-table td.rnp-is-none{color:var(--muted);text-align:center}
+.rnp-table td.rnp-is-neg{color:var(--red);font-weight:700}
+.rnp-table td.rnp-total{font-weight:800;background:var(--p3)}
+.rnp-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:11px;color:var(--muted)}
+.rnp-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* График */
+.rnp-chart{width:100%;height:180px;display:block;margin-top:10px;color:var(--p)}
+.rnp-chart text{fill:var(--muted);font:500 10px 'Manrope',sans-serif}
+.rnp-chart .grid{stroke:var(--border2);stroke-width:1}
+/* Товары */
+.rnp-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.rnp-filters .rnp-input{flex:1 1 180px;max-width:260px}
+.rnp-count{font-size:12px;color:var(--muted);margin-bottom:10px}
+.rnp-product{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--surface)}
+.rnp-product-head{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-start;justify-content:space-between}
+.rnp-product-name{font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;overflow-wrap:anywhere}
+.rnp-product-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.rnp-product-meta a{color:var(--p2)}
+.rnp-abc{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:800;border:1px solid currentColor}
+.rnp-abc.a{color:var(--green)}
+.rnp-abc.b{color:var(--p2)}
+.rnp-abc.c{color:var(--muted)}
+.rnp-stats{display:flex;flex-wrap:wrap;gap:10px 22px}
+.rnp-stat{min-width:90px}
+.rnp-stat-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.rnp-stat-val{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.rnp-stat-sub{font-size:11px;color:var(--muted)}
+.rnp-warn{font-size:12px;color:var(--red);margin-top:8px}
+.rnp-link{border:0;background:none;color:var(--p2);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.rnp-more{display:flex;justify-content:center;margin-top:6px}
+@media(max-width:640px){
+  .rnp-updated{margin-left:0;width:100%}
+  .rnp-kpi-val{font-size:19px}
+  .rnp-filters .rnp-input{max-width:none}
+}
+.rnp-btn[hidden],.rnp-note[hidden],.rnp-box[hidden]{display:none}
+.rnp-stat-val.rnp-is-risk,.rnp-stat-sub.rnp-is-risk{color:var(--red)}
+.rnp-labels{margin-top:10px;width:100%;max-width:420px}
+.rnp-dialog{margin:auto;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:0;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+.rnp-dialog::backdrop{background:rgba(0,0,0,.55)}
+.rnp-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 10px}
+.rnp-dialog form{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.rnp-dialog-body{padding:0 18px 12px;overflow:auto;flex:1;min-height:0}
+.rnp-dialog-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 18px 18px;border-top:1px solid var(--border2)}
+.rnp-plan-table{width:100%;border-collapse:collapse;font-size:13px}
+.rnp-plan-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px 6px;border-bottom:1px solid var(--border)}
+.rnp-plan-table td{padding:8px 6px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.rnp-plan-table .rnp-input{width:100%;min-width:90px}
+.rnp-plan-table tr.rnp-is-shop td{background:var(--p3);font-weight:700}
+.rnp-plan-hint{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rnp-plan-last-inline{display:none}
+.rnp-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:3px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);width:max-content;max-width:100%;margin-bottom:14px}
+.rnp-tabs button{border:0;background:transparent;color:var(--muted);font:600 13px 'Manrope',sans-serif;padding:7px 16px;border-radius:8px;cursor:pointer}
+.rnp-tabs button[aria-selected="true"]{background:var(--p);color:#fff}
+.rnp-tabs button:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.rnp-panel[hidden]{display:none}
+.rnp-seg-sm button{padding:5px 12px}
+.rnp-timing{border-collapse:separate;border-spacing:2px;font-size:11px;font-variant-numeric:tabular-nums}
+.rnp-timing th{font-size:10px;font-weight:700;color:var(--muted);padding:3px 4px;text-align:center;white-space:nowrap}
+.rnp-timing th[scope="row"]{position:sticky;left:0;background:var(--surface);text-align:left;padding-right:8px;color:var(--text);font-size:12px}
+.rnp-timing td{min-width:34px;height:30px;text-align:center;border-radius:5px;background:var(--surface2);color:var(--text)}
+.rnp-timing td.rnp-is-none{color:var(--muted)}
+.rnp-facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin:4px 0 6px}
+.rnp-geo{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.rnp-geo th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px 8px;border-bottom:1px solid var(--border)}
+.rnp-geo th.num,.rnp-geo td.num{text-align:right}
+.rnp-geo td{padding:9px 8px;border-bottom:1px solid var(--border2);color:var(--text)}
+.rnp-geo tr.rnp-is-other td{color:var(--muted)}
+.rnp-geo-share{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.rnp-geo-bar{width:80px;height:6px;border-radius:3px;background:var(--border2);overflow:hidden;flex-shrink:0}
+.rnp-geo-bar i{display:block;height:100%;background:var(--p);border-radius:3px}
+.rnp-geo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+.rnp-geo-title{font-size:13px;font-weight:800;color:var(--text);margin:0 0 4px}
+@media(max-width:640px){.rnp-geo-grid{grid-template-columns:1fr}.rnp-geo-bar{width:44px}}
+@media(max-width:640px){
+  .rnp-plan-table .rnp-plan-last{display:none}
+  .rnp-plan-last-inline{display:block}
+  .rnp-plan-table .rnp-input{min-width:76px}
+  .rnp-dialog-head,.rnp-dialog-body,.rnp-dialog-foot{padding-left:14px;padding-right:14px}
+}
 </style>
 <link rel="stylesheet" href="/wbai-design.css">
 <script src="/wbai-theme.js"></script>
@@ -1110,6 +1242,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <button class="nav-item" type="button" onclick="showPage('videos');closeSidebar()"><span class="nav-icon" data-icon="play" aria-hidden="true"></span>Видео обзор</button>
     <button class="nav-item" type="button" onclick="showPage('history');closeSidebar()"><span class="nav-icon" data-icon="clipboard" aria-hidden="true"></span>История запросов</button>
     <button class="nav-item" type="button" onclick="showPage('analytics');closeSidebar()"><span class="nav-icon" data-icon="chart" aria-hidden="true"></span>Аналитика WB</button>
+    <button class="nav-item" type="button" onclick="showPage('rnp');closeSidebar()"><span class="nav-icon" data-icon="activity" aria-hidden="true"></span>РНП · Рука на пульсе</button>
     <button class="nav-item" type="button" onclick="showPage('settings');closeSidebar()"><span class="nav-icon" data-icon="settings" aria-hidden="true"></span>Настройки</button>
     <button class="nav-item" type="button" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="image" aria-hidden="true"></span>Студия инфографики</button>
     <button class="nav-item" type="button" onclick="showPage('install');closeSidebar()"><span class="nav-icon" data-icon="download" aria-hidden="true"></span>Установка расширения</button>
@@ -1797,6 +1930,175 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
   </div>
 
+  <div class="page" id="page-rnp">
+    <div class="page-title"><span data-icon="activity" aria-hidden="true"></span> Рука на пульсе</div>
+    <p class="rnp-lead">Заказы, выкупы, реклама и прибыль магазина по каждому дню — чтобы сразу видеть, где просели продажи. Суммы в тенге.</p>
+
+    <div class="rnp-box rnp-empty" id="rnpNoToken" hidden>
+      <div class="rnp-box-title">Подключите токен WB</div>
+      <p>РНП строится по данным вашего кабинета WB. Подключите токен с доступами «Статистика», «Продвижение» и «Финансы» в разделе «Аналитика WB».</p>
+      <button class="rnp-btn primary" type="button" onclick="showPage('analytics')">Подключить токен</button>
+    </div>
+
+    <div class="rnp-box" id="rnpSync" hidden aria-live="polite">
+      <div class="rnp-box-title" id="rnpSyncTitle">Собираем данные кабинета</div>
+      <div class="rnp-box-sub">Первый раз забираем у WB историю за 90 дней. WB отдаёт её медленно, поэтому это займёт 3–10 минут. Страницу можно закрыть: загрузка продолжится, а данные сохранятся у нас — дальше будем догружать только новое.</div>
+      <ul class="rnp-steps" id="rnpSteps"></ul>
+      <div class="rnp-note rnp-is-error" id="rnpSyncError" hidden></div>
+      <button class="rnp-btn primary" type="button" id="rnpRetry" hidden onclick="rnpRefresh()">Повторить загрузку</button>
+    </div>
+
+    <div id="rnpMain" hidden>
+      <div class="rnp-toolbar">
+        <div class="rnp-seg" role="group" aria-label="Период">
+          <button type="button" id="rnpModeMonth" aria-pressed="true" onclick="rnpSetMode('month')">Месяц</button>
+          <button type="button" id="rnpModeRange" aria-pressed="false" onclick="rnpSetMode('range')">Диапазон</button>
+        </div>
+        <select class="rnp-input" id="rnpMonth" aria-label="Месяц" onchange="rnpLoad()"></select>
+        <div class="rnp-range" id="rnpRange" hidden>
+          <input class="rnp-input" type="date" id="rnpFrom" aria-label="С даты">
+          <input class="rnp-input" type="date" id="rnpTo" aria-label="По дату">
+          <button class="rnp-btn primary" type="button" onclick="rnpLoad()">Показать</button>
+        </div>
+        <button class="rnp-btn" type="button" onclick="rnpOpenPlan()"><span data-icon="target" aria-hidden="true"></span> План</button>
+        <div class="rnp-updated">
+          <span id="rnpUpdated" aria-live="polite"></span>
+          <button class="rnp-btn" type="button" id="rnpRefreshBtn" onclick="rnpRefresh()"><span data-icon="refresh" aria-hidden="true"></span> Обновить</button>
+        </div>
+      </div>
+
+      <div class="rnp-notes" id="rnpNotes"></div>
+
+      <div class="rnp-kpis">
+        <div class="rnp-kpi">
+          <div class="rnp-kpi-lbl">Заказы<button type="button" class="an-help" data-tip="Все заказы за период по цене продавца со скидкой (до скидки WB — СПП), включая те, что потом отменили. Как в отчёте WB «Заказы»." aria-label="Что такое «Заказы»">?</button></div>
+          <div class="rnp-kpi-val" id="rnpKOrders">—</div>
+          <div class="rnp-kpi-sub" id="rnpKOrdersSub"></div>
+        </div>
+        <div class="rnp-kpi">
+          <div class="rnp-kpi-lbl">Выкупы<button type="button" class="an-help" data-tip="Товары, которые покупатели забрали в эти дни (в том числе по заказам прошлых дней). Процент выкупа — доля выкупов среди выкупов и возвратов за период." aria-label="Что такое «Выкупы»">?</button></div>
+          <div class="rnp-kpi-val" id="rnpKBuyouts">—</div>
+          <div class="rnp-kpi-sub" id="rnpKBuyoutsSub"></div>
+        </div>
+        <div class="rnp-kpi">
+          <div class="rnp-kpi-lbl">Реклама<button type="button" class="an-help" data-tip="Расход на рекламу WB Продвижение по дням. ДРР — какую долю от заказов (или выкупов) съела реклама: чем меньше, тем лучше." aria-label="Что такое «Реклама» и ДРР">?</button></div>
+          <div class="rnp-kpi-val" id="rnpKAds">—</div>
+          <div class="rnp-kpi-sub" id="rnpKAdsSub"></div>
+        </div>
+        <div class="rnp-kpi">
+          <div class="rnp-kpi-lbl">CPO<button type="button" class="an-help" data-tip="Стоимость одного заказа: расход на рекламу, делённый на число всех заказов за период." aria-label="Что такое CPO">?</button></div>
+          <div class="rnp-kpi-val" id="rnpKCpo">—</div>
+          <div class="rnp-kpi-sub">реклама на 1 заказ</div>
+        </div>
+        <div class="rnp-kpi rnp-is-profit" id="rnpKProfitCard">
+          <div class="rnp-kpi-lbl">Прибыль (расчёт)<button type="button" class="an-help" data-tip="Оценка по дням: сколько WB перечислит за выкупы (минус возвраты), минус себестоимость, логистика и хранение WB в среднем на один выкуп (по финотчёту за 30 дней) и реклама. Точная прибыль — в «Аналитике WB» по финансовому отчёту." aria-label="Как считается прибыль">?</button></div>
+          <div class="rnp-kpi-val" id="rnpKProfit">—</div>
+          <div class="rnp-kpi-sub" id="rnpKProfitSub"></div>
+        </div>
+      </div>
+
+      <section class="rnp-box" aria-labelledby="rnpShopTitle">
+        <h2 class="rnp-box-title" id="rnpShopTitle">Сводка по магазину по дням</h2>
+        <div class="rnp-box-sub">Если задан план, строки заказов окрашены по выполнению плана дня. Остальные строки — относительно других дней периода: зелёный — лучше обычного, красный — хуже. «—» — день ещё не наступил или данных нет.</div>
+        <div class="rnp-scroll" tabindex="0" role="region" aria-label="Таблица магазина по дням"><table class="rnp-table" id="rnpShopTable"></table></div>
+        <div class="rnp-legend">
+          <span><i style="background:color-mix(in srgb,var(--green) 38%,var(--surface2))"></i>план выполнен / лучше обычного</span>
+          <span><i style="background:color-mix(in srgb,var(--red) 38%,var(--surface2))"></i>ниже плана / хуже обычного (чем насыщеннее, тем дальше)</span>
+          <span><i style="background:color-mix(in srgb,var(--p) 34%,var(--surface2))"></i>реклама: чем темнее, тем больше расход</span>
+        </div>
+      </section>
+
+      <section class="rnp-box" aria-labelledby="rnpChartTitle">
+        <h2 class="rnp-box-title" id="rnpChartTitle">Заказы по дням, шт</h2>
+        <svg class="rnp-chart" id="rnpChart" role="img" aria-label="График заказов по дням"></svg>
+      </section>
+
+      <section class="rnp-box" aria-label="Разрезы РНП">
+        <div class="rnp-tabs" role="tablist" aria-label="Разрез">
+          <button type="button" role="tab" id="rnpTabProducts" aria-controls="rnpPanelProducts" aria-selected="true" onclick="rnpSetTab('products')">Товары</button>
+          <button type="button" role="tab" id="rnpTabBrands" aria-controls="rnpPanelBrands" aria-selected="false" tabindex="-1" onclick="rnpSetTab('brands')">Бренды</button>
+          <button type="button" role="tab" id="rnpTabTiming" aria-controls="rnpPanelTiming" aria-selected="false" tabindex="-1" onclick="rnpSetTab('timing')">Тайминг</button>
+          <button type="button" role="tab" id="rnpTabGeo" aria-controls="rnpPanelGeo" aria-selected="false" tabindex="-1" onclick="rnpSetTab('geo')">География</button>
+        </div>
+
+        <div class="rnp-panel" role="tabpanel" id="rnpPanelBrands" aria-labelledby="rnpTabBrands" hidden>
+          <div class="rnp-box-sub">Сумма показателей всех товаров бренда по дням. Помогает понять, какой бренд тянет магазин, а какой проседает.</div>
+          <div id="rnpBrands" style="margin-top:12px"></div>
+        </div>
+
+        <div class="rnp-panel" role="tabpanel" id="rnpPanelTiming" aria-labelledby="rnpTabTiming" hidden>
+          <div class="rnp-box-sub">Когда покупатели оформляют заказы: день недели и час по московскому времени. Чем темнее клетка, тем больше заказов. Удобно, чтобы выбрать время для рекламы и акций.</div>
+          <div class="rnp-toolbar" style="margin-top:12px">
+            <div class="rnp-seg rnp-seg-sm" role="group" aria-label="Что показывать">
+              <button type="button" id="rnpTimingCount" aria-pressed="true" onclick="rnpSetTimingMode('count')">Заказы, шт</button>
+              <button type="button" id="rnpTimingSum" aria-pressed="false" onclick="rnpSetTimingMode('sum')">Сумма, ₸</button>
+            </div>
+          </div>
+          <div class="rnp-facts" id="rnpTimingFacts"></div>
+          <div class="rnp-scroll" tabindex="0" role="region" aria-label="Заказы по дням недели и часам"><table class="rnp-timing" id="rnpTiming"></table></div>
+        </div>
+
+        <div class="rnp-panel" role="tabpanel" id="rnpPanelGeo" aria-labelledby="rnpTabGeo" hidden>
+          <div class="rnp-box-sub">Откуда приходят заказы и с каких складов WB их отгружает. Если много заказов идёт в регион без вашего товара на ближнем складе, доставка дольше и выкуп ниже.</div>
+          <div class="rnp-geo-grid" style="margin-top:14px">
+            <div><h3 class="rnp-geo-title">Регионы покупателей</h3><div class="rnp-scroll" tabindex="0" role="region" aria-label="Заказы по регионам"><table class="rnp-geo" id="rnpGeoRegions"></table></div></div>
+            <div><h3 class="rnp-geo-title">Склады отгрузки</h3><div class="rnp-scroll" tabindex="0" role="region" aria-label="Заказы по складам"><table class="rnp-geo" id="rnpGeoWarehouses"></table></div></div>
+          </div>
+        </div>
+
+        <div class="rnp-panel" role="tabpanel" id="rnpPanelProducts" aria-labelledby="rnpTabProducts">
+        <div class="rnp-box-sub">Те же показатели по каждому товару. Класс A — товары, которые дают 80% заказов, B — следующие 15%, C — остальные.</div>
+        <div class="rnp-filters">
+          <input class="rnp-input" type="search" id="rnpSearch" placeholder="Название, артикул или nmId" aria-label="Поиск товара" oninput="rnpRenderProducts(true)">
+          <select class="rnp-input" id="rnpSubject" aria-label="Предмет" onchange="rnpRenderProducts(true)"></select>
+          <select class="rnp-input" id="rnpBrand" aria-label="Бренд" onchange="rnpRenderProducts(true)"></select>
+          <select class="rnp-input" id="rnpLabel" aria-label="Ярлык" onchange="rnpRenderProducts(true)"></select>
+          <select class="rnp-input" id="rnpSort" aria-label="Сортировка" onchange="rnpRenderProducts(true)">
+            <option value="ordersSum">По сумме заказов</option>
+            <option value="buyoutsSum">По выкупам</option>
+            <option value="adSpend">По расходу на рекламу</option>
+            <option value="drr">По ДРР (сначала высокий)</option>
+            <option value="profit">По прибыли (сначала низкая)</option>
+            <option value="risk">По риску: скоро закончится</option>
+            <option value="plan">По выполнению плана (сначала худшие)</option>
+          </select>
+          <button class="rnp-btn" type="button" onclick="rnpExportCsv()"><span data-icon="download" aria-hidden="true"></span> CSV</button>
+        </div>
+        <div class="rnp-count" id="rnpCount" aria-live="polite"></div>
+        <div id="rnpProducts"></div>
+        <div class="rnp-more"><button class="rnp-btn" type="button" id="rnpMore" hidden onclick="rnpRenderProducts(false)">Показать ещё</button></div>
+        </div>
+      </section>
+    </div>
+
+    <dialog class="rnp-dialog" id="rnpPlanDialog" aria-labelledby="rnpPlanTitle">
+      <form method="dialog" onsubmit="return false">
+        <div class="rnp-dialog-head">
+          <div>
+            <div class="rnp-box-title" id="rnpPlanTitle">План заказов на месяц</div>
+            <div class="rnp-box-sub">Задайте, сколько заказов хотите получить за месяц. План делится поровну на дни, и РНП красит дни по его выполнению. Пустое поле — плана нет.</div>
+          </div>
+          <button class="rnp-btn" type="button" aria-label="Закрыть" onclick="rnpClosePlan()"><span data-icon="x" aria-hidden="true"></span></button>
+        </div>
+        <div class="rnp-dialog-body">
+          <div class="rnp-toolbar">
+            <select class="rnp-input" id="rnpPlanMonth" aria-label="Месяц плана" onchange="rnpLoadPlan()"></select>
+            <button class="rnp-btn" type="button" onclick="rnpFillPlanFromHistory()">Заполнить как за последние 30 дней</button>
+          </div>
+          <div class="rnp-note rnp-is-error" id="rnpPlanError" hidden></div>
+          <table class="rnp-plan-table">
+            <thead><tr><th scope="col">Товар</th><th scope="col" class="rnp-plan-last">За 30 дней</th><th scope="col">План, ₸</th><th scope="col">План, шт</th></tr></thead>
+            <tbody id="rnpPlanRows"></tbody>
+          </table>
+        </div>
+        <div class="rnp-dialog-foot">
+          <button class="rnp-btn" type="button" onclick="rnpClosePlan()">Отмена</button>
+          <button class="rnp-btn primary" type="button" id="rnpPlanSave" onclick="rnpSavePlan()">Сохранить план</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+
 </main>
 <script>
 const token = localStorage.getItem('wbai_token');
@@ -1898,7 +2200,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
   if(name==='subscription') document.getElementById('page-credits')?.classList.add('active');
-  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',analytics:'аналитика',settings:'настройки',install:'установка',infographic:'студия'};
+  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',analytics:'аналитика',rnp:'рнп',settings:'настройки',install:'установка',infographic:'студия'};
   document.querySelectorAll('.nav-item').forEach(n=>{
     const active=n.textContent.toLowerCase().includes(map[name]||name);
     n.classList.toggle('active',active);
@@ -1907,6 +2209,7 @@ function showPage(name) {
   localStorage.setItem('wbai_last_page', name);
   if(name==='history') loadHistory();
   if(name==='analytics') anInit();
+  if(name==='rnp') rnpInit();
   if(name==='infographic') isInit();
   if(name==='settings') settingsSwitch(localStorage.getItem('wbai_settings_section') || 'account');
   document.getElementById('main-content').focus({ preventScroll: true });
@@ -3123,6 +3426,601 @@ function anSetupTooltip(){
   canvas.addEventListener('mousemove',function(e){if(!AN.data.length){tooltip.style.display='none';return;}var rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,padL=52,cW=canvas.offsetWidth-68,n=AN.data.length,step=cW/Math.max(n-1,1),idx=n===1?0:Math.round((x-padL)/step);if(idx<0||idx>=n){tooltip.style.display='none';return;}var d=AN.data[idx];tooltip.style.display='block';tooltip.style.left=Math.min(e.clientX-rect.left+14,rect.width-165)+'px';tooltip.style.top=(e.clientY-rect.top-100)+'px';var marginRow=AN.financeReady?'<div class="an-tooltip-row"><span class="an-tooltip-key">Расчётная прибыль</span><span class="an-tooltip-val green">'+anFmtCur(d.margin)+'</span></div>':'';tooltip.innerHTML='<div class="an-tooltip-title">'+d.label+'</div><div class="an-tooltip-row"><span class="an-tooltip-key">Заказы</span><span class="an-tooltip-val purple">'+(d.count||0).toLocaleString('ru')+'</span></div><div class="an-tooltip-row"><span class="an-tooltip-key">Выручка</span><span class="an-tooltip-val blue">'+anFmtCur(d.sum)+'</span></div>'+marginRow;});
   canvas.addEventListener('mouseleave',function(){tooltip.style.display='none';});
 }
+
+// ── РНП: Рука на пульсе ─────────────────────────────────────────────────────
+var RNP_TABS = ['products','brands','timing','geo'];
+var RNP_WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+var RNP_WEEKDAYS_FULL = ['понедельник','вторник','среду','четверг','пятницу','субботу','воскресенье'];
+var RNP = { tab:'products', timingMode:'count', initialized:false, mode:'month', data:null, sync:null, pollTimer:null, shown:0, filtered:[], loading:false };
+var RNP_PAGE_SIZE = 10;
+var RNP_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+// good: high — больше лучше, low — меньше лучше, spend — нейтральная интенсивность.
+var RNP_ROWS = [
+  {key:'ordersSum', label:'Заказы ₸', money:true, good:'high', tip:'Сумма всех заказов дня по цене продавца со скидкой, включая будущие отмены.'},
+  {key:'ordersCount', label:'Заказы, шт', good:'high', tip:'Сколько товаров заказали за день.'},
+  {key:'buyoutsSum', label:'Выкупы ₸', money:true, good:'high', tip:'Сумма товаров, которые покупатели забрали в этот день.'},
+  {key:'buyoutsCount', label:'Выкупы, шт', good:'high', tip:'Сколько товаров забрали в этот день.'},
+  {key:'buyoutPct', label:'Выкуп %', pct:true, good:'high', tip:'Доля выкупов среди выкупов и возвратов этого дня.'},
+  {key:'adSpend', label:'Реклама ₸', money:true, good:'spend', tip:'Расход на рекламу WB Продвижение за день.'},
+  {key:'drr', label:'ДРР %', pct:true, good:'low', tip:'Доля рекламных расходов от суммы заказов дня. Чем меньше, тем лучше.'},
+  {key:'profit', label:'Прибыль ₸', money:true, good:'high', tip:'Оценка: к перечислению за выкупы минус возвраты, себестоимость, логистика и хранение WB на выкуп и реклама.'},
+  {key:'margin', label:'Маржа %', pct:true, good:'high', tip:'Прибыль дня в процентах от выкупов.'}
+];
+
+function rnpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rnpNum(v){ return v==null||!isFinite(v) ? '—' : Math.round(v).toLocaleString('ru'); }
+function rnpMoney(v){ return v==null||!isFinite(v) ? '—' : (v<0?'− ':'')+Math.abs(Math.round(v)).toLocaleString('ru')+' ₸'; }
+function rnpPct(v){ return v==null||!isFinite(v) ? '—' : (Math.round(v*10)/10).toLocaleString('ru')+' %'; }
+function rnpCell(row, v){ if(v==null||!isFinite(v)) return '—'; if(row.pct) return (Math.round(v*10)/10).toLocaleString('ru'); return (v<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('ru'); }
+function rnpIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function rnpShortDay(day){ return day.slice(8,10)+'.'+day.slice(5,7); }
+function rnpApi(path, options){
+  options = options || {};
+  options.headers = Object.assign({Authorization:'Bearer '+token}, options.headers||{});
+  return fetch(path, options).then(function(r){ return r.json().catch(function(){return {};}).then(function(d){ d.__status=r.status; d.__ok=r.ok; return d; }); });
+}
+
+function rnpInit(){
+  if(!RNP.initialized){
+    RNP.initialized = true;
+    var to = new Date(), from = new Date(); from.setDate(from.getDate()-13);
+    document.getElementById('rnpFrom').value = rnpIso(from);
+    document.getElementById('rnpTo').value = rnpIso(to);
+    rnpFillMonths(null);
+    try{ var savedTab = localStorage.getItem('wbai_rnp_tab'); if(RNP_TABS.indexOf(savedTab) >= 0) RNP.tab = savedTab; } catch(e){}
+    document.querySelector('#page-rnp .rnp-tabs').addEventListener('keydown', function(e){
+      if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+      var i = RNP_TABS.indexOf(RNP.tab) + (e.key==='ArrowRight' ? 1 : -1);
+      rnpSetTab(RNP_TABS[(i + RNP_TABS.length) % RNP_TABS.length], true);
+      e.preventDefault();
+    });
+    rnpSetTab(RNP.tab);
+  }
+  rnpLoad();
+}
+
+// Месяцы, за которые у нас есть данные: история 90 дней плюс всё, что накопили раньше.
+function rnpFillMonths(firstDay){
+  var sel = document.getElementById('rnpMonth');
+  var prev = sel.value;
+  var now = new Date();
+  var start = new Date(now.getFullYear(), now.getMonth()-3, 1);
+  if(firstDay){ var f = new Date(firstDay+'T12:00:00'); if(f < start) start = new Date(f.getFullYear(), f.getMonth(), 1); }
+  var html = '';
+  for(var d = new Date(now.getFullYear(), now.getMonth(), 1); d >= start; d.setMonth(d.getMonth()-1)){
+    var value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    html += '<option value="'+value+'">'+RNP_MONTHS[d.getMonth()]+' '+d.getFullYear()+'</option>';
+  }
+  sel.innerHTML = html;
+  if(prev && sel.querySelector('option[value="'+prev+'"]')) sel.value = prev;
+}
+
+function rnpSetMode(mode){
+  RNP.mode = mode;
+  document.getElementById('rnpModeMonth').setAttribute('aria-pressed', mode==='month');
+  document.getElementById('rnpModeRange').setAttribute('aria-pressed', mode==='range');
+  document.getElementById('rnpMonth').hidden = mode!=='month';
+  document.getElementById('rnpRange').hidden = mode!=='range';
+  if(mode==='month') rnpLoad();
+}
+
+function rnpPeriod(){
+  if(RNP.mode==='range'){
+    var from = document.getElementById('rnpFrom').value, to = document.getElementById('rnpTo').value;
+    return {from:from, to:to};
+  }
+  var m = document.getElementById('rnpMonth').value.split('-');
+  var last = new Date(+m[0], +m[1], 0).getDate();
+  return {from:m[0]+'-'+m[1]+'-01', to:m[0]+'-'+m[1]+'-'+String(last).padStart(2,'0')};
+}
+
+function rnpShow(section){
+  document.getElementById('rnpNoToken').hidden = section!=='noToken';
+  document.getElementById('rnpSync').hidden = section!=='sync';
+  document.getElementById('rnpMain').hidden = section!=='main';
+}
+
+async function rnpLoad(){
+  var p = rnpPeriod();
+  if(!p.from || !p.to || p.from > p.to){ rnpNotes([{error:true, html:'Выберите корректный период: дата «с» не позже даты «по».'}]); return; }
+  RNP.loading = true;
+  try{
+    var d = await rnpApi('/api/rnp?from='+p.from+'&to='+p.to);
+    if(d.noToken){ rnpShow('noToken'); return; }
+    if(!d.__ok){ rnpShow('main'); rnpNotes([{error:true, html:rnpEsc(d.error||'Не удалось загрузить РНП. Попробуйте ещё раз.')}]); return; }
+    RNP.sync = d.sync;
+    if(!d.report){ rnpRenderSync(d.sync); rnpShow('sync'); rnpPoll(); return; }
+    RNP.data = d.report;
+    rnpFillMonths(d.sync.firstDay);
+    rnpShow('main');
+    rnpRender();
+    if(d.sync.status==='running') rnpPoll();
+  } catch(e){
+    rnpShow('main'); rnpNotes([{error:true, html:'Нет связи с сервером. Проверьте интернет и обновите страницу.'}]);
+  } finally { RNP.loading = false; }
+}
+
+function rnpRenderSync(sync){
+  var steps = (sync.progress && sync.progress.steps) || {};
+  var counts = (sync.progress && sync.progress.counts) || {};
+  var names = {orders:'Заказы', sales:'Выкупы и возвраты', stocks:'Названия и остатки товаров', ads:'Реклама по дням и товарам', costs:'Логистика WB на 1 выкуп'};
+  var stateText = {pending:'в очереди', running:'загружаем…', done:'готово', error:'ошибка', skipped:'пропущено'};
+  document.getElementById('rnpSteps').innerHTML = Object.keys(names).map(function(key){
+    var state = steps[key] || 'pending';
+    var count = counts[key] ? counts[key].toLocaleString('ru')+' строк · ' : '';
+    var mark = state==='done' ? '✓' : state==='error' ? '!' : '';
+    return '<li class="rnp-step rnp-is-'+state+'"><span class="rnp-step-dot" aria-hidden="true">'+mark+'</span><b>'+names[key]+'</b><span class="rnp-step-count">'+count+stateText[state]+'</span></li>';
+  }).join('');
+  var failed = sync.status==='error';
+  document.getElementById('rnpSyncTitle').textContent = failed ? 'Загрузка прервалась' : 'Собираем данные кабинета';
+  var err = document.getElementById('rnpSyncError');
+  err.hidden = !failed; err.textContent = sync.lastError || 'WB не ответил. Попробуйте ещё раз.';
+  document.getElementById('rnpRetry').hidden = !failed;
+}
+
+function rnpPoll(){
+  clearTimeout(RNP.pollTimer);
+  RNP.pollTimer = setTimeout(async function(){
+    if(!document.getElementById('page-rnp').classList.contains('active')) return;
+    try{
+      var d = await rnpApi('/api/rnp/status');
+      if(!d.__ok || !d.sync) return rnpPoll();
+      RNP.sync = d.sync;
+      if(d.sync.status==='running'){
+        if(!RNP.data) rnpRenderSync(d.sync); else rnpRenderUpdated();
+        return rnpPoll();
+      }
+      if(!RNP.data && d.sync.status==='error'){ rnpRenderSync(d.sync); return; }
+      rnpLoad();
+    } catch(e){ rnpPoll(); }
+  }, 5000);
+}
+
+async function rnpRefresh(){
+  var btn = document.getElementById('rnpRefreshBtn');
+  btn.disabled = true;
+  try{
+    var d = await rnpApi('/api/rnp/refresh', {method:'POST'});
+    if(d.noToken){ rnpShow('noToken'); return; }
+    if(RNP.sync){ RNP.sync.status = d.started ? 'running' : RNP.sync.status; }
+    if(!RNP.data){ rnpLoad(); return; }
+    rnpRenderUpdated(d.started ? null : 'Данные обновлялись меньше 5 минут назад.');
+    if(d.started) rnpPoll();
+  } finally { setTimeout(function(){ btn.disabled = false; }, 1500); }
+}
+
+function rnpAgo(iso){
+  if(!iso) return '';
+  var min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime())/60000));
+  if(min < 1) return 'только что';
+  if(min < 60) return min+' мин назад';
+  var h = Math.round(min/60);
+  return h < 24 ? h+' ч назад' : new Date(iso).toLocaleString('ru',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+}
+
+function rnpRenderUpdated(extra){
+  var s = RNP.sync || {};
+  var text = s.status==='running' ? 'Догружаем новые данные из WB…' : 'Обновлено '+rnpAgo(s.lastSuccessAt);
+  document.getElementById('rnpUpdated').textContent = extra ? text+' '+extra : text;
+}
+
+function rnpNotes(list){
+  document.getElementById('rnpNotes').innerHTML = list.map(function(n){
+    return '<div class="rnp-note'+(n.error?' rnp-is-error':'')+'">'+n.html+'</div>';
+  }).join('');
+}
+
+function rnpRender(){
+  var r = RNP.data, k = r.kpi, s = RNP.sync || {};
+  rnpRenderUpdated();
+  var notes = [];
+  if(s.adsError) notes.push({error:true, html:'Реклама не загрузилась: '+rnpEsc(s.adsError)});
+  if(s.stocksError) notes.push({error:true, html:'Остатки не загрузились: '+rnpEsc(s.stocksError)});
+  if(s.lastError) notes.push({error:true, html:'Последнее обновление не удалось: '+rnpEsc(s.lastError)+' Показаны сохранённые данные.'});
+  if(k.cogsMissing) notes.push({html:'У части товаров не указана себестоимость — их прибыль завышена. <button type="button" class="rnp-btn" style="min-height:28px;padding:3px 10px;margin-left:6px" onclick="showPage(\'analytics\')">Указать себестоимость</button>'});
+  if(!k.wbCostsKnown) notes.push({html:'Логистика и хранение WB в прибыли пока не учтены: нет доступа к финансовому отчёту или он ещё загружается.'});
+  if(r.period.dataFrom && r.period.dateFrom < r.period.dataFrom) notes.push({html:'WB хранит детальные заказы только за 90 дней, поэтому данные есть с '+new Date(r.period.dataFrom+'T12:00:00').toLocaleDateString('ru',{day:'numeric',month:'long'})+'.'});
+  rnpNotes(notes);
+
+  document.getElementById('rnpKOrders').textContent = rnpMoney(k.ordersSum);
+  document.getElementById('rnpKOrdersSub').innerHTML = rnpEsc(rnpNum(k.ordersCount)+' шт · '+(k.ordersPerDay||0).toLocaleString('ru')+' в день · отмен '+rnpNum(k.cancelCount))+'<br>'+rnpPlanLine(k.plan);
+  document.getElementById('rnpKBuyouts').textContent = rnpMoney(k.buyoutsSum);
+  document.getElementById('rnpKBuyoutsSub').textContent = rnpNum(k.buyoutsCount)+' шт · выкуп '+rnpPct(k.buyoutPct)+' · возвратов '+rnpNum(k.returnsCount);
+  document.getElementById('rnpKAds').textContent = rnpMoney(k.adSpend);
+  document.getElementById('rnpKAdsSub').textContent = 'ДРР от заказов '+rnpPct(k.drr)+' · от выкупов '+rnpPct(k.drrBuyouts);
+  document.getElementById('rnpKCpo').textContent = rnpMoney(k.cpo);
+  document.getElementById('rnpKProfit').textContent = rnpMoney(k.profit);
+  document.getElementById('rnpKProfitSub').textContent = 'маржа '+rnpPct(k.margin)+' от выкупов';
+  document.getElementById('rnpKProfitCard').classList.toggle('rnp-is-loss', (k.profit||0) < 0);
+
+  document.getElementById('rnpShopTable').innerHTML = rnpTable(r.shop, k, r.shopPlan);
+  rnpChart();
+  rnpFillFilters();
+  rnpRenderProducts(true);
+  rnpRenderBrands();
+  rnpRenderTiming();
+  rnpRenderGeo();
+}
+
+function rnpSetTab(tab, focus){
+  RNP.tab = tab;
+  var ids = {products:'Products', brands:'Brands', timing:'Timing', geo:'Geo'};
+  RNP_TABS.forEach(function(t){
+    var btn = document.getElementById('rnpTab'+ids[t]), on = t===tab;
+    btn.setAttribute('aria-selected', on); btn.tabIndex = on ? 0 : -1;
+    document.getElementById('rnpPanel'+ids[t]).hidden = !on;
+    if(on && focus) btn.focus();
+  });
+  try{ localStorage.setItem('wbai_rnp_tab', tab); } catch(e){}
+}
+
+function rnpRenderBrands(){
+  var stat = function(label, value, sub){ return '<div class="rnp-stat"><div class="rnp-stat-lbl">'+label+'</div><div class="rnp-stat-val">'+value+'</div>'+(sub?'<div class="rnp-stat-sub">'+sub+'</div>':'')+'</div>'; };
+  var brands = RNP.data.brands || [];
+  document.getElementById('rnpBrands').innerHTML = brands.length ? brands.map(function(b){
+    var t = b.totals;
+    return '<article class="rnp-product" aria-label="Бренд '+rnpEsc(b.brand)+'">'+
+      '<div class="rnp-product-head"><div>'+
+        '<div class="rnp-product-name">'+rnpEsc(b.brand)+'</div>'+
+        '<div class="rnp-product-meta">'+b.productCount+' '+rnpPlural(b.productCount, 'товар', 'товара', 'товаров')+' · <button type="button" class="rnp-link" data-brand="'+rnpEsc(b.brand)+'" onclick="rnpShowBrandProducts(this)">показать товары</button></div>'+
+      '</div><div class="rnp-stats">'+
+        stat('Заказы', rnpNum(t.ordersCount)+' шт', rnpMoney(t.ordersSum))+
+        stat('Выкупы', rnpNum(t.buyoutsCount)+' шт', 'выкуп '+rnpPct(t.buyoutPct))+
+        stat('Реклама', rnpMoney(t.adSpend), 'ДРР '+rnpPct(t.drr))+
+        stat('Прибыль', rnpMoney(t.profit), 'маржа '+rnpPct(t.margin))+
+      '</div></div>'+
+      '<div class="rnp-scroll" tabindex="0" role="region" aria-label="'+rnpEsc(b.brand)+' по дням"><table class="rnp-table">'+rnpTable(b.days, t)+'</table></div>'+
+    '</article>';
+  }).join('') : '<div class="rnp-note">Заказов за период нет.</div>';
+}
+
+function rnpPlural(n, one, few, many){
+  var m10 = n % 10, m100 = n % 100;
+  if(m10===1 && m100!==11) return one;
+  if(m10>=2 && m10<=4 && (m100<12 || m100>14)) return few;
+  return many;
+}
+
+function rnpShowBrandProducts(btn){
+  var brand = btn.getAttribute('data-brand');
+  var sel = document.getElementById('rnpBrand');
+  sel.value = brand==='Без бренда' ? '' : brand;
+  rnpSetTab('products', true);
+  rnpRenderProducts(true);
+}
+
+function rnpSetTimingMode(mode){
+  RNP.timingMode = mode;
+  document.getElementById('rnpTimingCount').setAttribute('aria-pressed', mode==='count');
+  document.getElementById('rnpTimingSum').setAttribute('aria-pressed', mode==='sum');
+  rnpRenderTiming();
+}
+
+function rnpRenderTiming(){
+  var t = RNP.data.timing, money = RNP.timingMode==='sum';
+  var grid = money ? t.sums : t.counts;
+  var max = 0, total = 0, byHour = new Array(24).fill(0);
+  grid.forEach(function(row){ row.forEach(function(v, h){ if(v > max) max = v; total += v; byHour[h] += v; }); });
+  var head = '<thead><tr><th scope="col"><span class="sr-only">День недели</span></th>'+byHour.map(function(_, h){ return '<th scope="col">'+String(h).padStart(2,'0')+'</th>'; }).join('')+'</tr></thead>';
+  var body = grid.map(function(row, d){
+    return '<tr><th scope="row">'+RNP_WEEKDAYS[d]+'</th>'+row.map(function(v, h){
+      var style = v && max ? ' style="background:color-mix(in srgb,var(--p) '+Math.round(10+(v/max)*55)+'%,var(--surface2))"' : '';
+      var title = RNP_WEEKDAYS[d]+' '+String(h).padStart(2,'0')+':00–'+String(h+1).padStart(2,'0')+':00 — '+(money ? rnpMoney(v) : v+' шт')+(t.weekdayDays[d] > 1 ? ' за '+t.weekdayDays[d]+' дн.' : '');
+      var text = !v ? '·' : money ? (v >= 1e6 ? (Math.round(v/1e5)/10).toLocaleString('ru')+'м' : v >= 1e3 ? Math.round(v/1e3)+'к' : Math.round(v)) : v;
+      return '<td'+(v?'':' class="rnp-is-none"')+style+' title="'+rnpEsc(title)+'">'+text+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+  document.getElementById('rnpTiming').innerHTML = head+'<tbody>'+body+'</tbody>';
+
+  if(!total){ document.getElementById('rnpTimingFacts').innerHTML = '<div class="rnp-note">Заказов за период нет.</div>'; return; }
+  var peak = byHour.indexOf(Math.max.apply(null, byHour));
+  var avg = grid.map(function(row, d){ var sum = row.reduce(function(a, b){ return a+b; }, 0); return t.weekdayDays[d] ? sum / t.weekdayDays[d] : null; });
+  var best = -1; avg.forEach(function(v, d){ if(v!=null && (best < 0 || v > avg[best])) best = d; });
+  var night = byHour.slice(0, 7).reduce(function(a, b){ return a+b; }, 0);
+  var fmt = function(v){ return money ? rnpMoney(v) : (Math.round(v*10)/10).toLocaleString('ru')+' шт'; };
+  var fact = function(label, value, sub){ return '<div class="rnp-stat"><div class="rnp-stat-lbl">'+label+'</div><div class="rnp-stat-val">'+value+'</div><div class="rnp-stat-sub">'+sub+'</div></div>'; };
+  document.getElementById('rnpTimingFacts').innerHTML =
+    fact('Пиковый час', String(peak).padStart(2,'0')+':00–'+String(peak+1).padStart(2,'0')+':00', rnpPct(byHour[peak]/total*100)+' всех заказов')+
+    (best >= 0 ? fact('Лучший день недели', RNP_WEEKDAYS[best], 'в среднем '+fmt(avg[best])+' за '+RNP_WEEKDAYS_FULL[best]) : '')+
+    fact('Ночью (00–07)', rnpPct(night/total*100), 'доля заказов');
+}
+
+function rnpGeoTable(data, label){
+  if(!data.rows.length) return '<tbody><tr><td>Заказов за период нет.</td></tr></tbody>';
+  var max = Math.max.apply(null, data.rows.map(function(r){ return r.share || 0; }));
+  return '<thead><tr><th scope="col">'+label+'</th><th scope="col" class="num">Заказы</th><th scope="col" class="num">Сумма</th><th scope="col" class="num">Доля</th><th scope="col" class="num">Отмены</th></tr></thead><tbody>'+
+    data.rows.map(function(r){
+      return '<tr'+(r.other?' class="rnp-is-other"':'')+'><td>'+rnpEsc(r.name)+'</td><td class="num">'+rnpNum(r.ordersCount)+'</td><td class="num">'+rnpMoney(r.ordersSum)+'</td>'+
+        '<td class="num"><div class="rnp-geo-share">'+rnpPct(r.share)+'<span class="rnp-geo-bar" aria-hidden="true"><i style="width:'+(max ? Math.round((r.share||0)/max*100) : 0)+'%"></i></span></div></td>'+
+        '<td class="num">'+rnpPct(r.cancelPct)+'</td></tr>';
+    }).join('')+'</tbody>';
+}
+
+function rnpRenderGeo(){
+  var g = RNP.data.geography;
+  document.getElementById('rnpGeoRegions').innerHTML = rnpGeoTable(g.regions, 'Регион');
+  document.getElementById('rnpGeoWarehouses').innerHTML = rnpGeoTable(g.warehouses, 'Склад');
+}
+
+// Строка плана под плиткой: выполнение на сегодня и план всего периода.
+function rnpPlanLine(plan){
+  var p = plan && (plan.ordersSum || plan.ordersCount);
+  if(!p) return 'план не задан — <button type="button" class="rnp-link" onclick="rnpOpenPlan()">задать</button>';
+  var money = !!plan.ordersSum;
+  var fmt = function(v){ return money ? rnpMoney(v) : rnpNum(v)+' шт'; };
+  return 'план '+fmt(p.toDate)+' на сегодня · выполнено <b>'+rnpPct(p.pct)+'</b><br>план периода '+fmt(p.total)+(plan.derived?' (сумма планов товаров)':'');
+}
+
+// Выполнение плана дня: зелёный от 100 %, красный тем насыщеннее, чем дальше от плана.
+function rnpPlanHeat(v, plan){
+  if(v==null || !isFinite(v) || !plan) return '';
+  var pct = v/plan;
+  if(pct >= 1) return 'background:color-mix(in srgb,var(--green) '+Math.round(16+Math.min(pct-1,1)*22)+'%,var(--surface2))';
+  return 'background:color-mix(in srgb,var(--red) '+Math.round(8+(1-pct)*30)+'%,var(--surface2))';
+}
+
+// Цвет клетки — положение дня среди остальных дней строки (без плана).
+function rnpHeat(row, v, stats){
+  if(v==null || !isFinite(v) || stats.max===stats.min) return '';
+  var t = (v - stats.min) / (stats.max - stats.min);
+  if(row.good==='spend') return v>0 ? 'background:color-mix(in srgb,var(--p) '+Math.round(8+t*26)+'%,var(--surface2))' : '';
+  if(row.good==='low') t = 1 - t;
+  var strength = Math.round(Math.abs(t-0.5)*2*38);
+  if(strength < 6) return '';
+  return 'background:color-mix(in srgb,var('+(t>=0.5?'--green':'--red')+') '+strength+'%,var(--surface2))';
+}
+
+function rnpTable(days, totals, plan){
+  var r = RNP.data, today = r.period.today;
+  var head = '<thead><tr><th scope="col" class="rnp-row-name"><span class="sr-only">Показатель</span></th>'+r.period.days.map(function(day){
+    return '<th scope="col"'+(day===today?' class="rnp-is-today"':'')+'>'+rnpShortDay(day)+'</th>';
+  }).join('')+'<th scope="col">Итого</th></tr></thead>';
+  var body = RNP_ROWS.map(function(row){
+    var values = days.map(function(d){ return d ? d[row.key] : null; }).filter(function(v){ return v!=null && isFinite(v); });
+    var stats = {min:Math.min.apply(null, values), max:Math.max.apply(null, values)};
+    var planRow = plan && plan[row.key];
+    var cells = days.map(function(d, i){
+      var v = d ? d[row.key] : null;
+      var dayPlan = planRow ? planRow[i] : null;
+      var title = rnpShortDay(r.period.days[i])+' · '+row.label+': '+(row.money?rnpMoney(v):row.pct?rnpPct(v):rnpNum(v));
+      if(dayPlan) title += ' · план '+(row.money?rnpMoney(dayPlan):(Math.round(dayPlan*10)/10).toLocaleString('ru')+' шт')+(v!=null?' · '+rnpPct(v/dayPlan*100):'');
+      var cls = v==null ? 'rnp-is-none' : (v<0 && row.money ? 'rnp-is-neg' : '');
+      var style = dayPlan ? rnpPlanHeat(v, dayPlan) : rnpHeat(row, v, stats);
+      return '<td'+(cls?' class="'+cls+'"':'')+(style?' style="'+style+'"':'')+' title="'+rnpEsc(title)+'">'+rnpCell(row, v)+'</td>';
+    }).join('');
+    var total = totals ? totals[row.key] : null;
+    return '<tr><th scope="row" class="rnp-row-name">'+row.label+'<button type="button" class="an-help" data-tip="'+rnpEsc(row.tip)+'" aria-label="Что такое «'+rnpEsc(row.label)+'»">?</button></th>'+cells+'<td class="rnp-total'+(total!=null&&total<0&&row.money?' rnp-is-neg':'')+'">'+rnpCell(row, total)+'</td></tr>';
+  }).join('');
+  return head+'<tbody>'+body+'</tbody>';
+}
+
+function rnpChart(){
+  var svg = document.getElementById('rnpChart');
+  var r = RNP.data, days = r.period.days;
+  var w = Math.max(320, svg.clientWidth || 600), h = 180, padL = 30, padR = 10, padT = 10, padB = 24;
+  var values = r.shop.map(function(d){ return d ? d.ordersCount : null; });
+  var max = Math.max(1, Math.max.apply(null, values.filter(function(v){ return v!=null; }).concat([0])));
+  var step = days.length > 1 ? (w-padL-padR)/(days.length-1) : 0;
+  var x = function(i){ return padL + i*step; }, y = function(v){ return padT + (h-padT-padB)*(1 - v/max); };
+  var pts = [];
+  values.forEach(function(v, i){ if(v!=null) pts.push([x(i), y(v), i, v]); });
+  var grid = [0, Math.round(max/2), max].map(function(v){
+    return '<line class="grid" x1="'+padL+'" x2="'+(w-padR)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(padL-6)+'" y="'+(y(v)+3)+'" text-anchor="end">'+v+'</text>';
+  }).join('');
+  var labels = [0, Math.floor((days.length-1)/2), days.length-1].filter(function(v, i, a){ return a.indexOf(v)===i; }).map(function(i){
+    return '<text x="'+x(i)+'" y="'+(h-6)+'" text-anchor="'+(i===0?'start':i===days.length-1?'end':'middle')+'">'+rnpShortDay(days[i])+'</text>';
+  }).join('');
+  var line = pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
+  var area = pts.length ? 'M'+pts[0][0]+','+y(0)+' L'+line.split(' ').join(' L')+' L'+pts[pts.length-1][0]+','+y(0)+' Z' : '';
+  var dots = pts.map(function(p){ return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="currentColor"><title>'+rnpShortDay(days[p[2]])+': '+p[3]+' шт</title></circle>'; }).join('');
+  svg.setAttribute('viewBox', '0 0 '+w+' '+h);
+  svg.innerHTML = grid + labels + (area ? '<path d="'+area+'" fill="currentColor" opacity=".12"/>' : '') + '<polyline points="'+line+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' + dots;
+}
+
+function rnpFillFilters(){
+  var products = RNP.data.products;
+  var labelSel = document.getElementById('rnpLabel'), labelPrev = labelSel.value;
+  var labels = [];
+  products.forEach(function(p){ (p.labels||[]).forEach(function(l){ if(labels.indexOf(l) < 0) labels.push(l); }); });
+  labels.sort(function(a, b){ return a.localeCompare(b, 'ru'); });
+  labelSel.innerHTML = '<option value="">Все ярлыки</option>'+labels.map(function(v){ return '<option value="'+rnpEsc(v)+'">'+rnpEsc(v)+'</option>'; }).join('');
+  labelSel.value = labels.indexOf(labelPrev) >= 0 ? labelPrev : '';
+  labelSel.hidden = !labels.length;
+  [['rnpSubject','subject','Все предметы'],['rnpBrand','brand','Все бренды']].forEach(function(cfg){
+    var sel = document.getElementById(cfg[0]), prev = sel.value;
+    var values = products.map(function(p){ return p[cfg[1]]; }).filter(function(v, i, a){ return v && a.indexOf(v)===i; }).sort(function(a, b){ return a.localeCompare(b, 'ru'); });
+    sel.innerHTML = '<option value="">'+cfg[2]+'</option>'+values.map(function(v){ return '<option value="'+rnpEsc(v)+'">'+rnpEsc(v)+'</option>'; }).join('');
+    sel.value = values.indexOf(prev) >= 0 ? prev : '';
+  });
+}
+
+function rnpFilterProducts(){
+  var q = document.getElementById('rnpSearch').value.trim().toLowerCase();
+  var subject = document.getElementById('rnpSubject').value, brand = document.getElementById('rnpBrand').value;
+  var label = document.getElementById('rnpLabel').value;
+  var sort = document.getElementById('rnpSort').value;
+  var list = RNP.data.products.filter(function(p){
+    if(subject && p.subject!==subject) return false;
+    if(brand && p.brand!==brand) return false;
+    if(label && (p.labels||[]).indexOf(label) < 0) return false;
+    return !q || String(p.vendorCode).toLowerCase().indexOf(q) >= 0 || String(p.title||'').toLowerCase().indexOf(q) >= 0 || String(p.nmId).indexOf(q) >= 0;
+  });
+  var planPct = function(p){ var s = p.planSummary; var x = s && (s.ordersSum || s.ordersCount); return x ? x.pct : null; };
+  var val = function(p){
+    if(sort==='risk') return p.stock ? p.stock.daysLeft : null;
+    if(sort==='plan') return planPct(p);
+    var v = p.totals[sort]; return v==null ? null : v;
+  };
+  var ascending = sort==='profit' || sort==='risk' || sort==='plan';
+  list.sort(function(a, b){
+    var va = val(a), vb = val(b);
+    if(va==null && vb==null) return 0; if(va==null) return 1; if(vb==null) return -1;
+    return ascending ? va - vb : vb - va;
+  });
+  return list;
+}
+
+function rnpRenderProducts(reset){
+  if(!RNP.data) return;
+  if(reset){ RNP.filtered = rnpFilterProducts(); RNP.shown = 0; document.getElementById('rnpProducts').innerHTML = ''; }
+  var next = RNP.filtered.slice(RNP.shown, RNP.shown + RNP_PAGE_SIZE);
+  RNP.shown += next.length;
+  document.getElementById('rnpProducts').insertAdjacentHTML('beforeend', next.map(rnpProductCard).join(''));
+  document.getElementById('rnpCount').textContent = RNP.filtered.length ? 'Показано '+RNP.shown+' из '+RNP.filtered.length : 'Товаров с движением за период нет';
+  var more = document.getElementById('rnpMore');
+  more.hidden = RNP.shown >= RNP.filtered.length;
+  more.textContent = 'Показать ещё '+Math.min(RNP_PAGE_SIZE, RNP.filtered.length - RNP.shown);
+}
+
+function rnpProductCard(p){
+  var t = p.totals;
+  var stat = function(label, value, sub){ return '<div class="rnp-stat"><div class="rnp-stat-lbl">'+label+'</div><div class="rnp-stat-val">'+value+'</div>'+(sub?'<div class="rnp-stat-sub">'+sub+'</div>':'')+'</div>'; };
+  var name = p.title || p.vendorCode || ('nmId '+p.nmId);
+  var meta = [p.title ? p.vendorCode : '', p.subject, p.brand].filter(Boolean).map(rnpEsc).join(' · ');
+  return '<article class="rnp-product" aria-label="'+rnpEsc(name)+'">'+
+    '<div class="rnp-product-head"><div>'+
+      '<div class="rnp-product-name">'+rnpEsc(name)+' <span class="rnp-abc '+p.abc.toLowerCase()+'" title="Класс '+p.abc+' по сумме заказов">'+p.abc+'</span></div>'+
+      '<div class="rnp-product-meta">'+(meta?meta+' · ':'')+'арт. <a href="https://www.wildberries.ru/catalog/'+encodeURIComponent(p.nmId)+'/detail.aspx" target="_blank" rel="noopener noreferrer">'+rnpEsc(p.nmId)+'</a></div>'+
+    '</div><div class="rnp-stats">'+
+      stat('Заказы', rnpNum(t.ordersCount)+' шт', rnpMoney(t.ordersSum)+' · '+(t.ordersPerDay||0).toLocaleString('ru')+'/день')+
+      stat('Выкупы', rnpNum(t.buyoutsCount)+' шт', 'выкуп '+rnpPct(t.buyoutPct))+
+      stat('Реклама', rnpMoney(t.adSpend), 'ДРР '+rnpPct(t.drr))+
+      stat('CPO', rnpMoney(t.cpo))+
+      stat('Прибыль', rnpMoney(t.profit), 'маржа '+rnpPct(t.margin))+
+      rnpStockStat(p.stock)+
+      rnpProductPlanStat(p.planSummary)+
+    '</div></div>'+
+    (p.unpriced?'<div class="rnp-warn">Не указана себестоимость — прибыль завышена. <button type="button" class="rnp-link" onclick="showPage(\'analytics\')">Указать</button></div>':'')+
+    '<input class="rnp-input rnp-labels" type="text" maxlength="200" value="'+rnpEsc((p.labels||[]).join(', '))+'" placeholder="Ярлыки через запятую, например: хит, сезон" aria-label="Ярлыки товара '+rnpEsc(name)+'" data-nm="'+rnpEsc(p.nmId)+'" onchange="rnpSaveLabels(this)">'+
+    '<div class="rnp-scroll" tabindex="0" role="region" aria-label="'+rnpEsc(name)+' по дням"><table class="rnp-table">'+rnpTable(p.days, t, p.plan)+'</table></div>'+
+  '</article>';
+}
+
+var RNP_STOCK_RISK_DAYS = 7;
+function rnpStockStat(stock){
+  if(!stock) return '';
+  var risk = stock.daysLeft!=null && stock.daysLeft <= RNP_STOCK_RISK_DAYS;
+  var sub = (stock.daysLeft==null ? 'заказов не было 14 дней' : 'хватит на '+stock.daysLeft.toLocaleString('ru')+' дн')+'<br>WB '+rnpNum(stock.wb)+' · FBS '+rnpNum(stock.fbs);
+  return '<div class="rnp-stat"><div class="rnp-stat-lbl">Остаток</div><div class="rnp-stat-val'+(risk?' rnp-is-risk':'')+'">'+rnpNum(stock.quantity)+' шт</div><div class="rnp-stat-sub'+(risk?' rnp-is-risk':'')+'">'+sub+'</div></div>';
+}
+
+function rnpProductPlanStat(summary){
+  var x = summary && (summary.ordersSum || summary.ordersCount);
+  if(!x) return '';
+  var bad = x.pct!=null && x.pct < 100;
+  return '<div class="rnp-stat"><div class="rnp-stat-lbl">План</div><div class="rnp-stat-val'+(bad?' rnp-is-risk':'')+'">'+rnpPct(x.pct)+'</div><div class="rnp-stat-sub">выполнено на сегодня</div></div>';
+}
+
+async function rnpSaveLabels(input){
+  var nmId = +input.getAttribute('data-nm');
+  var labels = input.value.split(',').map(function(v){ return v.trim(); }).filter(Boolean);
+  input.disabled = true;
+  try{
+    var d = await rnpApi('/api/rnp/labels', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nmId:nmId, labels:labels})});
+    if(!d.__ok) throw new Error(d.error);
+    input.value = d.labels.join(', ');
+    RNP.data.products.forEach(function(p){ if(p.nmId===nmId) p.labels = d.labels; });
+    rnpFillFilters();
+  } catch(e){
+    input.setCustomValidity('Не удалось сохранить ярлыки'); input.reportValidity(); setTimeout(function(){ input.setCustomValidity(''); }, 3000);
+  } finally { input.disabled = false; }
+}
+
+// ── План на месяц
+var RNP_PLAN = { data:null };
+function rnpOpenPlan(){
+  var sel = document.getElementById('rnpPlanMonth');
+  var now = new Date(), html = '';
+  for(var i = -1; i <= 2; i++){
+    var d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    var value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    html += '<option value="'+value+'">'+RNP_MONTHS[d.getMonth()]+' '+d.getFullYear()+'</option>';
+  }
+  sel.innerHTML = html;
+  var viewed = RNP.mode==='month' ? document.getElementById('rnpMonth').value : '';
+  sel.value = sel.querySelector('option[value="'+viewed+'"]') ? viewed : rnpIso(now).slice(0,7);
+  var dialog = document.getElementById('rnpPlanDialog');
+  if(dialog.showModal) dialog.showModal(); else dialog.setAttribute('open','');
+  rnpLoadPlan();
+}
+function rnpClosePlan(){ var d = document.getElementById('rnpPlanDialog'); if(d.close) d.close(); else d.removeAttribute('open'); }
+
+function rnpPlanError(text){ var el = document.getElementById('rnpPlanError'); el.hidden = !text; el.textContent = text||''; }
+
+async function rnpLoadPlan(){
+  var month = document.getElementById('rnpPlanMonth').value;
+  var body = document.getElementById('rnpPlanRows');
+  rnpPlanError('');
+  body.innerHTML = '<tr><td colspan="4" class="rnp-plan-hint">Загружаем…</td></tr>';
+  var d = await rnpApi('/api/rnp/plans?month='+month);
+  if(!d.__ok){ body.innerHTML = ''; rnpPlanError(d.error||'Не удалось загрузить план.'); return; }
+  RNP_PLAN.data = d;
+  var input = function(kind, nmId, value, label){
+    return '<input class="rnp-input" type="number" min="0" step="1" inputmode="numeric" data-kind="'+kind+'" data-nm="'+nmId+'" value="'+(value==null?'':value)+'" aria-label="'+rnpEsc(label)+'">';
+  };
+  var row = function(nmId, title, sub, item, cls){
+    var last = rnpMoney(item.last30OrdersSum)+' · '+rnpNum(item.last30OrdersCount)+' шт';
+    return '<tr'+(cls?' class="'+cls+'"':'')+'><td>'+title+(sub?'<div class="rnp-plan-hint">'+sub+'</div>':'')+'<div class="rnp-plan-hint rnp-plan-last-inline">за 30 дней: '+last+'</div></td>'+
+      '<td class="rnp-plan-hint rnp-plan-last">'+rnpMoney(item.last30OrdersSum)+'<br>'+rnpNum(item.last30OrdersCount)+' шт</td>'+
+      '<td>'+input('ordersSum', nmId, item.ordersSum, 'План в тенге: '+title)+'</td>'+
+      '<td>'+input('ordersCount', nmId, item.ordersCount, 'План в штуках: '+title)+'</td></tr>';
+  };
+  body.innerHTML = row(0, 'Весь магазин', 'если не задан — сумма планов товаров', d.shop, 'rnp-is-shop') +
+    d.products.map(function(p){ return row(p.nmId, rnpEsc(p.vendorCode||('nmId '+p.nmId)), rnpEsc([p.subject, 'арт. '+p.nmId].filter(Boolean).join(' · ')), p); }).join('');
+}
+
+// Подсказка для новичка: план = заказы последних 30 дней, пересчитанные на длину месяца.
+function rnpFillPlanFromHistory(){
+  var d = RNP_PLAN.data; if(!d) return;
+  var m = d.month.split('-'), days = new Date(+m[0], +m[1], 0).getDate(), k = days/d.hintDays;
+  var items = [{nmId:0, item:d.shop}].concat(d.products.map(function(p){ return {nmId:p.nmId, item:p}; }));
+  items.forEach(function(x){
+    [['ordersSum','last30OrdersSum'],['ordersCount','last30OrdersCount']].forEach(function(f){
+      var el = document.querySelector('#rnpPlanRows input[data-kind="'+f[0]+'"][data-nm="'+x.nmId+'"]');
+      if(el && el.value==='' && x.item[f[1]]) el.value = Math.round(x.item[f[1]]*k);
+    });
+  });
+}
+
+async function rnpSavePlan(){
+  var d = RNP_PLAN.data; if(!d) return;
+  var byNm = {};
+  document.querySelectorAll('#rnpPlanRows input[data-nm]').forEach(function(el){
+    var nm = el.getAttribute('data-nm');
+    byNm[nm] = byNm[nm] || {nmId:+nm, ordersSum:null, ordersCount:null};
+    byNm[nm][el.getAttribute('data-kind')] = el.value==='' ? null : +el.value;
+  });
+  var btn = document.getElementById('rnpPlanSave');
+  btn.disabled = true; rnpPlanError('');
+  try{
+    var r = await rnpApi('/api/rnp/plans', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({month:d.month, items:Object.keys(byNm).map(function(k){ return byNm[k]; })})});
+    if(!r.__ok){ rnpPlanError(r.error||'Не удалось сохранить план.'); return; }
+    rnpClosePlan();
+    rnpLoad();
+  } finally { btn.disabled = false; }
+}
+
+function rnpExportCsv(){
+  if(!RNP.data) return;
+  var days = RNP.data.period.days;
+  var cols = RNP_ROWS.map(function(r){ return r.label; });
+  var lines = [['Дата','nmId','Артикул','Название','Предмет','Бренд'].concat(cols).join(';')];
+  var cell = function(v){ return v==null ? '' : String(Math.round(v*100)/100).replace('.', ','); };
+  var text = function(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; };
+  (RNP.filtered.length ? RNP.filtered : RNP.data.products).forEach(function(p){
+    p.days.forEach(function(d, i){
+      if(!d) return;
+      lines.push([days[i], p.nmId, text(p.vendorCode), text(p.title), text(p.subject), text(p.brand)].concat(RNP_ROWS.map(function(r){ return cell(d[r.key]); })).join(';'));
+    });
+  });
+  var blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rnp_'+RNP.data.period.dateFrom+'_'+RNP.data.period.dateTo+'.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+window.addEventListener('resize', function(){ if(RNP.data && document.getElementById('page-rnp').classList.contains('active')) rnpChart(); });
 
 init();
 </script>

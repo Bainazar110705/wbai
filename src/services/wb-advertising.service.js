@@ -83,6 +83,53 @@ function emptyAdvertisingTotals() {
   return { spend: 0, orderSum: 0, views: 0, clicks: 0, orders: 0 };
 }
 
+// Разбивка fullstats по дням и артикулам для РНП. Расход дня, который WB не
+// разнёс по артикулам, остаётся в строке nmId = 0, чтобы итог дня сходился.
+function extractDailyNmSpend(stats) {
+  const rows = new Map();
+  const add = (day, advertId, nmId, values) => {
+    const key = `${day}:${advertId}:${nmId}`;
+    const row = rows.get(key) || { day, advertId, nmId, spend: 0, views: 0, clicks: 0, orders: 0 };
+    row.spend += values.spend;
+    row.views += values.views;
+    row.clicks += values.clicks;
+    row.orders += values.orders;
+    rows.set(key, row);
+  };
+  const valuesOf = item => ({
+    spend: moneyNumber(item?.sum),
+    views: moneyNumber(item?.views),
+    clicks: moneyNumber(item?.clicks),
+    orders: moneyNumber(item?.orders)
+  });
+
+  for (const campaign of Array.isArray(stats) ? stats : []) {
+    const advertId = positiveCampaignId(campaign?.advertId);
+    if (!advertId) continue;
+    for (const dayStats of Array.isArray(campaign.days) ? campaign.days : []) {
+      const day = String(dayStats?.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+      const total = valuesOf(dayStats);
+      const attributed = { spend: 0, views: 0, clicks: 0, orders: 0 };
+      for (const app of Array.isArray(dayStats.apps) ? dayStats.apps : []) {
+        const nms = Array.isArray(app?.nms) ? app.nms : (Array.isArray(app?.nm) ? app.nm : []);
+        for (const nm of nms) {
+          const nmId = positiveCampaignId(nm?.nmId);
+          if (!nmId) continue;
+          const values = valuesOf(nm);
+          add(day, advertId, nmId, values);
+          Object.keys(attributed).forEach(key => { attributed[key] += values[key]; });
+        }
+      }
+      const rest = Object.fromEntries(Object.keys(total).map(key => [key, Math.max(0, total[key] - attributed[key])]));
+      if (rest.spend >= 0.01 || rest.views > 0) add(day, advertId, 0, rest);
+    }
+  }
+  return [...rows.values()]
+    .filter(row => row.spend || row.views || row.clicks || row.orders)
+    .map(row => ({ ...row, spend: Math.round(row.spend * 100) / 100 }));
+}
+
 function createAdvertisingStatsService({
   fetchImpl = fetch,
   wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -156,13 +203,38 @@ function createAdvertisingStatsService({
     };
   }
 
-  return { getPeriodStats };
+  // Расход по дням и артикулам: onChunk получает строки каждого куска до 31 дня.
+  async function getDailySpend({ token, dateFrom, dateTo, onChunk }) {
+    lastFullstatsAt = null;
+    const campaigns = extractAdvertisingCampaigns(await request('/api/advert/v2/adverts', token));
+    const currencies = campaigns.map(campaign => campaign.currency).filter(Boolean);
+    const currency = campaigns.length ? resolveAdvertisingCurrency(null, currencies) : null;
+
+    for (const period of splitAdvertisingPeriod(dateFrom, dateTo)) {
+      const charges = await request(`/adv/v1/upd?from=${period.from}&to=${period.to}`, token);
+      const ids = new Set(campaigns.map(campaign => campaign.id));
+      for (const charge of Array.isArray(charges) ? charges : []) {
+        const id = positiveCampaignId(charge?.advertId);
+        if (id) ids.add(id);
+      }
+      const idList = [...ids];
+      const rows = [];
+      for (let index = 0; index < idList.length; index += FULLSTATS_BATCH_SIZE) {
+        rows.push(...extractDailyNmSpend(await fullstats(token, idList.slice(index, index + FULLSTATS_BATCH_SIZE), period)));
+      }
+      await onChunk({ period, rows, currency });
+    }
+    return { currency };
+  }
+
+  return { getPeriodStats, getDailySpend };
 }
 
 module.exports = {
   extractAdvertisingCampaigns,
   resolveAdvertisingCurrency,
   createAdvertisingStatsService,
+  extractDailyNmSpend,
   splitAdvertisingPeriod,
   advertisingApiError,
   FULLSTATS_INTERVAL_MS
