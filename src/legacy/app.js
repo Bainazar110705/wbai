@@ -1272,6 +1272,59 @@ async function loadAnalyticsSource({
 }
 
 // GET /api/wb-analytics
+// Реклама и финотчёт уже хранятся у нас после фоновой загрузки (та же, что у РНП).
+// Если сохранённые дни покрывают период, WB не спрашиваем; иначе — прежний запрос.
+async function storedSourcesSync(userId, { force = false } = {}) {
+  try {
+    await rnpRepository.ensureSync(userId);
+    await rnpRepository.markViewed(userId);
+    const sync = await rnpRepository.getSync(userId);
+    rnpSyncService.requestSync(userId, sync, { force });
+    return sync;
+  } catch (error) {
+    logger.warn('stored_sources_unavailable', { userId, error: error.message });
+    return null;
+  }
+}
+
+function storedSourceInfo(payload, loadedAt) {
+  return {
+    payload,
+    cached: true,
+    stale: false,
+    refreshLimited: false,
+    fetchedAt: new Date(loadedAt || Date.now()).toISOString()
+  };
+}
+
+function storedCovers(storedFrom, storedTo, dateFrom, dateTo, today) {
+  const needTo = dateTo > today ? today : dateTo;
+  return !!(storedFrom && storedTo && storedFrom <= dateFrom && storedTo >= needTo);
+}
+
+async function loadStoredFinance(userId, sync, dateFrom, dateTo, today) {
+  if (!sync || !storedCovers(sync.finance_from, sync.finance_to, dateFrom, dateTo, today)) return null;
+  const rows = await rnpRepository.listFinanceRows(userId, dateFrom, dateTo);
+  const currency = rows.find(row => row.currency)?.currency || sync.finance_currency || null;
+  return storedSourceInfo({ rows, currency }, sync.finance_at || sync.last_success_at);
+}
+
+async function loadStoredAdvertising(userId, sync, dateFrom, dateTo, today) {
+  if (!sync || !storedCovers(sync.ads_from, sync.ads_synced_to, dateFrom, dateTo, today)) return null;
+  const row = await rnpRepository.adTotals(userId, dateFrom, dateTo);
+  return storedSourceInfo({
+    currency: sync.ads_currency || null,
+    campaignCount: numberOrZero(row?.campaign_count),
+    totals: {
+      spend: numberOrZero(row?.spend),
+      orderSum: numberOrZero(row?.order_sum),
+      views: numberOrZero(row?.views),
+      clicks: numberOrZero(row?.clicks),
+      orders: numberOrZero(row?.orders)
+    }
+  }, sync.ads_at || sync.last_success_at);
+}
+
 app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const { period, from, to, refresh } = req.query;
   const forceRefresh = refresh === '1';
@@ -1360,7 +1413,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
 
     let reportRaw = [], financeSource = null, financeCurrency = null, financeErrorCode = null;
     try {
-      financeSource = await loadAnalyticsSource({
+      const storedSync = await storedSourcesSync(req.user.id, { force: forceRefresh });
+      financeSource = await loadStoredFinance(req.user.id, storedSync, prevFrom, dateTo, moscowToday) || await loadAnalyticsSource({
         userId: req.user.id,
         // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
         source: 'financeV5',
@@ -1727,7 +1781,8 @@ app.get('/api/wb-advertising', authMiddleware, async (req, res) => {
 
   try {
     const moscowToday = dateInTimeZone(new Date(), 'Europe/Moscow');
-    const source = await loadAnalyticsSource({
+    const storedSync = await storedSourcesSync(req.user.id, { force: refresh === '1' });
+    const source = await loadStoredAdvertising(req.user.id, storedSync, from, to, moscowToday) || await loadAnalyticsSource({
       userId: req.user.id,
       source: 'advertisingStatsV1',
       dateFrom: from,

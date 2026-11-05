@@ -955,7 +955,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-help::after{content:'';position:absolute;inset:-14px}
 .an-help:hover,.an-help:focus-visible,.an-help[aria-expanded="true"]{color:var(--p2);border-color:var(--p)}
 .an-help:focus-visible{outline:2px solid var(--p);outline-offset:2px}
-.an-help-tip{position:fixed;z-index:1200;max-width:280px;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.45);color:var(--text);font-size:12px;line-height:1.5;font-weight:500;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
+.an-help-tip{white-space:pre-line;position:fixed;z-index:1200;max-width:280px;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.45);color:var(--text);font-size:12px;line-height:1.5;font-weight:500;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
 .an-help-tip.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
 /* ОТЧЁТ О ПРИБЫЛИ */
@@ -1962,7 +1962,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         </div>
         <button class="rnp-btn" type="button" onclick="rnpOpenPlan()"><span data-icon="target" aria-hidden="true"></span> План</button>
         <div class="rnp-updated">
-          <span id="rnpUpdated" aria-live="polite"></span>
+          <span id="rnpUpdated" aria-live="polite"></span><button type="button" class="an-help" id="rnpSourcesHelp" data-tip="" data-tip-wide aria-label="Когда загружены данные из WB">?</button>
           <button class="rnp-btn" type="button" id="rnpRefreshBtn" onclick="rnpRefresh()"><span data-icon="refresh" aria-hidden="true"></span> Обновить</button>
         </div>
       </div>
@@ -3333,7 +3333,7 @@ function anRenderAdShare(){
     if(current&&current!==btn) hide();
     current=btn; tip.textContent=btn.getAttribute('data-tip')||'';
     btn.setAttribute('aria-describedby','anHelpTip'); btn.setAttribute('aria-expanded','true');
-    tip.style.maxWidth=Math.min(280, window.innerWidth-24)+'px'; tip.classList.add('on');
+    tip.style.maxWidth=Math.min(btn.hasAttribute('data-tip-wide')?380:280, window.innerWidth-24)+'px'; tip.classList.add('on');
     place();
   }
   function place(){
@@ -3543,7 +3543,7 @@ async function rnpLoad(){
 function rnpRenderSync(sync){
   var steps = (sync.progress && sync.progress.steps) || {};
   var counts = (sync.progress && sync.progress.counts) || {};
-  var names = {orders:'Заказы', sales:'Выкупы и возвраты', stocks:'Названия и остатки товаров', ads:'Реклама по дням и товарам', costs:'Логистика WB на 1 выкуп'};
+  var names = {orders:'Заказы', sales:'Выкупы и возвраты', stocks:'Названия и остатки товаров', ads:'Реклама по дням и товарам', finance:'Финансовый отчёт WB', costs:'Логистика WB на 1 выкуп'};
   var stateText = {pending:'в очереди', running:'загружаем…', done:'готово', error:'ошибка', skipped:'пропущено'};
   document.getElementById('rnpSteps').innerHTML = Object.keys(names).map(function(key){
     var state = steps[key] || 'pending';
@@ -3602,6 +3602,50 @@ function rnpRenderUpdated(extra){
   var s = RNP.sync || {};
   var text = s.status==='running' ? 'Догружаем новые данные из WB…' : 'Обновлено '+rnpAgo(s.lastSuccessAt);
   document.getElementById('rnpUpdated').textContent = extra ? text+' '+extra : text;
+  document.getElementById('rnpSourcesHelp').setAttribute('data-tip', rnpSourcesTip(s));
+}
+
+// Время загрузки — в часовом поясе браузера; курсоры WB — время МСК.
+function rnpWhen(iso){
+  if(!iso) return null;
+  var d = new Date(iso), now = new Date();
+  var time = d.toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+  if(d.toDateString()===now.toDateString()) return 'сегодня в '+time;
+  var y = new Date(now); y.setDate(y.getDate()-1);
+  if(d.toDateString()===y.toDateString()) return 'вчера в '+time;
+  return d.toLocaleDateString('ru', {day:'numeric', month:'long'})+' в '+time;
+}
+function rnpWbStamp(value){
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value||'');
+  return m ? m[3]+'.'+m[2]+' '+m[4]+':'+m[5]+' МСК' : null;
+}
+
+function rnpSourcesTip(s){
+  var src = s.sources || {}, fallback = s.lastSuccessAt;
+  var line = function(name, item, extra){
+    item = item || {};
+    var when = rnpWhen(item.loadedAt || (item.error ? null : fallback));
+    var text = name+': '+(when ? 'загружено '+when : 'ещё не загружено');
+    if(extra) text += extra;
+    if(item.error) text += ' — ошибка: '+item.error;
+    return text;
+  };
+  var wbOrders = rnpWbStamp(src.orders && src.orders.wbChangedAt);
+  var wbSales = rnpWbStamp(src.sales && src.sales.wbChangedAt);
+  var adsThrough = src.ads && src.ads.through ? ', по '+rnpShortDay(src.ads.through)+' включительно' : '';
+  var lines = [
+    'Откуда данные и когда загружены:',
+    line('• Заказы', src.orders, wbOrders ? ' (последнее изменение у WB '+wbOrders+')' : ''),
+    line('• Выкупы и возвраты', src.sales, wbSales ? ' (у WB '+wbSales+')' : ''),
+    line('• Названия и остатки', src.stocks),
+    line('• Реклама', src.ads, adsThrough),
+    line('• Финотчёт WB', src.finance, src.finance && src.finance.from ? ', собран с '+new Date(src.finance.from+'T12:00:00').toLocaleDateString('ru', {day:'numeric', month:'long', year:'numeric'}) : ''),
+    line('• Логистика WB на выкуп', src.costs, ' (по финотчёту за 30 дней)')
+  ];
+  if(s.status==='running') lines.push('', 'Сейчас идёт загрузка — таблица обновится сама.');
+  else if(s.nextRefreshAt) lines.push('', 'Следующее автообновление — примерно '+rnpWhen(s.nextRefreshAt)+'. WB сам обновляет статистику раз в ~30 минут.');
+  lines.push('Все данные хранятся у нас: из WB догружаются только изменения. Реклама и финотчёт отсюда же используются в «Аналитике WB».');
+  return lines.join('\n');
 }
 
 function rnpNotes(list){

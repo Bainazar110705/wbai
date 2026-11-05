@@ -5,7 +5,7 @@ const { extractDailyNmSpend } = require('../src/services/wb-advertising.service'
 const { normalizeOrder, normalizeSale, createStatisticsService } = require('../src/services/wb-statistics.service');
 const { funnelStocks, normalizeFunnelProduct } = require('../src/services/wb-sales-funnel.service');
 const { computeUnitCosts, createRnpSyncService, addDays } = require('../src/services/wb-rnp-sync.service');
-const { parsePeriod, parsePlanItems, parseLabels, monthsOf } = require('../src/controllers/rnp.controller');
+const { parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes } = require('../src/controllers/rnp.controller');
 
 const order = (day, nmId, price, extra = {}) => ({
   order_date: `${day}T10:00:00`, nm_id: String(nmId), supplier_article: `art-${nmId}`, brand: 'PURO', subject: 'Пылесосы',
@@ -93,16 +93,16 @@ test('extractDailyNmSpend splits campaigns by day and article and keeps the unat
     advertId: 7,
     sum: 150,
     days: [{
-      date: '2026-10-01T00:00:00+03:00', sum: 150, views: 30, clicks: 3, orders: 1,
+      date: '2026-10-01T00:00:00+03:00', sum: 150, sum_price: 900, views: 30, clicks: 3, orders: 1,
       apps: [
-        { appType: 1, nms: [{ nmId: 11, sum: 60, views: 10, clicks: 1, orders: 1 }] },
+        { appType: 1, nms: [{ nmId: 11, sum: 60, sum_price: 900, views: 10, clicks: 1, orders: 1 }] },
         { appType: 32, nms: [{ nmId: 11, sum: 40, views: 10, clicks: 1, orders: 0 }] }
       ]
     }]
   }]);
   assert.deepEqual(rows, [
-    { day: '2026-10-01', advertId: 7, nmId: 11, spend: 100, views: 20, clicks: 2, orders: 1 },
-    { day: '2026-10-01', advertId: 7, nmId: 0, spend: 50, views: 10, clicks: 1, orders: 0 }
+    { day: '2026-10-01', advertId: 7, nmId: 11, spend: 100, orderSum: 900, views: 20, clicks: 2, orders: 1 },
+    { day: '2026-10-01', advertId: 7, nmId: 0, spend: 50, orderSum: 0, views: 10, clicks: 1, orders: 0 }
   ]);
 });
 
@@ -178,7 +178,12 @@ function fakeRepository(initial = {}) {
     upsertOrders: async (userId, rows) => state.calls.push(['orders', rows.length]),
     upsertSales: async (userId, rows) => state.calls.push(['sales', rows.length]),
     replaceAdSpend: async (userId, from, to, rows) => state.calls.push(['ads', from, to, rows.length]),
-    replaceProducts: async (userId, rows) => state.calls.push(['stocks', rows.length])
+    replaceProducts: async (userId, rows) => state.calls.push(['stocks', rows.length]),
+    replaceFinanceRows: async (userId, from, to, rows) => {
+      state.calls.push(['finance', from, to, rows.length]);
+      state.finance = (state.finance || []).filter(row => row.date < from || row.date > to).concat(rows);
+    },
+    listFinanceRows: async (userId, from, to) => (state.finance || []).filter(row => row.date >= from && row.date <= to)
   };
 }
 
@@ -200,12 +205,24 @@ test('sync loads history once, then only new rows from saved cursors', async () 
       await onChunk({ period: { from: dateFrom, to: dateTo }, rows: [], currency: 'KZT' });
     }
   };
-  let financeCalls = 0;
-  const financeService = { getDetailedReport: async () => { financeCalls++; return { rows: [], currency: 'KZT' }; } };
+  const financeCalls = [];
+  const financeService = {
+    getDetailedReportPage: async ({ dateFrom, dateTo, rrdId }) => {
+      financeCalls.push([dateFrom, dateTo, rrdId]);
+      // Первая страница свежего отрезка полная — сервис должен попросить продолжение.
+      if (dateTo === '2026-10-30' && rrdId === 0) {
+        return { currency: 'KZT', nextRrdId: 10, rows: [{ rrdId: 10, date: '2026-10-20', currency: 'KZT', vendorCode: 'A', operation: 'Продажа', quantity: 2, logistics: 0 }] };
+      }
+      if (dateTo === '2026-10-30') return { currency: 'KZT', nextRrdId: null, rows: [{ rrdId: 11, date: '2026-10-21', currency: 'KZT', vendorCode: 'A', operation: 'Логистика', quantity: 0, logistics: 300 }] };
+      return { currency: 'KZT', nextRrdId: null, rows: [] };
+    }
+  };
+  const waits = [];
   const logger = { info() {}, warn() {}, error() {} };
   const sync = createRnpSyncService({
     repository, statisticsService, salesFunnelService, advertisingService, financeService, logger,
-    now: () => new Date('2026-10-30T09:00:00Z')
+    now: () => new Date('2026-10-30T09:00:00Z'),
+    wait: async ms => waits.push(ms)
   });
 
   await sync.syncUser(1);
@@ -213,15 +230,33 @@ test('sync loads history once, then only new rows from saved cursors', async () 
   assert.deepEqual(adPeriods, [['2026-08-02', '2026-10-30']]);
   assert.equal(repository.state.sync.status, 'idle');
   assert.equal(repository.state.sync.ads_synced_to, '2026-10-30');
+  assert.equal(repository.state.sync.ads_from, '2026-08-02');
   assert.ok(repository.state.sync.last_success_at);
+
+  // Финотчёт: свежие 92 дня по страницам, затем три куска истории от новых к старым.
+  assert.deepEqual(financeCalls, [
+    ['2026-07-31', '2026-10-30', 0], ['2026-07-31', '2026-10-30', 10],
+    ['2026-04-30', '2026-07-30', 0], ['2026-01-28', '2026-04-29', 0], ['2025-10-28', '2026-01-27', 0]
+  ]);
+  assert.ok(waits.every(ms => ms === 61_000) && waits.length === 4, 'между запросами к Finance API — минута');
+  assert.equal(repository.state.sync.finance_from, '2025-10-28');
+  assert.equal(repository.state.sync.finance_to, '2026-10-30');
+  assert.equal(repository.state.sync.finance_currency, 'KZT');
+  // Логистика на выкуп — из сохранённых строк: 300 ₸ на 2 выкупа.
+  assert.equal(repository.state.sync.unit_costs.shopPerUnit, 150);
 
   await sync.syncUser(1);
   assert.deepEqual(cursors.slice(2), [['orders', 'orders-cursor'], ['sales', 'sales-cursor']]);
   assert.deepEqual(adPeriods[1], [addDays('2026-10-30', -2), '2026-10-30']);
-  assert.equal(financeCalls, 1, 'логистику на единицу берём раз в сутки');
+  assert.deepEqual(financeCalls.slice(5).map(call => [call[0], call[1]]), [
+    ['2026-10-16', '2026-10-30'], ['2026-10-16', '2026-10-30'],
+    ['2025-07-28', '2025-10-27'], ['2025-04-27', '2025-07-27'], ['2025-01-25', '2025-04-26']
+  ], 'дальше — только последние 14 дней и продолжение истории');
+  assert.equal(repository.state.sync.finance_from, '2025-01-25');
   assert.equal(repository.state.calls.filter(call => call === 'reset').length, 1);
   assert.deepEqual(repository.state.calls.filter(call => call[0] === 'stocks'), [['stocks', 1], ['stocks', 1]], 'остатки обновляются при каждой загрузке');
   assert.ok(repository.state.sync.stocks_at);
+  for (const field of ['orders_at', 'sales_at', 'ads_at', 'stocks_at', 'finance_at', 'unit_costs_at']) assert.ok(repository.state.sync[field], field);
 });
 
 test('sync keeps orders when ads fail and records a readable error when statistics fail', async () => {
@@ -229,13 +264,15 @@ test('sync keeps orders when ads fail and records a readable error when statisti
   const repository = fakeRepository();
   const okStatistics = { loadSince: async ({ onPage }) => { await onPage([], 'c'); return 'c'; } };
   const failingAds = { getDailySpend: async () => { throw Object.assign(new Error('В токене WB нет доступа «Продвижение».'), { status: 403 }); } };
-  const finance = { getDetailedReport: async () => ({ rows: [], currency: 'KZT' }) };
+  const finance = { getDetailedReportPage: async () => { throw Object.assign(new Error('В токене WB нет доступа к категории «Финансы».'), { status: 403 }); } };
   await createRnpSyncService({ repository, statisticsService: okStatistics, advertisingService: failingAds, financeService: finance, logger }).syncUser(1);
   assert.equal(repository.state.sync.status, 'idle');
   assert.match(repository.state.sync.ads_error, /Продвижение/);
   assert.equal(repository.state.sync.progress.steps.ads, 'error');
   assert.equal(repository.state.sync.progress.steps.stocks, 'error', 'без отчёта об остатках загрузка не падает');
   assert.ok(repository.state.sync.stocks_error);
+  assert.match(repository.state.sync.finance_error, /Финансы/);
+  assert.match(repository.state.sync.costs_error, /Финансы/, 'без финотчёта логистику не считаем и объясняем почему');
 
   const broken = fakeRepository();
   const failingStatistics = { loadSince: async () => { throw Object.assign(new Error('В токене WB нет доступа «Статистика».'), { status: 403 }); } };
@@ -383,4 +420,40 @@ test('geography folds the long tail into one row', () => {
   assert.equal(rows.length, 31);
   assert.deepEqual([rows[30].name, rows[30].ordersCount, rows[30].other], ['Остальные (5)', 5, true]);
   assert.equal(report.geography.regions.count, 35);
+});
+
+test('sourceTimes reports when each WB source was loaded and how fresh WB data is', () => {
+  const sources = sourceTimes({
+    orders_at: '2026-11-05T05:05:00Z', orders_cursor: '2026-11-05T09:52:00',
+    sales_at: null, sales_cursor: null,
+    stocks_at: '2026-11-05T05:06:00Z', stocks_error: null,
+    ads_at: '2026-11-05T05:07:00Z', ads_synced_to: '2026-11-05', ads_error: null,
+    unit_costs_at: null, costs_error: 'В токене WB нет доступа к категории «Финансы».'
+  });
+  assert.deepEqual(sources.orders, { loadedAt: '2026-11-05T05:05:00.000Z', wbChangedAt: '2026-11-05T09:52:00' });
+  assert.deepEqual(sources.sales, { loadedAt: null, wbChangedAt: null });
+  assert.equal(sources.ads.through, '2026-11-05');
+  assert.match(sources.costs.error, /Финансы/);
+  assert.equal(sourceTimes(null).orders.loadedAt, null);
+});
+
+test('finance history stops at the oldest period WB still serves', async () => {
+  const repository = fakeRepository({ finance_from: '2026-04-30', finance_to: '2026-10-29' });
+  const calls = [];
+  const financeService = {
+    getDetailedReportPage: async ({ dateFrom }) => {
+      calls.push(dateFrom);
+      if (dateFrom < '2026-04-30') throw Object.assign(new Error('WB отклонил период финансового отчёта.'), { code: 'WB_FINANCE_400', status: 400 });
+      return { rows: [], currency: 'KZT', nextRrdId: null };
+    }
+  };
+  const ok = { loadSince: async ({ onPage }) => { await onPage([], 'c'); return 'c'; } };
+  await createRnpSyncService({
+    repository, statisticsService: ok, salesFunnelService: { getCatalog: async () => [] },
+    advertisingService: { getDailySpend: async () => {} }, financeService,
+    logger: { info() {}, warn() {}, error() {} }, now: () => new Date('2026-10-30T09:00:00Z'), wait: async () => {}
+  }).syncUser(1);
+  assert.deepEqual(calls, ['2026-10-15', '2026-01-28']);
+  assert.equal(repository.state.sync.finance_from, addDays('2026-10-30', -729), 'дальше в прошлое больше не просим');
+  assert.equal(repository.state.sync.progress.steps.finance, 'done');
 });

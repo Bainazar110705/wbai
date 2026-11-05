@@ -9,13 +9,21 @@ const HISTORY_DAYS = 90;
 // Расход рекламы за последние дни WB ещё уточняет — перезапрашиваем их.
 const ADS_OVERLAP_DAYS = 2;
 const UNIT_COSTS_DAYS = 30;
-const UNIT_COSTS_TTL_MS = 24 * 60 * 60 * 1000;
+// Финотчёт: храним 2 года (Аналитика сравнивает «Год» с прошлым годом). Свежие
+// 14 дней перезапрашиваем — WB дописывает корректировки; старое догружаем
+// кусками по 92 дня, не больше трёх кусков за одну загрузку.
+const FINANCE_HISTORY_DAYS = 730;
+const FINANCE_CHUNK_DAYS = 92;
+const FINANCE_OVERLAP_DAYS = 14;
+const FINANCE_BACKFILL_CHUNKS = 3;
+// Лимит Finance API — 1 запрос в минуту.
+const FINANCE_INTERVAL_MS = 61_000;
 const REFRESH_AFTER_MINUTES = 30;
 const MANUAL_REFRESH_AFTER_MS = 5 * 60 * 1000;
 const SCHEDULER_INTERVAL_MS = 5 * 60 * 1000;
 // Фоном обновляем только тех, кто открывал РНП за последние 3 дня.
 const VIEWED_WITHIN_HOURS = 72;
-const STEPS = ['orders', 'sales', 'stocks', 'ads', 'costs'];
+const STEPS = ['orders', 'sales', 'stocks', 'ads', 'finance', 'costs'];
 
 function tokenFingerprint(token) {
   return crypto.createHash('sha256').update(String(token)).digest('hex').slice(0, 32);
@@ -85,6 +93,7 @@ function createRnpSyncService({
   financeService,
   logger,
   now = () => new Date(),
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
   setIntervalImpl = setInterval
 }) {
   const running = new Map();
@@ -101,7 +110,7 @@ function createRnpSyncService({
     const progress = {
       initial: tokenChanged || !previous.last_success_at,
       steps: Object.fromEntries(STEPS.map(step => [step, 'pending'])),
-      counts: { orders: 0, sales: 0, ads: 0 }
+      counts: { orders: 0, sales: 0, ads: 0, finance: 0 }
     };
     const sync = await repository.claimSync(userId, progress);
     if (!sync) return;
@@ -113,7 +122,7 @@ function createRnpSyncService({
     };
     const today = moscowDate(now());
     const historyStart = addDays(today, -(HISTORY_DAYS - 1));
-    const result = { ads_error: null, stocks_error: null };
+    const result = { ads_error: null, stocks_error: null, costs_error: null, finance_error: null };
 
     try {
       for (const [step, method, save] of [
@@ -131,7 +140,8 @@ function createRnpSyncService({
             await repository.updateSync(userId, { [`${step}_cursor`]: cursor, progress });
           }
         });
-        await setStep(step, 'done');
+        progress.steps[step] = 'done';
+        await repository.updateSync(userId, { [`${step}_at`]: now().toISOString(), progress });
       }
 
       // Названия и остатки — снимок из воронки WB на сейчас; ошибка не мешает остальной таблице.
@@ -160,9 +170,12 @@ function createRnpSyncService({
           onChunk: async ({ period, rows, currency }) => {
             await repository.replaceAdSpend(userId, period.from, period.to, rows);
             progress.counts.ads += rows.length;
-            await repository.updateSync(userId, { ads_synced_to: period.to, ads_currency: currency, progress });
+            const adsFromStored = !sync.ads_from || period.from < sync.ads_from ? period.from : sync.ads_from;
+            sync.ads_from = adsFromStored;
+            await repository.updateSync(userId, { ads_synced_to: period.to, ads_from: adsFromStored, ads_currency: currency, progress });
           }
         });
+        result.ads_at = now().toISOString();
         await setStep('ads', 'done');
       } catch (error) {
         result.ads_error = error.message;
@@ -170,22 +183,29 @@ function createRnpSyncService({
         await setStep('ads', 'error');
       }
 
-      const costsFresh = sync.unit_costs_at && now() - new Date(sync.unit_costs_at) < UNIT_COSTS_TTL_MS;
-      if (costsFresh) {
+      await setStep('finance', 'running');
+      try {
+        await syncFinance({ userId, token, sync, today, progress });
+        result.finance_at = now().toISOString();
+        await setStep('finance', 'done');
+      } catch (error) {
+        result.finance_error = error.message;
+        logger.warn('rnp_finance_sync_failed', { userId, code: error.code, error: error.message });
+        await setStep('finance', 'error');
+      }
+
+      // Логистика на выкуп — из сохранённого финотчёта, без отдельного запроса к WB.
+      await setStep('costs', 'running');
+      const costsFrom = addDays(today, -UNIT_COSTS_DAYS);
+      const costsTo = addDays(today, -1);
+      const financeRows = await repository.listFinanceRows(userId, costsFrom, costsTo);
+      if (financeRows.length) {
+        result.unit_costs = computeUnitCosts(financeRows, { currency: financeRows[0].currency, dateFrom: costsFrom, dateTo: costsTo });
+        result.unit_costs_at = now().toISOString();
         await setStep('costs', 'done');
       } else {
-        await setStep('costs', 'running');
-        try {
-          const dateTo = addDays(today, -1);
-          const dateFrom = addDays(today, -UNIT_COSTS_DAYS);
-          const report = await financeService.getDetailedReport({ token, dateFrom, dateTo });
-          result.unit_costs = computeUnitCosts(report.rows, { currency: report.currency, dateFrom, dateTo });
-          result.unit_costs_at = now().toISOString();
-          await setStep('costs', 'done');
-        } catch (error) {
-          logger.warn('rnp_unit_costs_failed', { userId, code: error.code, error: error.message });
-          await setStep('costs', 'error');
-        }
+        result.costs_error = result.finance_error || 'В финотчёте WB за последние 30 дней нет строк.';
+        await setStep('costs', 'error');
       }
 
       await repository.updateSync(userId, {
@@ -203,6 +223,62 @@ function createRnpSyncService({
         progress,
         finished_at: now().toISOString(),
         last_error: error.status && error.status < 500 ? error.message : 'WB временно недоступен. Повторим загрузку автоматически.'
+      });
+    }
+  }
+
+  async function loadFinanceWindow(token, window) {
+    const rows = [];
+    let currency = null;
+    for (let rrdId = 0, page = 0; ; page++) {
+      if (page > 0) await wait(FINANCE_INTERVAL_MS);
+      const result = await financeService.getDetailedReportPage({ token, dateFrom: window.from, dateTo: window.to, rrdId });
+      rows.push(...result.rows);
+      currency = result.currency || currency;
+      if (!result.nextRrdId) return { rows, currency };
+      rrdId = result.nextRrdId;
+    }
+  }
+
+  // Сначала свежий отрезок, затем — догрузка старых месяцев от новых к старым.
+  async function syncFinance({ userId, token, sync, today, progress }) {
+    const targetFrom = addDays(today, -(FINANCE_HISTORY_DAYS - 1));
+    let financeFrom = sync.finance_to ? sync.finance_from : null;
+    let financeTo = sync.finance_to || null;
+    const recentFrom = financeTo
+      ? [financeFrom || targetFrom, addDays(financeTo, -FINANCE_OVERLAP_DAYS)].sort().pop()
+      : addDays(today, -(FINANCE_CHUNK_DAYS - 1));
+    const windows = [{ from: recentFrom, to: today, recent: true }];
+    let oldest = financeFrom && financeFrom < recentFrom ? financeFrom : recentFrom;
+    for (let index = 0; index < FINANCE_BACKFILL_CHUNKS && oldest > targetFrom; index++) {
+      const to = addDays(oldest, -1);
+      const from = [targetFrom, addDays(to, -(FINANCE_CHUNK_DAYS - 1))].sort().pop();
+      windows.push({ from, to });
+      oldest = from;
+    }
+
+    for (const [index, window] of windows.entries()) {
+      if (index > 0) await wait(FINANCE_INTERVAL_MS);
+      let loaded;
+      try {
+        loaded = await loadFinanceWindow(token, window);
+      } catch (error) {
+        // Старее WB не отдаёт — считаем историю собранной до этой даты.
+        if (!window.recent && error.code === 'WB_FINANCE_400') {
+          await repository.updateSync(userId, { finance_from: targetFrom });
+          return;
+        }
+        throw error;
+      }
+      await repository.replaceFinanceRows(userId, window.from, window.to, loaded.rows);
+      progress.counts.finance += loaded.rows.length;
+      if (!financeFrom || window.from < financeFrom) financeFrom = window.from;
+      if (window.recent) financeTo = window.to;
+      await repository.updateSync(userId, {
+        finance_from: financeFrom,
+        finance_to: financeTo,
+        ...(loaded.currency ? { finance_currency: loaded.currency } : {}),
+        progress
       });
     }
   }
@@ -257,5 +333,7 @@ module.exports = {
   moscowDate,
   addDays,
   HISTORY_DAYS,
+  FINANCE_HISTORY_DAYS,
+  REFRESH_AFTER_MINUTES,
   STEPS
 };

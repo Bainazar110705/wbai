@@ -1,6 +1,6 @@
 const { AppError } = require('../platform/errors');
 const { buildRnpReport } = require('../services/wb-rnp.service');
-const { moscowDate, addDays, HISTORY_DAYS } = require('../services/wb-rnp-sync.service');
+const { moscowDate, addDays, HISTORY_DAYS, REFRESH_AFTER_MINUTES } = require('../services/wb-rnp-sync.service');
 const { STATISTICS_CURRENCY } = require('../services/wb-statistics.service');
 
 const MAX_PERIOD_DAYS = 92;
@@ -75,6 +75,20 @@ function converter(currency, rubKztRate) {
   return value => Number(value) || 0;
 }
 
+// Время загрузки каждого источника и до какого момента у WB есть данные.
+// Курсоры WB — время МСК без пояса («2026-11-05T09:52:00»).
+function sourceTimes(sync) {
+  const iso = value => (value ? new Date(value).toISOString() : null);
+  return {
+    orders: { loadedAt: iso(sync?.orders_at), wbChangedAt: sync?.orders_cursor || null },
+    sales: { loadedAt: iso(sync?.sales_at), wbChangedAt: sync?.sales_cursor || null },
+    stocks: { loadedAt: iso(sync?.stocks_at), error: sync?.stocks_error || null },
+    ads: { loadedAt: iso(sync?.ads_at), through: sync?.ads_synced_to || null, error: sync?.ads_error || null },
+    finance: { loadedAt: iso(sync?.finance_at), from: sync?.finance_from || null, to: sync?.finance_to || null, error: sync?.finance_error || null },
+    costs: { loadedAt: iso(sync?.unit_costs_at), error: sync?.costs_error || null }
+  };
+}
+
 function createRnpController({ repository, syncService, getRubKztRate, now = () => new Date() }) {
   function syncInfo(userId, sync, dataRange) {
     const running = syncService.isRunning(userId) || sync?.status === 'running';
@@ -86,6 +100,8 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
       lastError: running ? null : (sync?.last_error || null),
       adsError: sync?.ads_error || null,
       stocksError: sync?.stocks_error || null,
+      sources: sourceTimes(sync),
+      nextRefreshAt: running || !sync?.last_success_at ? null : new Date(new Date(sync.last_success_at).getTime() + REFRESH_AFTER_MINUTES * 60_000).toISOString(),
       firstDay: dataRange?.first_day || null,
       historyDays: HISTORY_DAYS
     };
@@ -225,4 +241,4 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
   };
 }
 
-module.exports = { createRnpController, parsePeriod, parsePlanItems, parseLabels, monthsOf };
+module.exports = { createRnpController, parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes };

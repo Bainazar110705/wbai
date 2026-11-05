@@ -89,8 +89,9 @@ function extractDailyNmSpend(stats) {
   const rows = new Map();
   const add = (day, advertId, nmId, values) => {
     const key = `${day}:${advertId}:${nmId}`;
-    const row = rows.get(key) || { day, advertId, nmId, spend: 0, views: 0, clicks: 0, orders: 0 };
+    const row = rows.get(key) || { day, advertId, nmId, spend: 0, orderSum: 0, views: 0, clicks: 0, orders: 0 };
     row.spend += values.spend;
+    row.orderSum += values.orderSum;
     row.views += values.views;
     row.clicks += values.clicks;
     row.orders += values.orders;
@@ -98,6 +99,7 @@ function extractDailyNmSpend(stats) {
   };
   const valuesOf = item => ({
     spend: moneyNumber(item?.sum),
+    orderSum: moneyNumber(item?.sum_price),
     views: moneyNumber(item?.views),
     clicks: moneyNumber(item?.clicks),
     orders: moneyNumber(item?.orders)
@@ -110,7 +112,7 @@ function extractDailyNmSpend(stats) {
       const day = String(dayStats?.date || '').slice(0, 10);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
       const total = valuesOf(dayStats);
-      const attributed = { spend: 0, views: 0, clicks: 0, orders: 0 };
+      const attributed = { spend: 0, orderSum: 0, views: 0, clicks: 0, orders: 0 };
       for (const app of Array.isArray(dayStats.apps) ? dayStats.apps : []) {
         const nms = Array.isArray(app?.nms) ? app.nms : (Array.isArray(app?.nm) ? app.nm : []);
         for (const nm of nms) {
@@ -122,12 +124,12 @@ function extractDailyNmSpend(stats) {
         }
       }
       const rest = Object.fromEntries(Object.keys(total).map(key => [key, Math.max(0, total[key] - attributed[key])]));
-      if (rest.spend >= 0.01 || rest.views > 0) add(day, advertId, 0, rest);
+      if (rest.spend >= 0.01 || rest.orderSum >= 0.01 || rest.views > 0) add(day, advertId, 0, rest);
     }
   }
   return [...rows.values()]
     .filter(row => row.spend || row.views || row.clicks || row.orders)
-    .map(row => ({ ...row, spend: Math.round(row.spend * 100) / 100 }));
+    .map(row => ({ ...row, spend: Math.round(row.spend * 100) / 100, orderSum: Math.round(row.orderSum * 100) / 100 }));
 }
 
 function createAdvertisingStatsService({

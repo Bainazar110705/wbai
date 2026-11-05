@@ -40,7 +40,8 @@ function moneyNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizeFinanceRows(rows) {
+// withRrdId — для хранения строк у нас: rrdId — уникальный номер строки отчёта WB.
+function normalizeFinanceRows(rows, { withRrdId = false } = {}) {
   const currencies = new Set();
   const normalized = [];
 
@@ -78,6 +79,7 @@ function normalizeFinanceRows(rows) {
     const expenses = logistics + storage + penalty + deduction + acceptance;
 
     normalized.push({
+      ...(withRrdId ? { rrdId: moneyNumber(row.rrdId) } : {}),
       date,
       currency,
       vendorCode: String(row.vendorCode || '').trim(),
@@ -172,8 +174,8 @@ function convertMoneyToKzt(value, currency, rubKztRate) {
 }
 
 function createFinanceService({ fetchImpl = fetch } = {}) {
-  async function getDetailedReport({ token, dateFrom, dateTo }) {
-    const response = await fetchImpl(FINANCE_DETAILS_URL, {
+  function requestReport({ token, dateFrom, dateTo, rrdId = 0 }) {
+    return fetchImpl(FINANCE_DETAILS_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -184,12 +186,16 @@ function createFinanceService({ fetchImpl = fetch } = {}) {
         dateFrom,
         dateTo,
         limit: FINANCE_PAGE_LIMIT,
-        rrdId: 0,
+        rrdId,
         period: 'daily',
         fields: FINANCE_FIELDS
       }),
-      signal: AbortSignal.timeout(30_000)
+      signal: AbortSignal.timeout(60_000)
     });
+  }
+
+  async function getDetailedReport({ token, dateFrom, dateTo }) {
+    const response = await requestReport({ token, dateFrom, dateTo });
 
     if (response.status === 204) return { rows: [], currency: null };
     if (!response.ok) throw financeApiError(response.status);
@@ -211,7 +217,26 @@ function createFinanceService({ fetchImpl = fetch } = {}) {
     return normalizeFinanceRows(payload);
   }
 
-  return { getDetailedReport };
+  // Страница отчёта для хранения у нас: следующая страница начинается с rrdId последней строки.
+  async function getDetailedReportPage({ token, dateFrom, dateTo, rrdId = 0 }) {
+    const response = await requestReport({ token, dateFrom, dateTo, rrdId });
+    if (response.status === 204) return { rows: [], currency: null, nextRrdId: null };
+    if (!response.ok) throw financeApiError(response.status);
+    const payload = await response.json();
+    if (!Array.isArray(payload)) {
+      const error = new Error('Некорректный ответ WB Finance API.');
+      error.status = 502;
+      error.code = 'WB_FINANCE_INVALID_RESPONSE';
+      throw error;
+    }
+    const lastRrdId = payload.length ? moneyNumber(payload[payload.length - 1]?.rrdId) : 0;
+    return {
+      ...normalizeFinanceRows(payload, { withRrdId: true }),
+      nextRrdId: payload.length >= FINANCE_PAGE_LIMIT && lastRrdId > rrdId ? lastRrdId : null
+    };
+  }
+
+  return { getDetailedReport, getDetailedReportPage };
 }
 
 module.exports = {
