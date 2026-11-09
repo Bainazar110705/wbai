@@ -75,6 +75,20 @@ function converter(currency, rubKztRate) {
   return value => Number(value) || 0;
 }
 
+// Вес шагов первой загрузки для процента: финотчёт и реклама дольше всего.
+const STEP_WEIGHTS = { orders: 15, sales: 15, stocks: 5, ads: 25, finance: 35, costs: 5 };
+
+function importPercent(progress) {
+  const steps = progress?.steps || {};
+  let done = 0;
+  for (const [step, weight] of Object.entries(STEP_WEIGHTS)) {
+    const state = steps[step];
+    if (state === 'done' || state === 'error' || state === 'skipped') done += weight;
+    else if (state === 'running') done += weight / 2;
+  }
+  return Math.min(99, Math.round(done));
+}
+
 // Время загрузки каждого источника и до какого момента у WB есть данные.
 // Курсоры WB — время МСК без пояса («2026-11-05T09:52:00»).
 function sourceTimes(sync) {
@@ -92,10 +106,15 @@ function sourceTimes(sync) {
 function createRnpController({ repository, syncService, getRubKztRate, now = () => new Date() }) {
   function syncInfo(userId, sync, dataRange) {
     const running = syncService.isRunning(userId) || sync?.status === 'running';
+    // Таблицу РНП показываем, как только загружены заказы и выкупы; остальное догружается.
+    const coreReady = !!(sync?.orders_at && sync?.sales_at);
+    const importing = !sync?.last_success_at;
     return {
       status: running ? 'running' : (sync?.status || 'idle'),
       progress: sync?.progress || {},
-      initial: !sync?.last_success_at,
+      initial: importing && !coreReady,
+      importing,
+      percent: importing ? (running ? importPercent(sync?.progress) : 0) : 100,
       lastSuccessAt: sync?.last_success_at || null,
       lastError: running ? null : (sync?.last_error || null),
       adsError: sync?.ads_error || null,
@@ -241,4 +260,4 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
   };
 }
 
-module.exports = { createRnpController, parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes };
+module.exports = { createRnpController, parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes, importPercent };

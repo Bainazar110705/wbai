@@ -1139,6 +1139,19 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   .rnp-filters .rnp-input{max-width:none}
 }
 .rnp-btn[hidden],.rnp-note[hidden],.rnp-box[hidden]{display:none}
+/* Импорт кабинета WB: общий индикатор и уведомление */
+.wb-sync{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:0 0 16px;padding:12px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--text)}
+.wb-sync[hidden]{display:none}
+.wb-sync.is-error{border-color:var(--red);background:var(--red-bg)}
+.wb-sync-text{font-weight:600}
+.wb-sync-sub{color:var(--muted);font-size:12px}
+.wb-sync-bar{flex:1 1 160px;max-width:320px;height:8px;border-radius:4px;background:var(--border2);overflow:hidden}
+.wb-sync-bar i{display:block;height:100%;width:0;border-radius:4px;background:var(--p);transition:width .4s ease-out}
+.wb-sync-pct{font-weight:800;font-variant-numeric:tabular-nums;min-width:38px}
+.wb-sync-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--p);border-top-color:transparent;animation:rnpSpin .9s linear infinite;flex-shrink:0}
+.wb-toast{position:fixed;right:16px;bottom:16px;z-index:1300;max-width:min(360px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--green);box-shadow:0 12px 32px rgba(0,0,0,.35);font-size:13px;font-weight:600;color:var(--text)}
+.wb-toast[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.wb-sync-spin{animation:none;border-top-color:var(--p)}.wb-sync-bar i{transition:none}}
 .rnp-stat-val.rnp-is-risk,.rnp-stat-sub.rnp-is-risk{color:var(--red)}
 .rnp-labels{margin-top:10px;width:100%;max-width:420px}
 .rnp-dialog{margin:auto;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:0;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
@@ -1252,6 +1265,18 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
 <!-- CONTENT -->
 <main class="content" id="main-content" tabindex="-1">
+  <div class="wb-sync" id="wbSync" role="status" aria-live="polite" hidden>
+    <span class="wb-sync-spin" id="wbSyncSpin" aria-hidden="true"></span>
+    <span><span class="wb-sync-text" id="wbSyncText">Загружаем данные из WB</span> <span class="wb-sync-sub" id="wbSyncSub">· можно пользоваться кабинетом</span></span>
+    <span class="wb-sync-bar" id="wbSyncBar" aria-hidden="true"><i id="wbSyncFill"></i></span>
+    <span class="wb-sync-pct" id="wbSyncPct"></span>
+    <button class="rnp-btn" type="button" id="wbSyncRetry" hidden onclick="wbSyncRetry()">Повторить</button>
+  </div>
+  <div class="wb-toast" id="wbToast" role="status" aria-live="polite" hidden>
+    <span>Данные из WB загружены — РНП готов</span>
+    <button class="rnp-btn primary" type="button" onclick="wbHideToast();showPage('rnp')">Открыть</button>
+    <button class="rnp-btn" type="button" aria-label="Закрыть уведомление" onclick="wbHideToast()"><span data-icon="x" aria-hidden="true"></span></button>
+  </div>
 
   <!-- HOME -->
   <div class="page active" id="page-home">
@@ -1942,7 +1967,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
     <div class="rnp-box" id="rnpSync" hidden aria-live="polite">
       <div class="rnp-box-title" id="rnpSyncTitle">Собираем данные кабинета</div>
-      <div class="rnp-box-sub">Первый раз забираем у WB историю за 90 дней. WB отдаёт её медленно, поэтому это займёт 3–10 минут. Страницу можно закрыть: загрузка продолжится, а данные сохранятся у нас — дальше будем догружать только новое.</div>
+      <div class="rnp-box-sub">Забираем у WB заказы и выкупы за 90 дней — обычно 1–2 минуты. Страницу можно закрыть: загрузка продолжится, а данные сохранятся у нас.</div>
       <ul class="rnp-steps" id="rnpSteps"></ul>
       <div class="rnp-note rnp-is-error" id="rnpSyncError" hidden></div>
       <button class="rnp-btn primary" type="button" id="rnpRetry" hidden onclick="rnpRefresh()">Повторить загрузку</button>
@@ -2114,6 +2139,7 @@ async function init() {
     currentUser = d.user;
     setUser(d.user, d.subscription);
     checkSubExpiry(d.subscription);
+    wbSyncWatch();
     if(d.subscription?.active) loadTemplates();
     else { document.getElementById('templatesContent').innerHTML='<div class="empty-state"><span data-icon="box" aria-hidden="true"></span> Шаблоны доступны после активации подписки.</div>'; window.wbaiInjectIcons?.(); }
     // Восстанавливаем последнюю открытую страницу
@@ -3096,6 +3122,7 @@ async function anSaveToken() {
     var r = await fetch('/api/wb-token', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({token:val})});
     var d = await r.json();
     if (!r.ok) { err.textContent=d.error||'Ошибка'; err.style.display='block'; return; }
+    setTimeout(wbSyncWatch, 1500);
     input.value='';
     await anCheckToken();
   } catch(e) { err.textContent='Ошибка соединения'; err.style.display='block'; }
@@ -3574,27 +3601,26 @@ async function rnpLoad(){
     if(d.noToken){ rnpShow('noToken'); return; }
     if(!d.__ok){ rnpShow('main'); rnpNotes([{error:true, html:rnpEsc(d.error||'Не удалось загрузить РНП. Попробуйте ещё раз.')}]); return; }
     RNP.sync = d.sync;
-    if(!d.report){ rnpRenderSync(d.sync); rnpShow('sync'); rnpPoll(); return; }
+    if(!d.report){ rnpRenderSync(d.sync); rnpShow('sync'); rnpPoll(); if(!WB_SYNC.timer) wbSyncWatch(); return; }
     RNP.data = d.report;
     rnpFillMonths(d.sync.firstDay);
     rnpShow('main');
     rnpRender();
-    if(d.sync.status==='running') rnpPoll();
+    if(d.sync.status==='running'){ rnpPoll(); if(d.sync.importing && !WB_SYNC.timer) wbSyncWatch(); }
   } catch(e){
     rnpShow('main'); rnpNotes([{error:true, html:'Нет связи с сервером. Проверьте интернет и обновите страницу.'}]);
   } finally { RNP.loading = false; }
 }
 
+// Пользователю — только то, что важно: заказы, выкупы и готовность, без технических подробностей.
 function rnpRenderSync(sync){
   var steps = (sync.progress && sync.progress.steps) || {};
-  var counts = (sync.progress && sync.progress.counts) || {};
-  var names = {orders:'Заказы', sales:'Выкупы и возвраты', stocks:'Названия и остатки товаров', ads:'Реклама по дням и товарам', finance:'Финансовый отчёт WB', costs:'Логистика WB на 1 выкуп'};
-  var stateText = {pending:'в очереди', running:'загружаем…', done:'готово', error:'ошибка', skipped:'пропущено'};
+  var names = {orders:'Заказы', sales:'Выкупы и возвраты'};
+  var stateText = {pending:'в очереди', running:'загружаем…', done:'готово', error:'ошибка'};
   document.getElementById('rnpSteps').innerHTML = Object.keys(names).map(function(key){
     var state = steps[key] || 'pending';
-    var count = counts[key] ? counts[key].toLocaleString('ru')+' строк · ' : '';
     var mark = state==='done' ? '✓' : state==='error' ? '!' : '';
-    return '<li class="rnp-step rnp-is-'+state+'"><span class="rnp-step-dot" aria-hidden="true">'+mark+'</span><b>'+names[key]+'</b><span class="rnp-step-count">'+count+stateText[state]+'</span></li>';
+    return '<li class="rnp-step rnp-is-'+state+'"><span class="rnp-step-dot" aria-hidden="true">'+mark+'</span><b>'+names[key]+'</b><span class="rnp-step-count">'+(stateText[state]||'')+'</span></li>';
   }).join('');
   var failed = sync.status==='error';
   document.getElementById('rnpSyncTitle').textContent = failed ? 'Загрузка прервалась' : 'Собираем данные кабинета';
@@ -3612,6 +3638,8 @@ function rnpPoll(){
       if(!d.__ok || !d.sync) return rnpPoll();
       RNP.sync = d.sync;
       if(d.sync.status==='running'){
+        // Заказы и выкупы готовы — показываем таблицу, остальное догрузится.
+        if(!RNP.data && !d.sync.initial) return rnpLoad();
         if(!RNP.data) rnpRenderSync(d.sync); else rnpRenderUpdated();
         return rnpPoll();
       }
@@ -3703,11 +3731,12 @@ function rnpRender(){
   var r = RNP.data, k = r.kpi, s = RNP.sync || {};
   rnpRenderUpdated();
   var notes = [];
+  if(s.importing && s.status==='running') notes.push({html:'Догружаем рекламу, остатки и финансовый отчёт — реклама, прибыль и остатки появятся через несколько минут. Таблица обновится сама.'});
   if(s.adsError) notes.push({error:true, html:'Реклама не загрузилась: '+rnpEsc(s.adsError)});
   if(s.stocksError) notes.push({error:true, html:'Остатки не загрузились: '+rnpEsc(s.stocksError)});
   if(s.lastError) notes.push({error:true, html:'Последнее обновление не удалось: '+rnpEsc(s.lastError)+' Показаны сохранённые данные.'});
   if(k.cogsMissing) notes.push({html:'У части товаров не указана себестоимость — их прибыль завышена. <button type="button" class="rnp-btn" style="min-height:28px;padding:3px 10px;margin-left:6px" onclick="showPage(\'analytics\')">Указать себестоимость</button>'});
-  if(!k.wbCostsKnown) notes.push({html:'Логистика и хранение WB в прибыли пока не учтены: нет доступа к финансовому отчёту или он ещё загружается.'});
+  if(!k.wbCostsKnown && !(s.importing && s.status==='running')) notes.push({html:'Логистика и хранение WB в прибыли пока не учтены: нет доступа к финансовому отчёту или он ещё загружается.'});
   if(r.period.dataFrom && r.period.dateFrom < r.period.dataFrom) notes.push({html:'WB хранит детальные заказы только за 90 дней, поэтому данные есть с '+new Date(r.period.dataFrom+'T12:00:00').toLocaleDateString('ru',{day:'numeric',month:'long'})+'.'});
   rnpNotes(notes);
 
@@ -4087,6 +4116,55 @@ async function rnpSavePlan(){
     rnpClosePlan();
     rnpLoad();
   } finally { btn.disabled = false; }
+}
+
+// ── Импорт кабинета WB: общий индикатор на всех страницах
+var WB_SYNC = { timer:null, seenRunning:false };
+function wbHideToast(){ document.getElementById('wbToast').hidden = true; }
+async function wbSyncWatch(){
+  clearTimeout(WB_SYNC.timer); WB_SYNC.timer = null;
+  var box = document.getElementById('wbSync');
+  try{
+    var r = await fetch('/api/rnp/status', {headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){ box.hidden = true; return; }
+    var s = (await r.json()).sync || {};
+    if(s.importing && s.status==='running'){
+      WB_SYNC.seenRunning = true;
+      box.hidden = false; box.classList.remove('is-error');
+      document.getElementById('wbSyncSpin').hidden = false;
+      document.getElementById('wbSyncText').textContent = 'Загружаем данные из WB';
+      document.getElementById('wbSyncSub').textContent = '· можно пользоваться кабинетом';
+      document.getElementById('wbSyncBar').hidden = false;
+      document.getElementById('wbSyncFill').style.width = (s.percent||0)+'%';
+      document.getElementById('wbSyncPct').textContent = (s.percent||0)+'%';
+      document.getElementById('wbSyncRetry').hidden = true;
+      WB_SYNC.timer = setTimeout(wbSyncWatch, 5000);
+      return;
+    }
+    if(s.importing && s.status==='error'){
+      box.hidden = false; box.classList.add('is-error');
+      document.getElementById('wbSyncSpin').hidden = true;
+      document.getElementById('wbSyncText').textContent = 'Не удалось загрузить данные WB';
+      document.getElementById('wbSyncSub').textContent = '· '+(s.lastError || 'проверьте токен WB');
+      document.getElementById('wbSyncBar').hidden = true;
+      document.getElementById('wbSyncPct').textContent = '';
+      document.getElementById('wbSyncRetry').hidden = false;
+      return;
+    }
+    box.hidden = true;
+    if(WB_SYNC.seenRunning && !s.importing){
+      WB_SYNC.seenRunning = false;
+      var toast = document.getElementById('wbToast');
+      toast.hidden = false;
+      setTimeout(wbHideToast, 10000);
+      if(document.getElementById('page-rnp').classList.contains('active')) rnpLoad();
+    }
+  } catch(e){ WB_SYNC.timer = setTimeout(wbSyncWatch, 15000); }
+}
+async function wbSyncRetry(){
+  document.getElementById('wbSyncRetry').disabled = true;
+  try{ await fetch('/api/rnp/refresh', {method:'POST', headers:{Authorization:'Bearer '+token}}); }
+  finally { document.getElementById('wbSyncRetry').disabled = false; setTimeout(wbSyncWatch, 1500); }
 }
 
 function rnpExportCsv(){

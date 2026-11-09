@@ -5,7 +5,7 @@ const { extractDailyNmSpend } = require('../src/services/wb-advertising.service'
 const { normalizeOrder, normalizeSale, createStatisticsService } = require('../src/services/wb-statistics.service');
 const { funnelStocks, normalizeFunnelProduct } = require('../src/services/wb-sales-funnel.service');
 const { computeUnitCosts, createRnpSyncService, addDays } = require('../src/services/wb-rnp-sync.service');
-const { parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes } = require('../src/controllers/rnp.controller');
+const { createRnpController, parsePeriod, parsePlanItems, parseLabels, monthsOf, sourceTimes, importPercent } = require('../src/controllers/rnp.controller');
 
 const order = (day, nmId, price, extra = {}) => ({
   order_date: `${day}T10:00:00`, nm_id: String(nmId), supplier_article: `art-${nmId}`, brand: 'PURO', subject: 'Пылесосы',
@@ -456,4 +456,32 @@ test('finance history stops at the oldest period WB still serves', async () => {
   assert.deepEqual(calls, ['2026-10-15', '2026-01-28']);
   assert.equal(repository.state.sync.finance_from, addDays('2026-10-30', -729), 'дальше в прошлое больше не просим');
   assert.equal(repository.state.sync.progress.steps.finance, 'done');
+});
+
+test('import percent weighs the slow steps and never shows 100 before the end', () => {
+  assert.equal(importPercent({}), 0);
+  assert.equal(importPercent({ steps: { orders: 'done', sales: 'running' } }), 23);
+  assert.equal(importPercent({ steps: { orders: 'done', sales: 'done', stocks: 'error', ads: 'done', finance: 'done', costs: 'done' } }), 99);
+});
+
+test('status shows the RNP table once orders and sales are in, while the import goes on', async () => {
+  const statusOf = async (sync, running) => {
+    let body;
+    const controller = createRnpController({
+      repository: { getSync: async () => sync, dataRange: async () => null },
+      syncService: { isRunning: () => running },
+      getRubKztRate: async () => 5
+    });
+    await controller.status({ user: { id: 1 } }, { json: value => { body = value; } });
+    return body.sync;
+  };
+  const progress = { steps: { orders: 'done', sales: 'done', stocks: 'running' } };
+  const loading = await statusOf({ status: 'running', progress, orders_at: '2026-11-09T05:00:00Z', sales_at: '2026-11-09T05:01:00Z' }, true);
+  assert.deepEqual([loading.initial, loading.importing, loading.percent], [false, true, 33]);
+  const fresh = await statusOf({ status: 'running', progress: { steps: { orders: 'running' } } }, true);
+  assert.deepEqual([fresh.initial, fresh.importing, fresh.percent], [true, true, 8]);
+  const done = await statusOf({ status: 'idle', last_success_at: '2026-11-09T05:08:00Z', orders_at: '2026-11-09T05:00:00Z', sales_at: '2026-11-09T05:01:00Z' }, false);
+  assert.deepEqual([done.initial, done.importing, done.percent], [false, false, 100]);
+  const none = await statusOf(null, false);
+  assert.deepEqual([none.status, none.importing], ['idle', true], 'без загрузки индикатор не показываем: статус не running');
 });

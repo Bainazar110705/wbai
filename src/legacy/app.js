@@ -1159,6 +1159,16 @@ app.post('/api/wb-token', authMiddleware, async (req, res) => {
     logger.warn('wb_token_validation_unavailable', { userId: req.user.id, error: e.message });
   }
   await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [cleanToken, req.user.id]);
+  // Импорт кабинета начинается сразу после подключения токена. Новый токен может
+  // быть от другого кабинета, поэтому загружаем заново, даже если данные свежие.
+  try {
+    await rnpRepository.ensureSync(req.user.id);
+    await rnpRepository.markViewed(req.user.id);
+    await rnpRepository.updateSync(req.user.id, { last_success_at: null });
+    rnpSyncService.syncUser(req.user.id);
+  } catch (error) {
+    logger.warn('wb_import_start_failed', { userId: req.user.id, error: error.message });
+  }
   res.json({ ok: true });
 });
 
