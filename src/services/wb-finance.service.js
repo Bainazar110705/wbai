@@ -21,6 +21,12 @@ const FINANCE_FIELDS = [
   'additionalPayment'
 ];
 
+// Поля для прибыли по товарам: nmId — к какому товару строка, bonusTypeName —
+// тип удержания (оплата «WB Продвижение» или другое). Если WB их не знает
+// и отвечает 400, сервис повторяет запрос без них.
+const FINANCE_EXTRA_FIELDS = ['nmId', 'bonusTypeName'];
+const ADS_DEDUCTION_RE = /продвижен|реклам/i;
+
 function financeApiError(status) {
   const messages = {
     400: 'WB отклонил период финансового отчёта.',
@@ -80,6 +86,10 @@ function normalizeFinanceRows(rows, { withRrdId = false } = {}) {
 
     normalized.push({
       ...(withRrdId ? { rrdId: moneyNumber(row.rrdId) } : {}),
+      ...(row.nmId !== undefined ? { nmId: moneyNumber(row.nmId) || null } : {}),
+      ...(row.bonusTypeName !== undefined
+        ? { deductionKind: ADS_DEDUCTION_RE.test(String(row.bonusTypeName || '')) ? 'ads' : 'other' }
+        : {}),
       date,
       currency,
       vendorCode: String(row.vendorCode || '').trim(),
@@ -174,7 +184,18 @@ function convertMoneyToKzt(value, currency, rubKztRate) {
 }
 
 function createFinanceService({ fetchImpl = fetch } = {}) {
-  function requestReport({ token, dateFrom, dateTo, rrdId = 0 }) {
+  let extraFieldsSupported = true;
+
+  async function requestReport(params) {
+    const response = await sendReport(params, extraFieldsSupported);
+    if (response.status === 400 && extraFieldsSupported) {
+      extraFieldsSupported = false;
+      return sendReport(params, false);
+    }
+    return response;
+  }
+
+  function sendReport({ token, dateFrom, dateTo, rrdId = 0 }, withExtra) {
     return fetchImpl(FINANCE_DETAILS_URL, {
       method: 'POST',
       headers: {
@@ -188,7 +209,7 @@ function createFinanceService({ fetchImpl = fetch } = {}) {
         limit: FINANCE_PAGE_LIMIT,
         rrdId,
         period: 'daily',
-        fields: FINANCE_FIELDS
+        fields: withExtra ? [...FINANCE_FIELDS, ...FINANCE_EXTRA_FIELDS] : FINANCE_FIELDS
       }),
       signal: AbortSignal.timeout(60_000)
     });
@@ -249,5 +270,6 @@ module.exports = {
   financeApiError,
   FINANCE_DETAILS_URL,
   FINANCE_PAGE_LIMIT,
-  FINANCE_FIELDS
+  FINANCE_FIELDS,
+  FINANCE_EXTRA_FIELDS
 };

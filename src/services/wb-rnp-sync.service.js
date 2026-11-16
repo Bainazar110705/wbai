@@ -23,7 +23,12 @@ const MANUAL_REFRESH_AFTER_MS = 5 * 60 * 1000;
 const SCHEDULER_INTERVAL_MS = 5 * 60 * 1000;
 // Фоном обновляем только тех, кто открывал РНП за последние 3 дня.
 const VIEWED_WITHIN_HOURS = 72;
-const STEPS = ['orders', 'sales', 'stocks', 'ads', 'finance', 'costs'];
+// Платное хранение: история 92 дня, за одну загрузку не больше 5 отчётов по 8 дней.
+const STORAGE_HISTORY_DAYS = 92;
+const STORAGE_OVERLAP_DAYS = 7;
+const STORAGE_CHUNKS_PER_SYNC = 5;
+const STORAGE_CHUNK_DAYS = 8;
+const STEPS = ['orders', 'sales', 'stocks', 'ads', 'finance', 'storage', 'costs'];
 
 function tokenFingerprint(token) {
   return crypto.createHash('sha256').update(String(token)).digest('hex').slice(0, 32);
@@ -91,6 +96,7 @@ function createRnpSyncService({
   salesFunnelService,
   advertisingService,
   financeService,
+  storageService = null,
   logger,
   now = () => new Date(),
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
@@ -122,7 +128,7 @@ function createRnpSyncService({
     };
     const today = moscowDate(now());
     const historyStart = addDays(today, -(HISTORY_DAYS - 1));
-    const result = { ads_error: null, stocks_error: null, costs_error: null, finance_error: null };
+    const result = { ads_error: null, stocks_error: null, costs_error: null, finance_error: null, storage_error: null };
 
     try {
       for (const [step, method, save] of [
@@ -192,6 +198,20 @@ function createRnpSyncService({
         result.finance_error = error.message;
         logger.warn('rnp_finance_sync_failed', { userId, code: error.code, error: error.message });
         await setStep('finance', 'error');
+      }
+
+      // Хранение по товарам — чтобы честно разнести хранение из финотчёта.
+      await setStep('storage', storageService ? 'running' : 'skipped');
+      if (storageService) {
+        try {
+          await syncStorage({ userId, token, sync, today });
+          result.storage_at = now().toISOString();
+          await setStep('storage', 'done');
+        } catch (error) {
+          result.storage_error = error.message;
+          logger.warn('rnp_storage_sync_failed', { userId, code: error.code, error: error.message });
+          await setStep('storage', 'error');
+        }
       }
 
       // Логистика на выкуп — из сохранённого финотчёта, без отдельного запроса к WB.
@@ -279,6 +299,41 @@ function createRnpSyncService({
         finance_to: financeTo,
         ...(loaded.currency ? { finance_currency: loaded.currency } : {}),
         progress
+      });
+    }
+  }
+
+  // Сначала свежие дни, затем история назад; каждый кусок сохраняется сразу.
+  async function syncStorage({ userId, token, sync, today }) {
+    const yesterday = addDays(today, -1);
+    const targetFrom = addDays(today, -STORAGE_HISTORY_DAYS);
+    let storageFrom = sync.storage_synced_to ? sync.storage_from : null;
+    let storageTo = sync.storage_synced_to || null;
+    const recentFrom = storageTo
+      ? [storageFrom || targetFrom, addDays(storageTo, -STORAGE_OVERLAP_DAYS)].sort().pop()
+      : addDays(yesterday, -(STORAGE_CHUNK_DAYS * 2 - 1));
+    const windows = [{ from: recentFrom, to: yesterday, recent: true }];
+    let oldest = storageFrom && storageFrom < recentFrom ? storageFrom : recentFrom;
+    let budget = STORAGE_CHUNKS_PER_SYNC - Math.ceil(((Date.parse(yesterday) - Date.parse(recentFrom)) / 86_400_000 + 1) / STORAGE_CHUNK_DAYS);
+    while (budget > 0 && oldest > targetFrom) {
+      const to = addDays(oldest, -1);
+      const from = [targetFrom, addDays(to, -(STORAGE_CHUNK_DAYS - 1))].sort().pop();
+      windows.push({ from, to });
+      oldest = from;
+      budget--;
+    }
+    for (const window of windows) {
+      if (window.from > window.to) continue;
+      await storageService.loadPeriod({
+        token,
+        dateFrom: window.from,
+        dateTo: window.to,
+        onChunk: async ({ period, rows }) => {
+          await repository.replaceStorage(userId, period.from, period.to, rows);
+          if (!storageFrom || period.from < storageFrom) storageFrom = period.from;
+          if (window.recent && (!storageTo || period.to > storageTo)) storageTo = period.to;
+          await repository.updateSync(userId, { storage_from: storageFrom, storage_synced_to: storageTo || period.to });
+        }
       });
     }
   }

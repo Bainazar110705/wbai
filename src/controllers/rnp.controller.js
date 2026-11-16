@@ -76,7 +76,7 @@ function converter(currency, rubKztRate) {
 }
 
 // Вес шагов первой загрузки для процента: финотчёт и реклама дольше всего.
-const STEP_WEIGHTS = { orders: 15, sales: 15, stocks: 5, ads: 25, finance: 35, costs: 5 };
+const STEP_WEIGHTS = { orders: 15, sales: 15, stocks: 5, ads: 20, finance: 30, storage: 10, costs: 5 };
 
 function importPercent(progress) {
   const steps = progress?.steps || {};
@@ -99,6 +99,7 @@ function sourceTimes(sync) {
     stocks: { loadedAt: iso(sync?.stocks_at), error: sync?.stocks_error || null },
     ads: { loadedAt: iso(sync?.ads_at), through: sync?.ads_synced_to || null, error: sync?.ads_error || null },
     finance: { loadedAt: iso(sync?.finance_at), from: sync?.finance_from || null, to: sync?.finance_to || null, error: sync?.finance_error || null },
+    storage: { loadedAt: iso(sync?.storage_at), from: sync?.storage_from || null, error: sync?.storage_error || null },
     costs: { loadedAt: iso(sync?.unit_costs_at), error: sync?.costs_error || null }
   };
 }

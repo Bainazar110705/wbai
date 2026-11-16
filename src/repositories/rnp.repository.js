@@ -4,7 +4,8 @@ const SYNC_FIELDS = new Set([
   'ads_currency', 'ads_error', 'unit_costs', 'unit_costs_at', 'started_at', 'finished_at',
   'last_success_at', 'last_error', 'last_viewed_at', 'stocks_at', 'stocks_error',
   'orders_at', 'sales_at', 'ads_at', 'ads_from', 'costs_error',
-  'finance_from', 'finance_to', 'finance_at', 'finance_currency', 'finance_error'
+  'finance_from', 'finance_to', 'finance_at', 'finance_currency', 'finance_error',
+  'storage_from', 'storage_synced_to', 'storage_at', 'storage_error'
 ]);
 const JSON_FIELDS = new Set(['progress', 'unit_costs']);
 
@@ -43,7 +44,7 @@ function createRnpRepository(db) {
 
   return {
     getSync: userId => db.getAsync(
-      `SELECT *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to FROM wb_rnp_sync WHERE user_id=?`,
+      `SELECT *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to, storage_synced_to::text AS storage_synced_to, storage_from::text AS storage_from FROM wb_rnp_sync WHERE user_id=?`,
       [userId]
     ),
 
@@ -58,7 +59,7 @@ function createRnpRepository(db) {
         `UPDATE wb_rnp_sync
            SET status='running', started_at=NOW(), finished_at=NULL, last_error=NULL, progress=?::jsonb
          WHERE user_id=? AND (status <> 'running' OR started_at < NOW() - INTERVAL '30 minutes')
-         RETURNING *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to`,
+         RETURNING *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to, storage_synced_to::text AS storage_synced_to, storage_from::text AS storage_from`,
         [JSON.stringify(progress), userId]
       );
       return rows[0] || null;
@@ -79,11 +80,13 @@ function createRnpRepository(db) {
       await db.runAsync('DELETE FROM wb_ad_spend_daily WHERE user_id=?', [userId]);
       await db.runAsync('DELETE FROM wb_products WHERE user_id=?', [userId]);
       await db.runAsync('DELETE FROM wb_finance_rows WHERE user_id=?', [userId]);
+      await db.runAsync('DELETE FROM wb_storage_daily WHERE user_id=?', [userId]);
       await db.runAsync(
         `UPDATE wb_rnp_sync SET token_fingerprint=?, orders_cursor=NULL, sales_cursor=NULL, ads_synced_to=NULL,
            ads_currency=NULL, ads_error=NULL, unit_costs=NULL, unit_costs_at=NULL, last_success_at=NULL,
            stocks_at=NULL, stocks_error=NULL, orders_at=NULL, sales_at=NULL, ads_at=NULL, ads_from=NULL, costs_error=NULL,
-           finance_from=NULL, finance_to=NULL, finance_at=NULL, finance_currency=NULL, finance_error=NULL
+           finance_from=NULL, finance_to=NULL, finance_at=NULL, finance_currency=NULL, finance_error=NULL,
+           storage_from=NULL, storage_synced_to=NULL, storage_at=NULL, storage_error=NULL
          WHERE user_id=?`,
         [tokenFingerprint, userId]
       );
@@ -245,12 +248,13 @@ function createRnpRepository(db) {
       await upsertRows(
         'wb_finance_rows',
         ['user_id', 'rrd_id', 'rr_date', 'currency', 'vendor_code', 'quantity', 'operation', 'document_type', 'retail_amount',
-          'sales', 'payable', 'commission', 'logistics', 'storage', 'penalty', 'deduction', 'acceptance', 'additional_payment', 'margin'],
+          'sales', 'payable', 'commission', 'logistics', 'storage', 'penalty', 'deduction', 'acceptance', 'additional_payment', 'margin',
+          'nm_id', 'deduction_kind'],
         ['user_id', 'rrd_id'],
         rows.filter(row => row.rrdId && row.date >= dateFrom && row.date <= dateTo),
         row => [userId, row.rrdId, row.date, row.currency, row.vendorCode, row.quantity, row.operation, row.documentType,
           row.retailAmount, row.sales, row.payable, row.commission, row.logistics, row.storage, row.penalty, row.deduction,
-          row.acceptance, row.additionalPayment, row.margin]
+          row.acceptance, row.additionalPayment, row.margin, row.nmId || null, row.deductionKind || null]
       );
     },
 
@@ -258,7 +262,8 @@ function createRnpRepository(db) {
     listFinanceRows: async (userId, dateFrom, dateTo) => {
       const rows = await db.allAsync(
         `SELECT rr_date::text AS date, currency, vendor_code, quantity, operation, document_type, retail_amount, sales,
-                payable, commission, logistics, storage, penalty, deduction, acceptance, additional_payment, margin
+                payable, commission, logistics, storage, penalty, deduction, acceptance, additional_payment, margin,
+                nm_id, deduction_kind
          FROM wb_finance_rows WHERE user_id=? AND rr_date BETWEEN ? AND ? ORDER BY rrd_id`,
         [userId, dateFrom, dateTo]
       );
@@ -280,9 +285,36 @@ function createRnpRepository(db) {
         deduction: money(row.deduction),
         acceptance: money(row.acceptance),
         additionalPayment: money(row.additional_payment),
-        margin: money(row.margin)
+        margin: money(row.margin),
+        // Поля есть только у строк, загруженных с nmId и типом удержания.
+        ...(row.nm_id ? { nmId: Number(row.nm_id) } : {}),
+        ...(row.deduction_kind ? { deductionKind: row.deduction_kind } : {})
       }));
     },
+
+    // Платное хранение: кусок отчёта WB пересчитывается целиком.
+    replaceStorage: async (userId, dateFrom, dateTo, rows) => {
+      await db.runAsync('DELETE FROM wb_storage_daily WHERE user_id=? AND day BETWEEN ? AND ?', [userId, dateFrom, dateTo]);
+      await upsertRows(
+        'wb_storage_daily',
+        ['user_id', 'day', 'nm_id', 'cost'],
+        ['user_id', 'day', 'nm_id'],
+        rows,
+        row => [userId, row.day, row.nmId, row.cost]
+      );
+    },
+
+    storageCostByNm: (userId, dateFrom, dateTo) => db.allAsync(
+      'SELECT nm_id, SUM(cost) AS cost FROM wb_storage_daily WHERE user_id=? AND day BETWEEN ? AND ? GROUP BY nm_id',
+      [userId, dateFrom, dateTo]
+    ),
+
+    // Артикулы, которые продавались или возвращались по финотчёту, — им нужна себестоимость.
+    soldVendorCodes: (userId, dateFrom) => db.allAsync(
+      `SELECT DISTINCT vendor_code FROM wb_finance_rows
+       WHERE user_id=? AND rr_date >= ? AND vendor_code <> '' AND operation IN ('Продажа', 'Возврат')`,
+      [userId, dateFrom]
+    ),
 
     listCosts: userId => db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [userId]),
 

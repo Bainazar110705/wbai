@@ -4,7 +4,8 @@ const migrations = [
   require('./003_wb_analytics_cache'),
   require('./004_wb_rnp'),
   require('./005_rnp_plans_stocks'),
-  require('./006_wb_stored_sources')
+  require('./006_wb_stored_sources'),
+  require('./007_finance_row_details')
 ];
 const logger = require('../platform/logger');
 

@@ -461,7 +461,7 @@ test('finance history stops at the oldest period WB still serves', async () => {
 test('import percent weighs the slow steps and never shows 100 before the end', () => {
   assert.equal(importPercent({}), 0);
   assert.equal(importPercent({ steps: { orders: 'done', sales: 'running' } }), 23);
-  assert.equal(importPercent({ steps: { orders: 'done', sales: 'done', stocks: 'error', ads: 'done', finance: 'done', costs: 'done' } }), 99);
+  assert.equal(importPercent({ steps: { orders: 'done', sales: 'done', stocks: 'error', ads: 'done', finance: 'done', storage: 'skipped', costs: 'done' } }), 99);
 });
 
 test('status shows the RNP table once orders and sales are in, while the import goes on', async () => {
@@ -484,4 +484,32 @@ test('status shows the RNP table once orders and sales are in, while the import 
   assert.deepEqual([done.initial, done.importing, done.percent], [false, false, 100]);
   const none = await statusOf(null, false);
   assert.deepEqual([none.status, none.importing], ['idle', true], 'без загрузки индикатор не показываем: статус не running');
+});
+
+test('storage loads fresh days first, then older history within the per-sync budget', async () => {
+  const repository = fakeRepository();
+  repository.replaceStorage = async () => {};
+  const periods = [];
+  const storageService = {
+    loadPeriod: async ({ dateFrom, dateTo, onChunk }) => {
+      periods.push([dateFrom, dateTo]);
+      await onChunk({ period: { from: dateFrom, to: dateTo }, rows: [] });
+    }
+  };
+  const ok = { loadSince: async ({ onPage }) => { await onPage([], 'c'); return 'c'; } };
+  const service = createRnpSyncService({
+    repository, statisticsService: ok, salesFunnelService: { getCatalog: async () => [] },
+    advertisingService: { getDailySpend: async () => {} },
+    financeService: { getDetailedReportPage: async () => ({ rows: [], currency: 'KZT', nextRrdId: null }) },
+    storageService, logger: { info() {}, warn() {}, error() {} },
+    now: () => new Date('2026-10-30T09:00:00Z'), wait: async () => {}
+  });
+  await service.syncUser(1);
+  // Свежие 16 дней по вчера и ещё 3 отчёта по 8 дней назад: всего 5 отчётов.
+  assert.deepEqual(periods, [
+    ['2026-10-14', '2026-10-29'], ['2026-10-06', '2026-10-13'], ['2026-09-28', '2026-10-05'], ['2026-09-20', '2026-09-27']
+  ]);
+  assert.equal(repository.state.sync.storage_from, '2026-09-20');
+  assert.equal(repository.state.sync.storage_synced_to, '2026-10-29');
+  assert.equal(repository.state.sync.progress.steps.storage, 'done');
 });

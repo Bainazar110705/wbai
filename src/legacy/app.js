@@ -20,8 +20,8 @@ const { registerStaticRoutes } = require('../routes/static.routes');
 const { createTemplatesRepository } = require('../repositories/templates.repository');
 const { createAuthService } = require('../services/auth.service');
 const { createTemplatesService } = require('../services/templates.service');
-const { createSalesFunnelService, funnelCacheTtlMs } = require('../services/wb-sales-funnel.service');
-const { createFinanceService, convertMoneyToKzt, calculateRealizedCogs } = require('../services/wb-finance.service');
+const { createSalesFunnelService, funnelCacheTtlMs, funnelStocks } = require('../services/wb-sales-funnel.service');
+const { createFinanceService, convertMoneyToKzt, calculateRealizedCogs, normalizeVendorCode } = require('../services/wb-finance.service');
 const { extractAdvertisingCampaigns, resolveAdvertisingCurrency, createAdvertisingStatsService } = require('../services/wb-advertising.service');
 const { createAuthController } = require('../controllers/auth.controller');
 const { createTemplatesController } = require('../controllers/templates.controller');
@@ -32,6 +32,12 @@ const { createStatisticsService } = require('../services/wb-statistics.service')
 const { createRnpSyncService } = require('../services/wb-rnp-sync.service');
 const { createRnpController } = require('../controllers/rnp.controller');
 const { registerRnpRoutes } = require('../routes/rnp.routes');
+const { diagnoseFunnel } = require('../services/wb-funnel-diagnosis.service');
+const { createAnalyticsProductsController } = require('../controllers/analytics-products.controller');
+const { registerAnalyticsProductsRoutes } = require('../routes/analytics-products.routes');
+const { stockInfo } = require('../services/wb-rnp.service');
+const { addDays } = require('../services/wb-rnp-sync.service');
+const { createPaidStorageService } = require('../services/wb-paid-storage.service');
 const { buildStrictProductContext, STRICT_PRODUCT_FACTS_RULES } = require('../services/infographic-facts');
 const { createInfographicBriefService, briefToPromptParts, needsAutoBrief } = require('../services/infographic-brief');
 const { parseFalError } = require('../services/fal-errors');
@@ -56,6 +62,7 @@ const rnpSyncService = createRnpSyncService({
   salesFunnelService,
   advertisingService: createAdvertisingStatsService(),
   financeService,
+  storageService: createPaidStorageService(),
   logger
 });
 const {
@@ -190,6 +197,25 @@ registerTemplatesRoutes(app, {
 });
 registerRnpRoutes(app, {
   controller: createRnpController({ repository: rnpRepository, syncService: rnpSyncService, getRubKztRate }),
+  auth: authMiddleware
+});
+registerAnalyticsProductsRoutes(app, {
+  controller: createAnalyticsProductsController({
+    getToken: userId => rnpRepository.getToken(userId),
+    storedSync: userId => storedSourcesSync(userId),
+    resolveRange: analyticsRange,
+    loadFinance: loadFinanceForPeriod,
+    loadStockDays: loadStoredStockDays,
+    // Воронку по товарам берём только из кэша «Аналитики», лишний раз WB не спрашиваем.
+    findFunnel: async (userId, range) => {
+      const cached = await findAnalyticsSourceCache(userId, 'salesFunnelV4', range.prevFrom, range.dateTo, undefined, true);
+      const payload = cached ? parseAnalyticsCachePayload(cached.payload) : null;
+      return Array.isArray(payload?.funnel) ? payload.funnel : [];
+    },
+    repository: rnpRepository,
+    getRubKztRate,
+    today: () => dateInTimeZone(new Date(), 'Europe/Moscow')
+  }),
   auth: authMiddleware
 });
 
@@ -1100,35 +1126,59 @@ app.get('/api/wb-articles', authMiddleware, async (req, res) => {
     const start = new Date(`${dateTo}T12:00:00.000Z`);
     start.setDate(start.getDate() - 29);
     const dateFrom = start.toISOString().slice(0, 10);
-    const articlesSource = await loadAnalyticsSource({
-      userId: req.user.id,
-      source: 'salesFunnelArticles',
-      dateFrom,
-      dateTo,
-      exactRange: true,
-      fetchSource: () => salesFunnelService.getProducts({
-        token: u.wb_api_token,
-        selectedPeriod: { start: dateFrom, end: dateTo }
-      })
+    // Воронка — только один из источников: если WB её не отдал, список строим из остальных.
+    let articlesSource = null;
+    let funnelError = null;
+    try {
+      articlesSource = await loadAnalyticsSource({
+        userId: req.user.id,
+        source: 'salesFunnelArticles',
+        dateFrom,
+        dateTo,
+        exactRange: true,
+        fetchSource: () => salesFunnelService.getProducts({
+          token: u.wb_api_token,
+          selectedPeriod: { start: dateFrom, end: dateTo }
+        })
+      });
+    } catch (error) {
+      funnelError = error;
+    }
+
+    // Себестоимость нужна каждому товару, который попадает в прибыль: с заказами
+    // за 30 дней, с остатком, проданному по финотчёту за год и уже заведённому.
+    // Иначе товар, проданный раньше, остаётся без себестоимости и прибыль завышена.
+    const seen = new Map();
+    const add = (article, name) => {
+      const art = String(article || '').trim();
+      const key = normalizeVendorCode(art);
+      if (!key) return;
+      const known = seen.get(key);
+      if (!known) seen.set(key, { supplier_article: art, name: String(name || '').trim() });
+      else if (!known.name && name) known.name = String(name).trim();
+    };
+    (articlesSource?.payload?.products || []).forEach(item => {
+      const stocks = funnelStocks(item?.product?.stocks);
+      if ((Number(item?.statistic?.selected?.orderCount) || 0) < 1 && !(stocks.wb + stocks.mp)) return;
+      add(item?.product?.vendorCode, item?.product?.subjectName);
     });
+    const yearAgo = new Date(`${dateTo}T12:00:00.000Z`);
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const [catalog, sold, saved] = await Promise.all([
+      rnpRepository.listProducts(req.user.id),
+      rnpRepository.soldVendorCodes(req.user.id, yearAgo.toISOString().slice(0, 10)),
+      db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE user_id=?', [req.user.id])
+    ]);
+    const subjectByVendor = new Map(catalog.map(row => [normalizeVendorCode(row.vendor_code), row.subject]));
+    catalog.filter(row => Number(row.stock_wb) + Number(row.stock_mp) > 0).forEach(row => add(row.vendor_code, row.subject));
+    sold.forEach(row => add(row.vendor_code, subjectByVendor.get(normalizeVendorCode(row.vendor_code))));
+    saved.forEach(row => add(row.supplier_article, row.name));
 
-    // Sales Funnel возвращает весь ассортимент; оставляем только товары с заказами за 30 дней.
-    const seen = {};
-    (articlesSource.payload?.products || []).forEach(item => {
-      if ((Number(item?.statistic?.selected?.orderCount) || 0) < 1) return;
-      const art = String(item?.product?.vendorCode || '').trim();
-      if (!art || seen[art]) return;
-      seen[art] = { supplier_article: art, name: item?.product?.subjectName || '' };
-    });
-
-    // Подтягиваем уже сохранённые себестоимости
-    const saved = await db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [req.user.id]);
-    const savedMap = {};
-    saved.forEach(s => { savedMap[s.supplier_article] = s.cost_price; });
-
-    const articles = Object.values(seen).sort((a, b) => a.supplier_article.localeCompare(b.supplier_article, 'ru')).map(a => ({
+    if (funnelError && !seen.size) throw funnelError;
+    const savedMap = new Map(saved.map(row => [normalizeVendorCode(row.supplier_article), row.cost_price]));
+    const articles = [...seen.values()].sort((a, b) => a.supplier_article.localeCompare(b.supplier_article, 'ru')).map(a => ({
       ...a,
-      cost_price: savedMap[a.supplier_article] || 0
+      cost_price: savedMap.get(normalizeVendorCode(a.supplier_article)) || 0
     }));
 
     res.json({ articles });
@@ -1190,6 +1240,7 @@ const WB_ANALYTICS_CACHE_TTL_MS = {
   salesFunnel: 60 * 60 * 1000,
   salesFunnelV2: 60 * 60 * 1000,
   salesFunnelV3: 60 * 60 * 1000,
+  salesFunnelV4: 60 * 60 * 1000,
   salesFunnelBucketsV1: 60 * 60 * 1000,
   salesFunnelArticles: 60 * 60 * 1000,
   orders: 5 * 60 * 1000,
@@ -1320,6 +1371,67 @@ async function loadStoredFinance(userId, sync, dateFrom, dateTo, today) {
   return storedSourceInfo({ rows, currency }, sync.finance_at || sync.last_success_at);
 }
 
+// Период Аналитики: свой (from/to) или кнопка (неделя, месяц…), и прошлый период той же длины.
+function analyticsRange({ period, from, to }, moscowToday) {
+  let dateFrom, dateTo;
+  if (from && to) {
+    dateFrom = from;
+    dateTo = to;
+  } else {
+    dateTo = moscowToday;
+    const d = new Date(`${dateTo}T12:00:00.000Z`);
+    switch(period) {
+      case 'today': break;
+      case 'week': d.setDate(d.getDate() - 6); break;
+      case '2weeks': d.setDate(d.getDate() - 13); break;
+      case 'month': d.setMonth(d.getMonth() - 1); break;
+      case '3months': d.setMonth(d.getMonth() - 3); break;
+      case 'halfyear': d.setMonth(d.getMonth() - 6); break;
+      case 'year': d.setFullYear(d.getFullYear() - 1); break;
+      default: d.setDate(d.getDate() - 13);
+    }
+    dateFrom = d.toISOString().slice(0, 10);
+  }
+  const dateFromMs = managerReportDate(dateFrom);
+  const dateToMs = managerReportDate(dateTo);
+  if (dateFromMs === null || dateToMs === null || dateFromMs > dateToMs) return null;
+  const diffMs = dateToMs - dateFromMs;
+  return {
+    dateFrom,
+    dateTo,
+    prevTo: new Date(dateFromMs - 86400000).toISOString().slice(0, 10),
+    prevFrom: new Date(dateFromMs - diffMs - 86400000).toISOString().slice(0, 10)
+  };
+}
+
+// Финотчёт за период: из нашей базы, иначе кэш или запрос к WB.
+async function loadFinanceForPeriod({ userId, token, sync, dateFrom, dateTo, today, force = false }) {
+  return await loadStoredFinance(userId, sync, dateFrom, dateTo, today) || loadAnalyticsSource({
+    userId,
+    // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
+    source: 'financeV5',
+    dateFrom,
+    dateTo,
+    // Более широкий свежий финотчёт безопасно покрывает узкий период и
+    // не тратит строгий лимит Finance API при переключении фильтров.
+    exactRange: false,
+    force,
+    fetchSource: () => financeService.getDetailedReport({ token, dateFrom, dateTo })
+  });
+}
+
+// Запас в днях по товарам из сохранённых остатков (как в РНП): для действия «довезти товар».
+async function loadStoredStockDays(userId, sync, today) {
+  if (!sync?.stocks_at) return null;
+  const windowDays = 14;
+  const [products, recent] = await Promise.all([
+    rnpRepository.listProducts(userId),
+    rnpRepository.orderCountsByNm(userId, addDays(today, -windowDays), addDays(today, -1))
+  ]);
+  const recentByNm = new Map(recent.map(row => [Number(row.nm_id), Number(row.orders) || 0]));
+  return new Map(products.map(row => [Number(row.nm_id), stockInfo(row, recentByNm.get(Number(row.nm_id)) || 0, windowDays)]));
+}
+
 async function loadStoredAdvertising(userId, sync, dateFrom, dateTo, today) {
   if (!sync || !storedCovers(sync.ads_from, sync.ads_synced_to, dateFrom, dateTo, today)) return null;
   const row = await rnpRepository.adTotals(userId, dateFrom, dateTo);
@@ -1345,35 +1457,9 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
 
   const now = new Date();
   const moscowToday = dateInTimeZone(now, 'Europe/Moscow');
-  let dateFrom, dateTo;
-  if (from && to) {
-    dateFrom = from;
-    dateTo = to;
-  } else {
-    dateTo = moscowToday;
-    const d = new Date(`${dateTo}T12:00:00.000Z`);
-    switch(period) {
-      case 'today': break;
-      case 'week': d.setDate(d.getDate() - 6); break;
-      case '2weeks': d.setDate(d.getDate() - 13); break;
-      case 'month': d.setMonth(d.getMonth() - 1); break;
-      case '3months': d.setMonth(d.getMonth() - 3); break;
-      case 'halfyear': d.setMonth(d.getMonth() - 6); break;
-      case 'year': d.setFullYear(d.getFullYear() - 1); break;
-      default: d.setDate(d.getDate() - 13);
-    }
-    dateFrom = d.toISOString().slice(0, 10);
-  }
-
-  const dateFromMs = managerReportDate(dateFrom);
-  const dateToMs = managerReportDate(dateTo);
-  if (dateFromMs === null || dateToMs === null || dateFromMs > dateToMs) {
-    return res.status(400).json({ error: 'Некорректный период аналитики.' });
-  }
-
-  const diffMs = dateToMs - dateFromMs;
-  const prevTo = new Date(dateFromMs - 86400000).toISOString().slice(0, 10);
-  const prevFrom = new Date(dateFromMs - diffMs - 86400000).toISOString().slice(0, 10);
+  const range = analyticsRange({ period, from, to }, moscowToday);
+  if (!range) return res.status(400).json({ error: 'Некорректный период аналитики.' });
+  const { dateFrom, dateTo, prevFrom, prevTo } = range;
   const inRange = day => day >= dateFrom && day <= dateTo;
   const prevInRange = day => day >= prevFrom && day <= prevTo;
   const funnelTtlMs = funnelCacheTtlMs(dateTo, moscowToday);
@@ -1382,7 +1468,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     // Карточки, график и себестоимость используют один источник — Sales Funnel WB.
     const salesFunnelSource = await loadAnalyticsSource({
       userId: req.user.id,
-      source: 'salesFunnelV3',
+      // V4: в кэше есть переходы и корзины по товарам для вывода «трафик или конверсия».
+      source: 'salesFunnelV4',
       dateFrom: prevFrom,
       dateTo,
       exactRange: true,
@@ -1422,20 +1509,11 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       throw error;
     }
 
+    const storedSync = await storedSourcesSync(req.user.id, { force: forceRefresh });
     let reportRaw = [], financeSource = null, financeCurrency = null, financeErrorCode = null;
     try {
-      const storedSync = await storedSourcesSync(req.user.id, { force: forceRefresh });
-      financeSource = await loadStoredFinance(req.user.id, storedSync, prevFrom, dateTo, moscowToday) || await loadAnalyticsSource({
-        userId: req.user.id,
-        // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
-        source: 'financeV5',
-        dateFrom: prevFrom,
-        dateTo,
-        // Более широкий свежий финотчёт безопасно покрывает узкий период и
-        // не тратит строгий лимит Finance API при переключении фильтров.
-        exactRange: false,
-        force: forceRefresh,
-        fetchSource: () => financeService.getDetailedReport({ token: wbToken, dateFrom: prevFrom, dateTo })
+      financeSource = await loadFinanceForPeriod({
+        userId: req.user.id, token: wbToken, sync: storedSync, dateFrom: prevFrom, dateTo, today: moscowToday, force: forceRefresh
       });
       reportRaw = Array.isArray(financeSource.payload?.rows) ? financeSource.payload.rows : [];
       financeCurrency = financeSource.payload?.currency || null;
@@ -1591,6 +1669,16 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       fetchedAt: source.fetchedAt,
       ...(source.stored ? { stored: true } : {})
     });
+    let diagnosis = null;
+    try {
+      diagnosis = diagnoseFunnel({
+        products: Array.isArray(salesFunnel?.funnel) ? salesFunnel.funnel : [],
+        toKzt: funnelMoneyToKzt,
+        stocks: await loadStoredStockDays(req.user.id, storedSync, moscowToday)
+      });
+    } catch (error) {
+      logger.warn('wb_funnel_diagnosis_failed', { userId: req.user.id, error: error.message });
+    }
     const response = {
       rows: kztRows,
       totals: kztTotals,
@@ -1604,6 +1692,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       chartSource: 'sales-funnel-buckets',
       chartReconciled: funnelBucketsSource.payload?.reconciled !== false,
       metricCurrency: funnelCurrency,
+      diagnosis,
       finance: {
         status: currentFinanceAvailable ? 'ready' : (financeSource ? 'pending' : 'unavailable'),
         currentAvailable: currentFinanceAvailable,

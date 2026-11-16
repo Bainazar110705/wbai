@@ -95,6 +95,34 @@ function productOrderMetrics(products) {
   })).filter(item => item.nmId || item.vendorCode);
 }
 
+// Шаги воронки по товару для вывода «трафик или конверсия»: переходы → корзины → заказы.
+// Имена полей WB даём с запасными вариантами: если поля нет, шаг остаётся null.
+const FUNNEL_STEP_FIELDS = {
+  opens: ['openCount', 'openCardCount'],
+  carts: ['cartCount', 'addToCartCount'],
+  orders: ['orderCount'],
+  orderSum: ['orderSum']
+};
+
+function funnelStepValues(stats) {
+  const values = {};
+  for (const [key, fields] of Object.entries(FUNNEL_STEP_FIELDS)) {
+    const field = fields.find(name => stats?.[name] !== undefined && stats?.[name] !== null);
+    values[key] = field ? number(stats[field]) : null;
+  }
+  return values;
+}
+
+function productFunnelMetrics(products) {
+  return products.map(item => ({
+    nmId: number(item?.product?.nmId),
+    vendorCode: String(item?.product?.vendorCode || '').trim(),
+    title: String(item?.product?.title || '').trim().slice(0, 200),
+    current: funnelStepValues(item?.statistic?.selected),
+    previous: funnelStepValues(item?.statistic?.past)
+  })).filter(item => item.nmId && (item.current.orders || item.previous.orders || item.current.opens || item.previous.opens));
+}
+
 function calculateProductCogs(productMetrics, costsByVendorCode, field = 'currentOrders') {
   return (Array.isArray(productMetrics) ? productMetrics : []).reduce((sum, metric) => {
     const vendorCode = String(metric?.vendorCode || '').trim();
@@ -230,7 +258,8 @@ function createSalesFunnelService({ fetchImpl = fetch, wait = ms => new Promise(
       ...aggregateProducts(report.products),
       currency: report.currency,
       productCount: report.products.length,
-      productMetrics: productOrderMetrics(report.products)
+      productMetrics: productOrderMetrics(report.products),
+      funnel: productFunnelMetrics(report.products)
     };
   }
 
@@ -315,6 +344,7 @@ module.exports = {
   aggregateProducts,
   funnelStocks,
   normalizeFunnelProduct,
+  productFunnelMetrics,
   productOrderMetrics,
   calculateProductCogs,
   funnelCacheTtlMs,

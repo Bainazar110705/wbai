@@ -2,10 +2,12 @@
 // Запуск локально:  WB_TOKEN=... node scripts/wb-rnp-diagnose.js --from 2026-10-01 --to 2026-10-29
 // Или на сервере:   docker compose exec app node scripts/wb-rnp-diagnose.js --email user@mail --from ... --to ...
 // Печатает только суммы и названия полей, токен не выводится. Работает несколько минут из-за лимитов WB.
-// Только часть шагов: --only stocks (шаги: orders, sales, ads, stocks, funnel).
+// Только часть шагов: --only stocks (шаги: orders, sales, ads, stocks, funnel, financefields, paidstorage).
 require('dotenv').config();
 const { createSalesFunnelService, normalizeFunnelProduct } = require('../src/services/wb-sales-funnel.service');
 const { extractAdvertisingCampaigns, splitAdvertisingPeriod } = require('../src/services/wb-advertising.service');
+const { FINANCE_DETAILS_URL, FINANCE_FIELDS } = require('../src/services/wb-finance.service');
+const { createPaidStorageService } = require('../src/services/wb-paid-storage.service');
 
 const STATISTICS_API = 'https://statistics-api.wildberries.ru';
 const ADVERT_API = 'https://advert-api.wildberries.ru';
@@ -165,6 +167,53 @@ async function checkStocks(token) {
   console.log(`Как прочитал сайт: всего WB ${normalized.reduce((s, p) => s + p.stockWb, 0)} шт, FBS ${normalized.reduce((s, p) => s + p.stockMp, 0)} шт`);
 }
 
+// Поля финотчёта для отчёта по товару: nmId и тип удержания (акты «WB Продвижение»).
+async function checkFinanceFields(from, to, token) {
+  console.log('\n=== 6. Поля финотчёта для прибыли по товарам ===');
+  const ask = async extra => {
+    const response = await fetch(FINANCE_DETAILS_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ dateFrom: from, dateTo: to, limit: 100000, rrdId: 0, period: 'daily', fields: [...FINANCE_FIELDS, ...extra] }),
+      signal: AbortSignal.timeout(120_000)
+    });
+    const text = await response.text();
+    return { status: response.status, rows: response.ok && text ? JSON.parse(text) : [], error: response.ok ? '' : text.slice(0, 200) };
+  };
+  for (const extra of [['nmId', 'bonusTypeName'], ['nmId'], ['bonusTypeName']]) {
+    const result = await ask(extra);
+    console.log(`Поля ${extra.join(' + ')}: ответ ${result.status}${result.error ? ` — ${result.error}` : ''}`);
+    if (result.status === 200) {
+      const rows = Array.isArray(result.rows) ? result.rows : [];
+      console.log(`Строк ${rows.length}; поля строки: ${rows[0] ? Object.keys(rows[0]).join(', ') : 'нет строк'}`);
+      console.log(`Строк с nmId: ${rows.filter(row => num(row.nmId) > 0).length}, без nmId: ${rows.filter(row => !(num(row.nmId) > 0)).length}`);
+      const kinds = new Map();
+      for (const row of rows) {
+        if (num(row.deduction) === 0) continue;
+        const key = row.bonusTypeName || '(пусто)';
+        kinds.set(key, (kinds.get(key) || 0) + num(row.deduction));
+      }
+      console.log('Удержания по типам:');
+      console.table([...kinds].map(([type, sum]) => ({ type: String(type).slice(0, 90), sum: fmt(sum) })));
+      return;
+    }
+    await wait(61_000);
+  }
+}
+
+// Отчёт «Платное хранение» за последние 8 дней периода: хранение по каждому товару.
+async function checkPaidStorage(from, to, token) {
+  console.log('\n=== 7. Платное хранение по товарам ===');
+  const end = new Date(`${to}T12:00:00.000Z`);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 7);
+  const rows = await createPaidStorageService().getChunk({ token, dateFrom: start.toISOString().slice(0, 10), dateTo: to });
+  const byNm = new Map();
+  for (const row of rows) byNm.set(row.nmId, (byNm.get(row.nmId) || 0) + row.cost);
+  console.log(`Дней × товаров: ${rows.length}, товаров: ${byNm.size}, всего за 8 дней: ${fmt([...byNm.values()].reduce((s, v) => s + v, 0))}`);
+  console.table([...byNm].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([nmId, cost]) => ({ nmId, cost: fmt(cost) })));
+}
+
 async function checkFunnel(from, to, token) {
   console.log('\n=== 5. Для сверки: Sales Funnel за весь период ===');
   const funnel = await createSalesFunnelService().getProducts({ token, selectedPeriod: { start: from, end: to } });
@@ -172,6 +221,9 @@ async function checkFunnel(from, to, token) {
   console.log(`Валюта ${funnel.currency}: заказы ${sum('orderCount')} шт на ${fmt(sum('orderSum'))}, выкупы ${sum('buyoutCount')} шт на ${fmt(sum('buyoutSum'))}`);
   const sample = funnel.products[0]?.product;
   if (sample) console.log('Поля товара:', Object.keys(sample).join(', '));
+  const stats = funnel.products[0]?.statistic?.selected;
+  if (stats) console.log('Поля статистики:', Object.keys(stats).join(', '));
+  console.log(`Переходы ${sum('openCount')}, корзины ${sum('cartCount')} — нужны для вывода «трафик или конверсия»`);
 }
 
 async function main() {
@@ -184,7 +236,9 @@ async function main() {
     sales: () => checkSales(from, to, token),
     ads: () => checkAds(from, to, token),
     stocks: () => checkStocks(token),
-    funnel: () => checkFunnel(from, to, token)
+    funnel: () => checkFunnel(from, to, token),
+    financefields: () => checkFinanceFields(from, to, token),
+    paidstorage: () => checkPaidStorage(from, to, token)
   };
   // --only stocks,funnel — запустить только нужные шаги.
   const only = arg('only') ? arg('only').split(',') : Object.keys(steps);

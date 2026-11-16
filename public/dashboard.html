@@ -959,6 +959,82 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-help-tip.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
 /* ОТЧЁТ О ПРИБЫЛИ */
+.an-prod{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.an-prod-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.an-prod-search{flex:1 1 220px;max-width:320px;min-height:36px;border:1px solid var(--border);border-radius:9px;padding:6px 10px;font:500 13px 'Manrope',sans-serif;color:var(--text);background:var(--surface)}
+.an-prod-search:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.an-prod-status{font-size:12px;color:var(--muted)}
+.an-prod-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px;scrollbar-color:var(--border) transparent}
+.an-prod-table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px;font-variant-numeric:tabular-nums}
+.an-prod-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:right;padding:0;border-bottom:1px solid var(--border);white-space:nowrap}
+.an-prod-table th:first-child{text-align:left}
+.an-prod-sort{border:0;background:none;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;padding:8px;cursor:pointer;width:100%;text-align:inherit}
+.an-prod-sort[aria-sort]{color:var(--p2)}
+.an-prod-table td{padding:10px 8px;border-bottom:1px solid var(--border2);text-align:right;white-space:nowrap;color:var(--text)}
+.an-prod-table td:first-child{text-align:left;white-space:normal;position:sticky;left:0;background:var(--surface);min-width:220px;max-width:320px}
+.an-prod-name{border:0;background:none;padding:0;font:700 13px 'Manrope',sans-serif;color:var(--text);cursor:pointer;text-align:left;display:flex;gap:6px;align-items:flex-start}
+.an-prod-name:hover,.an-prod-name[aria-expanded="true"]{color:var(--p2)}
+.an-prod-name:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.an-prod-chev{flex-shrink:0;transition:transform .15s}
+.an-prod-name[aria-expanded="true"] .an-prod-chev{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.an-prod-chev{transition:none}}
+.an-prod-meta{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+.an-prod-warn{font-size:11px;color:var(--red);margin-top:2px}
+.an-prod-table .is-loss{color:var(--red);font-weight:800}
+.an-prod-table .is-gain{color:var(--green);font-weight:800}
+.an-prod-table tr.is-total td{font-weight:800;border-bottom:none;background:var(--p3)}
+.an-prod-table tr.is-total td:first-child{background:var(--p3)}
+.an-prod-detail>td{background:var(--surface2)!important;padding:16px!important;white-space:normal!important;text-align:left!important;position:static!important;max-width:none!important}
+.an-pd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.an-pd-tile{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 12px}
+.an-pd-tile-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.an-pd-tile-v{font-size:17px;font-weight:800;color:var(--text);margin-top:4px}
+.an-pd-tile-s{font-size:11px;color:var(--muted);margin-top:2px}
+.an-pd-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media(max-width:900px){.an-pd-grid{grid-template-columns:1fr}}
+.an-pd-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;background:var(--surface);border-radius:12px;overflow:hidden}
+.an-pd-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)}
+.an-pd-table th:first-child,.an-pd-table td:first-child{text-align:left}
+.an-pd-table td{padding:8px 10px;border-bottom:1px solid var(--border2);text-align:right;color:var(--text)}
+.an-pd-table tr.is-sub td{font-weight:700;background:var(--p3)}
+.an-pd-table tr.is-total td{font-weight:800;font-size:14px}
+.an-pd-alloc{display:block;font-size:10px;color:var(--muted);font-weight:500}
+.an-pd-box{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.an-pd-h{font-size:12px;font-weight:800;color:var(--text);margin:0 0 8px}
+.an-pd-chart{width:100%;height:170px;display:block}
+.an-pd-chart text{fill:var(--muted);font:500 10px 'Manrope',sans-serif}
+.an-pd-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px}
+.an-pd-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.an-pd-funnel{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px;color:var(--text);align-items:center}
+.an-pd-funnel span{color:var(--muted);font-size:12px}
+.an-dx{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.an-dx[hidden]{display:none}
+.an-dx-eyebrow{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--p2);margin-bottom:6px;display:flex;align-items:center}
+.an-dx-head{font-size:20px;font-weight:800;line-height:1.3;color:var(--text);margin:0 0 6px}
+.an-dx-sub{font-size:13px;color:var(--muted);line-height:1.6;margin:0}
+.an-dx-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0 4px}
+.an-dx-step{border:1px solid var(--border2);border-radius:12px;padding:12px 14px;background:var(--surface2)}
+.an-dx-step.is-worst{border-color:var(--red);background:var(--red-bg)}
+.an-dx-step-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.an-dx-kind{font-size:10px;text-transform:none;letter-spacing:0;padding:2px 7px;border-radius:999px;background:var(--p3);color:var(--p2)}
+.an-dx-step-val{font-size:18px;font-weight:800;color:var(--text);margin-top:6px;font-variant-numeric:tabular-nums}
+.an-dx-step-chg{font-size:12px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.an-dx-step-chg.up{color:var(--green)}.an-dx-step-chg.down{color:var(--red)}.an-dx-step-chg.flat{color:var(--muted)}
+.an-dx-h{font-size:13px;font-weight:800;color:var(--text);margin:16px 0 8px}
+.an-dx-table{width:100%;border-collapse:collapse;font-size:13px}
+.an-dx-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:7px 8px;border-bottom:1px solid var(--border)}
+.an-dx-table td{padding:9px 8px;border-bottom:1px solid var(--border2);color:var(--text);vertical-align:top}
+.an-dx-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.an-dx-break{font-weight:700}.an-dx-break.k-traffic{color:var(--p2)}.an-dx-break.k-conv{color:var(--red)}.an-dx-break.k-stock{color:var(--red)}
+.an-dx-acts{list-style:none;display:grid;gap:8px;margin:0;padding:0}
+.an-dx-act{display:grid;grid-template-columns:28px 1fr;gap:10px;border:1px solid var(--border2);border-radius:12px;padding:12px 14px}
+.an-dx-act-n{width:28px;height:28px;border-radius:8px;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.an-dx-act-stage{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--p2)}
+.an-dx-act-title{font-size:14px;font-weight:800;color:var(--text);margin:2px 0 4px}
+.an-dx-act p{font-size:12px;color:var(--muted);line-height:1.55;margin:2px 0}
+.an-dx-act b{color:var(--text);font-weight:700}
+.an-dx-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:12px}
+@media(max-width:640px){.an-dx-head{font-size:17px}}
 .an-pnl{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 18px 8px;margin-bottom:16px}
 .an-pnl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .an-pnl-title{font-size:16px;font-weight:800;color:var(--text);margin:0}
@@ -1823,6 +1899,17 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <button class="an-apply-btn" onclick="anApplyCustom()">Применить</button>
       </div>
 
+      <!-- Вывод по воронке: трафик или конверсия -->
+      <section class="an-dx" id="anDx" hidden aria-labelledby="anDxHead">
+        <div class="an-dx-eyebrow">Анализ → выводы → действия<button type="button" class="an-help" data-tip-wide data-tip="Продажи = трафик × конверсия. Заказы раскладываем на шаги: переходы в карточку × конверсия в корзину × конверсия в заказ — и сравниваем с прошлым периодом той же длины. Шаг, который просел сильнее всех, и есть главный вывод. Действия по порядку: склады → конверсии → реклама." aria-label="Как делается вывод">?</button></div>
+        <h2 class="an-dx-head" id="anDxHead"></h2>
+        <p class="an-dx-sub" id="anDxSub"></p>
+        <div class="an-dx-steps" id="anDxSteps"></div>
+        <div id="anDxProducts"></div>
+        <div id="anDxActions"></div>
+        <div class="an-dx-note" id="anDxNote"></div>
+      </section>
+
       <!-- Основные метрики -->
       <div class="an-metrics">
         <div class="an-card">
@@ -1929,6 +2016,20 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           </table>
         </div>
         <div class="an-pnl-hint" id="anCogsHint" role="status"><span data-icon="light-bulb" aria-hidden="true"></span> <span id="anCogsHintText">Введите себестоимость товаров для расчёта чистой прибыли</span></div>
+      </section>
+
+      <section class="an-prod" aria-labelledby="anProdTitle">
+        <div class="an-pnl-head">
+          <div>
+            <h2 class="an-pnl-title" id="anProdTitle">Прибыль по товарам<button type="button" class="an-help" data-tip-wide data-tip="Тот же финансовый отчёт WB, разложенный по товарам. Большинство строк отчёта WB уже привязаны к товару — их просто собираем по артикулу. Расходы без артикула делим: хранение — по отчёту WB «Платное хранение», оплату WB Продвижение — по расходу на рекламу товара, остальное — по доле продаж. Сумма по всем товарам равна прибыли магазина в «Отчёте о прибыли»." aria-label="Как считается прибыль по товарам">?</button></h2>
+            <div class="an-pnl-sub">Нажмите на товар, чтобы открыть его полный отчёт: все расходы, на 1 штуку и по дням.</div>
+          </div>
+        </div>
+        <div class="an-prod-tools">
+          <input class="an-prod-search" type="search" id="anProdSearch" placeholder="Название или артикул" aria-label="Поиск товара" oninput="anRenderProducts()">
+          <span class="an-prod-status" id="anProdStatus" aria-live="polite"></span>
+        </div>
+        <div class="an-prod-wrap" tabindex="0" role="region" aria-label="Прибыль по товарам"><table class="an-prod-table" id="anProdTable"></table></div>
       </section>
 
       <div class="an-chart-card">
@@ -3156,6 +3257,8 @@ async function anLoad(from, to, forceRefresh) {
     if (!r.ok) { anShowErr(d.error||'Ошибка'); return; }
     AN.financeReady = !!(d.finance && d.finance.status === 'ready');
     anUpdateMetrics(d.totals, d.prevTotals, AN.period, d.finance);
+    anRenderDiagnosis(d.diagnosis);
+    anLoadProducts(d.dateFrom, d.dateTo);
     anBuildChart(d.rows, d.dateFrom, d.dateTo, AN.period);
     anLoadAds(d.dateFrom, d.dateTo, forceRefresh);
     var now=new Date();
@@ -3252,7 +3355,183 @@ function anRenderSourcesTip(){
   btn.setAttribute('data-tip', lines.join('\n'));
 }
 
+// ── Прибыль по товарам
+var AN_PROD={data:null,sort:'profit',dir:-1,open:null,seq:0,from:null,to:null,details:{}};
+var AN_PROD_COLS=[
+  {key:'units',label:'Продано, шт',val:function(p){return p.units.net;},fmt:function(v){return (v||0).toLocaleString('ru');}},
+  {key:'retailAmount',label:'Продажи',val:function(p){return p.totals.retailAmount;}},
+  {key:'wbCosts',label:'Расходы WB',val:function(p){return p.totals.wbCosts;}},
+  {key:'ads',label:'Реклама',val:function(p){return AN_PROD.data&&AN_PROD.data.kindsKnown?p.totals.adsDeduction:p.metrics.adSpend;}},
+  {key:'cogs',label:'Себестоимость',val:function(p){return p.totals.cogs;}},
+  {key:'profit',label:'Прибыль',val:function(p){return p.totals.profit;},profit:true},
+  {key:'marginPct',label:'Маржа',val:function(p){return p.metrics.marginPct;},pct:true},
+  {key:'roi',label:'ROI',val:function(p){return p.metrics.roi;},pct:true}
+];
+function anProdMoney(v){return v==null||!isFinite(v)?'—':(v<0?'− ':'')+Math.abs(Math.round(v)).toLocaleString('ru')+' ₸';}
+function anProdPct(v){return v==null||!isFinite(v)?'—':String(Math.round(v*10)/10).replace('.',',').replace('-','−')+' %';}
+
+async function anLoadProducts(from, to){
+  var seq=++AN_PROD.seq;
+  AN_PROD.from=from; AN_PROD.to=to; AN_PROD.open=null; AN_PROD.details={};
+  var status=document.getElementById('anProdStatus');
+  if(status) status.textContent='Загружаем…';
+  try{
+    var r=await fetch('/api/wb-analytics/products?from='+from+'&to='+to,{headers:{Authorization:'Bearer '+token}});
+    var d=await r.json().catch(function(){return {};});
+    if(seq!==AN_PROD.seq) return;
+    if(!r.ok){AN_PROD.data=null;document.getElementById('anProdTable').innerHTML='';if(status)status.textContent=d.error||'Отчёт по товарам недоступен.';return;}
+    AN_PROD.data=d;
+    anRenderProducts();
+  }catch(e){ if(seq===AN_PROD.seq&&status) status.textContent='Нет связи с сервером.'; }
+}
+
+function anProdSort(key){
+  if(AN_PROD.sort===key) AN_PROD.dir=-AN_PROD.dir; else {AN_PROD.sort=key;AN_PROD.dir=-1;}
+  anRenderProducts();
+}
+
+function anRenderProducts(){
+  var d=AN_PROD.data, table=document.getElementById('anProdTable'), status=document.getElementById('anProdStatus');
+  if(!d||!table) return;
+  if(!d.financeReady){table.innerHTML='';status.textContent='За этот период WB ещё не сформировал финансовый отчёт.';return;}
+  var q=(document.getElementById('anProdSearch').value||'').trim().toLowerCase();
+  var nameOf=function(p){return (p.title||p.vendorCode||String(p.nmId||'')).toLowerCase();};
+  var col=AN_PROD.sort==='name'?{val:nameOf}:(AN_PROD_COLS.find(function(c){return c.key===AN_PROD.sort;})||AN_PROD_COLS[5]);
+  var list=d.products.filter(function(p){return !q||(p.title||'').toLowerCase().indexOf(q)>=0||(p.vendorCode||'').toLowerCase().indexOf(q)>=0||String(p.nmId||'').indexOf(q)>=0;});
+  list.sort(function(a,b){var va=col.val(a),vb=col.val(b);if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;return (typeof va==='string'?va.localeCompare(vb,'ru'):va-vb)*AN_PROD.dir;});
+  var head='<thead><tr><th scope="col"><button type="button" class="an-prod-sort" onclick="anProdSort(\'name\')">Товар</button></th>'+AN_PROD_COLS.map(function(c){
+    var sorted=AN_PROD.sort===c.key;
+    return '<th scope="col"'+(sorted?' aria-sort="'+(AN_PROD.dir<0?'descending':'ascending')+'"':'')+'><button type="button" class="an-prod-sort"'+(sorted?' aria-sort="1"':'')+' onclick="anProdSort(\''+c.key+'\')">'+c.label+(sorted?(AN_PROD.dir<0?' ↓':' ↑'):'')+'</button></th>';
+  }).join('')+'</tr></thead>';
+  var cell=function(c,p){var v=c.val(p);var txt=c.fmt?c.fmt(v):(c.pct?anProdPct(v):anProdMoney(v));var cls=c.profit&&v!=null?(v<0?' class="is-loss"':' class="is-gain"'):'';return '<td'+cls+'>'+txt+'</td>';};
+  var rows=list.map(function(p){
+    var key=anDxEsc(p.key), open=AN_PROD.open===p.key;
+    var name=p.title||p.vendorCode||('арт. '+p.nmId);
+    var meta=[p.title?p.vendorCode:'',p.nmId?'арт. '+p.nmId:'',p.subject].filter(Boolean).map(anDxEsc).join(' · ');
+    var warn=p.flags.unpriced?'<div class="an-prod-warn">нет себестоимости — прибыль завышена</div>':'';
+    var tr='<tr><td><button type="button" class="an-prod-name" aria-expanded="'+open+'" aria-controls="anProdDetail-'+key+'" data-key="'+key+'" onclick="anToggleProduct(this.dataset.key)"><span class="an-prod-chev" aria-hidden="true">›</span><span>'+anDxEsc(name)+'<div class="an-prod-meta">'+meta+'</div>'+warn+'</span></button></td>'+AN_PROD_COLS.map(function(c){return cell(c,p);}).join('')+'</tr>';
+    if(open) tr+='<tr class="an-prod-detail" id="anProdDetail-'+key+'"><td colspan="'+(AN_PROD_COLS.length+1)+'">'+(AN_PROD.details[p.key]?anProductDetail(AN_PROD.details[p.key]):'Загружаем отчёт…')+'</td></tr>';
+    return tr;
+  }).join('');
+  var s=d.shop;
+  var total='<tr class="is-total"><td>Итого по магазину</td><td>'+d.products.reduce(function(a,p){return a+(p.units.net||0);},0).toLocaleString('ru')+'</td><td>'+anProdMoney(s.retailAmount)+'</td><td>'+anProdMoney(s.wbCosts)+'</td><td>'+anProdMoney(d.kindsKnown?s.adsDeduction:d.products.reduce(function(a,p){return a+(p.metrics.adSpend||0);},0))+'</td><td>'+anProdMoney(s.cogs)+'</td><td class="'+(s.profit<0?'is-loss':'is-gain')+'">'+anProdMoney(s.profit)+'</td><td>'+anProdPct(s.retailAmount?s.profit/s.retailAmount*100:null)+'</td><td>'+anProdPct(s.cogs?s.profit/s.cogs*100:null)+'</td></tr>';
+  table.innerHTML=head+'<tbody>'+rows+total+'</tbody>';
+  var note=d.products.length+' '+(d.products.length%10===1&&d.products.length%100!==11?'товар':'товаров')+' · '+(d.stored?'финотчёт из нашей базы':'финотчёт WB');
+  note+=d.kindsKnown?' · оплата рекламы разнесена по расходу товаров':' · оплата рекламы в удержаниях разнесена по продажам';
+  note+=d.storageKnown?' · хранение — по отчёту «Платное хранение»':' · хранение без артикула — по продажам';
+  if(d.check&&!d.check.ok) note+=' · ⚠ сумма по товарам расходится с магазином, сообщите в поддержку';
+  status.textContent=note;
+}
+
+async function anToggleProduct(key){
+  AN_PROD.open=AN_PROD.open===key?null:key;
+  anRenderProducts();
+  if(!AN_PROD.open||AN_PROD.details[key]) return;
+  var seq=AN_PROD.seq;
+  try{
+    var r=await fetch('/api/wb-analytics/products?from='+AN_PROD.from+'&to='+AN_PROD.to+'&key='+encodeURIComponent(key),{headers:{Authorization:'Bearer '+token}});
+    var d=await r.json().catch(function(){return {};});
+    if(seq!==AN_PROD.seq) return;
+    var p=r.ok?(d.products||[]).find(function(x){return x.key===key;}):null;
+    AN_PROD.details[key]=p?{product:p,kindsKnown:d.kindsKnown,storageKnown:d.storageKnown}:{error:d.error||'Не удалось загрузить отчёт товара.'};
+  }catch(e){AN_PROD.details[key]={error:'Нет связи с сервером.'};}
+  if(AN_PROD.open===key) anRenderProducts();
+}
+
+function anProductDetail(detail){
+  if(detail.error) return '<span class="an-prod-warn">'+anDxEsc(detail.error)+'</span>';
+  var p=detail.product, t=p.totals, m=p.metrics, units=p.units.net||0, sales=t.retailAmount||0, al=p.allocated||{};
+  var rows=[
+    ['Продажи','retailAmount',1,''],['Комиссия WB','commission',-1,''],['К перечислению за товар','payable',1,'sub'],
+    ['Логистика','logistics',-1,''],['Хранение','storage',-1,''],['Приёмка','acceptance',-1,''],['Штрафы','penalty',-1,'']
+  ];
+  if(detail.kindsKnown) rows.push(['Реклама (оплата WB Продвижение)','adsDeduction',-1,''],['Прочие удержания','otherDeduction',-1,'']);
+  else rows.push(['Удержания (в т.ч. оплата рекламы)','deduction',-1,'']);
+  rows.push(['Доплаты WB','additionalPayment',1,''],['Итого от WB','margin',1,'sub'],['Себестоимость','cogs',-1,''],['Прибыль','profit',1,'total']);
+  var allocOf=function(field){if(field==='otherDeduction')return (al.deduction||0)-(al.adsDeduction||0);return al[field]||0;};
+  var table='<table class="an-pd-table"><thead><tr><th scope="col">Статья</th><th scope="col">Сумма</th><th scope="col">На 1 шт.</th><th scope="col">Доля продаж</th></tr></thead><tbody>'+rows.map(function(r){
+    var v=(t[r[1]]||0)*r[2], a=Math.round(allocOf(r[1]));
+    var how=r[1]==='storage'?(detail.storageKnown?'по отчёту «Платное хранение»':'по доле продаж'):(r[1]==='adsDeduction'?'по расходу на рекламу':'по доле продаж');
+    var hint=a&&r[3]!=='sub'&&r[3]!=='total'?'<span class="an-pd-alloc">в т.ч. общие расходы '+Math.abs(a).toLocaleString('ru')+' ₸, разнесены '+how+'</span>':'';
+    return '<tr'+(r[3]?' class="is-'+r[3]+'"':'')+'><td>'+r[0]+hint+'</td><td'+(r[3]==='total'?' class="'+(v<0?'is-loss':'is-gain')+'"':'')+'>'+anProdMoney(v)+'</td><td>'+(units?anProdMoney(v/units):'—')+'</td><td>'+(sales?anProdPct(Math.abs(v)/sales*100):'—')+'</td></tr>';
+  }).join('')+'</tbody></table>';
+  var tile=function(l,v,s){return '<div class="an-pd-tile"><div class="an-pd-tile-l">'+l+'</div><div class="an-pd-tile-v">'+v+'</div>'+(s?'<div class="an-pd-tile-s">'+s+'</div>':'')+'</div>';};
+  var st=p.stock;
+  var tiles='<div class="an-pd-tiles">'+
+    tile('Прибыль',anProdMoney(t.profit),'маржа '+anProdPct(m.marginPct))+
+    tile('Прибыль с 1 шт.',anProdMoney(m.profitPerUnit),'средняя цена '+anProdMoney(m.avgPrice))+
+    tile('ROI',anProdPct(m.roi),'прибыль на вложенную себестоимость')+
+    tile('Продано',(p.units.sold||0)+' шт','возвратов '+(p.units.returned||0)+', итого '+units)+
+    tile('ДРР',anProdPct(m.drr),'реклама по кампаниям '+anProdMoney(m.adSpend))+
+    (st?tile('Остаток',(st.quantity||0)+' шт',st.daysLeft==null?'заказов не было 14 дней':'хватит на '+st.daysLeft+' дн'):'')+
+  '</div>';
+  var f=p.funnel;
+  var funnel=f&&f.current?'<div class="an-pd-box"><h4 class="an-pd-h">Воронка товара за период</h4><div class="an-pd-funnel">'+
+    (f.current.opens||0).toLocaleString('ru')+' <span>переходов</span> → '+(f.current.carts||0).toLocaleString('ru')+' <span>в корзину</span> → '+(f.current.orders||0).toLocaleString('ru')+' <span>заказов</span>'+
+    (f.current.opens?'<span>· в корзину '+anProdPct(f.current.carts/f.current.opens*100)+', в заказ '+anProdPct(f.current.carts?f.current.orders/f.current.carts*100:null)+'</span>':'')+'</div></div>':'';
+  var warn=p.flags.unpriced?'<p class="an-prod-warn" style="margin:0 0 10px">Не указана себестоимость — прибыль завышена. <button type="button" class="rnp-link" onclick="openCogsModal()">Указать</button></p>':'';
+  return warn+tiles+'<div class="an-pd-grid"><div>'+table+'</div><div>'+anProductChart(p.days||[])+funnel+'</div></div>';
+}
+
+// Продажи и прибыль товара по дням: столбцы продаж и линия прибыли.
+function anProductChart(days){
+  if(!days.length) return '';
+  var w=520,h=170,pl=46,pr=8,pt=10,pb=22;
+  var max=Math.max.apply(null,days.map(function(d){return Math.max(d.retailAmount||0,d.profit||0);}).concat([1]));
+  var min=Math.min.apply(null,days.map(function(d){return Math.min(0,d.profit||0);}));
+  var y=function(v){return pt+(h-pt-pb)*(max-v)/((max-min)||1);};
+  var step=(w-pl-pr)/days.length, bw=Math.max(2,step*0.6);
+  var bars=days.map(function(d,i){var x=pl+i*step+(step-bw)/2,top=y(Math.max(0,d.retailAmount||0));return '<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0,y(0)-top).toFixed(1)+'" rx="2" fill="var(--p)" opacity=".35"><title>'+d.date.slice(8,10)+'.'+d.date.slice(5,7)+': продажи '+anProdMoney(d.retailAmount)+', прибыль '+anProdMoney(d.profit)+'</title></rect>';}).join('');
+  var line=days.map(function(d,i){return (pl+i*step+step/2).toFixed(1)+','+y(d.profit||0).toFixed(1);}).join(' ');
+  var lbl=function(v){return '<text x="'+(pl-6)+'" y="'+(y(v)+3)+'" text-anchor="end">'+(Math.abs(v)>=1000?Math.round(v/1000)+'к':Math.round(v))+'</text>';};
+  var dl=function(i,anchor){var d=days[i];return '<text x="'+(pl+i*step+step/2)+'" y="'+(h-6)+'" text-anchor="'+anchor+'">'+d.date.slice(8,10)+'.'+d.date.slice(5,7)+'</text>';};
+  return '<div class="an-pd-box"><h4 class="an-pd-h">Продажи и прибыль по дням</h4><svg class="an-pd-chart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Продажи и прибыль товара по дням">'+
+    '<line x1="'+pl+'" x2="'+(w-pr)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="var(--border)"/>'+lbl(max)+lbl(0)+(min<0?lbl(min):'')+bars+
+    '<polyline points="'+line+'" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>'+dl(0,'start')+(days.length>1?dl(days.length-1,'end'):'')+'</svg>'+
+    '<div class="an-pd-legend"><span><i style="background:var(--p);opacity:.5"></i>продажи</span><span><i style="background:var(--green)"></i>прибыль</span></div></div>';
+}
+
+// Вывод «трафик или конверсия» по воронке WB.
+function anDxEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function anDxPct(v, sign){if(v==null||!isFinite(v))return '—';var n=Math.round(v*1000)/10;return (sign&&n>0?'+':'')+String(n).replace('.',',').replace('-','−')+'%';}
+function anRenderDiagnosis(dx){
+  var box=document.getElementById('anDx');
+  if(!box) return;
+  if(!dx){box.hidden=true;return;}
+  box.hidden=false;
+  if(!dx.available){
+    document.getElementById('anDxHead').textContent='Вывод по воронке пока недоступен';
+    document.getElementById('anDxSub').textContent=dx.reason||'';
+    ['anDxSteps','anDxProducts','anDxActions'].forEach(function(id){document.getElementById(id).innerHTML='';});
+    document.getElementById('anDxNote').textContent='';
+    return;
+  }
+  document.getElementById('anDxHead').textContent=dx.headline;
+  var sub='Заказы '+(dx.orders||0).toLocaleString('ru')+' против '+(dx.ordersPrev||0).toLocaleString('ru')+' в прошлом периоде.';
+  if(dx.shareText && dx.mode!=='stable') sub+=' '+(dx.mode==='drop'?'Падение':'Изменение')+' объясняют: '+dx.shareText+'.';
+  document.getElementById('anDxSub').textContent=sub;
+  document.getElementById('anDxSteps').innerHTML=dx.steps.map(function(s){
+    var val=s.key==='opens'?(s.current||0).toLocaleString('ru'):anDxPct(s.current);
+    var prev=s.key==='opens'?(s.previous||0).toLocaleString('ru'):anDxPct(s.previous);
+    var cls=s.change==null?'flat':(s.change>=0.02?'up':(s.change<=-0.02?'down':'flat'));
+    return '<div class="an-dx-step'+(dx.worst===s.key?' is-worst':'')+'"><div class="an-dx-step-name">'+anDxEsc(s.name)+'<span class="an-dx-kind">'+anDxEsc(s.kind)+'</span></div>'+
+      '<div class="an-dx-step-val">'+val+'</div><div class="an-dx-step-chg '+cls+'">'+anDxPct(s.change,true)+' <span style="color:var(--muted);font-weight:500">· было '+prev+'</span></div></div>';
+  }).join('');
+  var rows=(dx.products||[]);
+  document.getElementById('anDxProducts').innerHTML=rows.length?'<h3 class="an-dx-h">Где сломалось: товары с потерей заказов</h3><div style="overflow-x:auto"><table class="an-dx-table"><thead><tr><th scope="col">Товар</th><th scope="col" class="num">Заказы</th><th scope="col" class="num">Потеря</th><th scope="col">Где сломалось</th></tr></thead><tbody>'+rows.map(function(r){
+    var k=r.break?({'трафик':'k-traffic','конверсия':'k-conv','склад':'k-stock'}[r.break.kind]||''):'';
+    return '<tr><td>'+anDxEsc(r.name)+'<div style="font-size:11px;color:var(--muted)">арт. '+anDxEsc(r.nmId)+'</div></td><td class="num">'+r.orders+' <span style="color:var(--muted)">/ было '+r.ordersPrev+'</span></td><td class="num">'+anFmtCur(r.lostSum)+'</td><td><span class="an-dx-break '+k+'">'+anDxEsc(r.break?r.break.text:'воронка ровная, просели все шаги понемногу')+'</span></td></tr>';
+  }).join('')+'</tbody></table></div>':'';
+  var acts=(dx.actions||[]);
+  document.getElementById('anDxActions').innerHTML=acts.length?'<h3 class="an-dx-h">Действия на неделю</h3><ol class="an-dx-acts">'+acts.map(function(a,i){
+    return '<li class="an-dx-act"><span class="an-dx-act-n" aria-hidden="true">'+(i+1)+'</span><div><div class="an-dx-act-stage">'+anDxEsc(a.stageName)+'</div><div class="an-dx-act-title">'+anDxEsc(a.title)+'</div>'+
+      '<p><b>Почему:</b> '+anDxEsc(a.why)+'</p><p><b>Что сделать:</b> '+anDxEsc(a.do)+'</p><p><b>Проверить через неделю:</b> '+anDxEsc(a.measure)+'</p></div></li>';
+  }).join('')+'</ol>':'';
+  document.getElementById('anDxNote').textContent=(dx.limits||[]).join(' ');
+}
+
 function anShowErr(msg) {
+  anRenderDiagnosis(null);
   AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='—';});
   var empty=document.getElementById('anChartEmpty');
   var canvas=document.getElementById('anCanvas');
@@ -3712,6 +3991,7 @@ function rnpSourcesTip(s){
     line('• Выкупы и возвраты', src.sales, wbSales ? ' (у WB '+wbSales+')' : ''),
     line('• Названия и остатки', src.stocks),
     line('• Реклама', src.ads, adsThrough),
+    line('• Платное хранение по товарам', src.storage, src.storage && src.storage.from ? ', собрано с '+new Date(src.storage.from+'T12:00:00').toLocaleDateString('ru', {day:'numeric', month:'long'}) : ''),
     line('• Финотчёт WB', src.finance, src.finance && src.finance.from ? ', собран с '+new Date(src.finance.from+'T12:00:00').toLocaleDateString('ru', {day:'numeric', month:'long', year:'numeric'}) : ''),
     line('• Логистика WB на выкуп', src.costs, ' (по финотчёту за 30 дней)')
   ];
@@ -4268,7 +4548,7 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 
 function renderCogsTable(articles) {
   if (!articles.length) {
-    document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Нет товаров с заказами за последние 30 дней</div>';
+    document.getElementById('cogsTableWrap').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Товаров пока нет: WB не отдал ни заказов, ни остатков, ни продаж в финотчёте</div>';
     return;
   }
   var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
