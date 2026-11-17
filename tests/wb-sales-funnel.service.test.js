@@ -177,6 +177,7 @@ test('getPeriodBuckets reconciles bucket totals to the full-period summary', asy
     wait: async () => {}
   });
 
+  const progress = [];
   const result = await service.getPeriodBuckets({
     token: 'token',
     selectedPeriod: { start: '2026-09-21', end: '2026-10-04' },
@@ -184,9 +185,11 @@ test('getPeriodBuckets reconciles bucket totals to the full-period summary', asy
       current: { orders: 10, revenue: 1000 },
       currency: 'KZT',
       productMetrics: [{ nmId: 1, vendorCode: 'A', currentOrders: 10, previousOrders: 0 }]
-    }
+    },
+    onProgress: (done, total) => progress.push([done, total])
   });
 
+  assert.deepEqual(progress, [[0, 2], [1, 2], [2, 2]], 'индикатор видит каждую часть графика');
   assert.equal(result.reconciled, true);
   assert.equal(result.buckets.length, 3);
   assert.deepEqual(result.buckets.map(bucket => bucket.orders), [3, 4, 3]);

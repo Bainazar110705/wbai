@@ -959,6 +959,24 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-help-tip.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
 /* ОТЧЁТ О ПРИБЫЛИ */
+.an-load{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.an-load[hidden]{display:none}
+.an-load-top{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);margin-bottom:10px}
+.an-load-pct{margin-left:auto;font-weight:800;font-variant-numeric:tabular-nums}
+.an-load .wb-sync-bar{max-width:none;flex:none;width:100%}
+.an-load-steps{list-style:none;display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 0;padding:0;font-size:12px;color:var(--muted)}
+.an-load-steps li{display:inline-flex;align-items:center;gap:6px}
+.an-load-steps .an-ld-done{color:var(--green);font-weight:700}
+.an-load-steps .an-ld-running{color:var(--text);font-weight:700}
+.an-load-steps .an-ld-error{color:var(--red)}
+.an-load-dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5}
+.an-load-steps .an-ld-running .an-load-dot{opacity:1;animation:anLoadPulse 1s ease-in-out infinite}
+@keyframes anLoadPulse{50%{opacity:.25}}
+.an-load-hint{font-size:11px;color:var(--muted);margin-top:8px}
+.an-busy{position:relative;opacity:.6;transition:opacity .2s}
+.an-busy::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--p) 10%,transparent) 50%,transparent 70%);background-size:200% 100%;animation:anShimmer 1.4s linear infinite}
+@keyframes anShimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+@media(prefers-reduced-motion:reduce){.an-busy::after,.an-load-steps .an-ld-running .an-load-dot{animation:none}}
 .an-prod{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
 .an-prod-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .an-prod-search{flex:1 1 220px;max-width:320px;min-height:36px;border:1px solid var(--border);border-radius:9px;padding:6px 10px;font:500 13px 'Manrope',sans-serif;color:var(--text);background:var(--surface)}
@@ -1897,6 +1915,13 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <label for="anDateFrom">От</label><input type="date" id="anDateFrom">
         <label for="anDateTo">До</label><input type="date" id="anDateTo">
         <button class="an-apply-btn" onclick="anApplyCustom()">Применить</button>
+      </div>
+
+      <div class="an-load" id="anLoad" role="status" aria-live="polite" hidden>
+        <div class="an-load-top"><span class="wb-sync-spin" aria-hidden="true"></span><b id="anLoadText">Загружаем аналитику</b><span class="an-load-pct" id="anLoadPct">0%</span></div>
+        <div class="wb-sync-bar" aria-hidden="true"><i id="anLoadFill"></i></div>
+        <ul class="an-load-steps" id="anLoadSteps"></ul>
+        <div class="an-load-hint">WB отдаёт данные с паузами между запросами: новый период грузится до минуты, повторно — сразу. Можно пока смотреть блоки, которые уже готовы.</div>
       </div>
 
       <!-- Вывод по воронке: трафик или конверсия -->
@@ -3242,6 +3267,7 @@ async function anLoad(from, to, forceRefresh) {
   if (!AN.hasToken) return;
   var btn = document.getElementById('anRefreshBtn');
   if (btn) btn.disabled=true;
+  anLoadStart();
   AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='...';});
   AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id+'Delta');if(el){el.textContent='';el.className='an-card-delta eq';}});
   AN_METRIC_IDS.forEach(function(id){var el=document.getElementById(id+'Period');if(el)el.textContent='';});
@@ -3254,7 +3280,11 @@ async function anLoad(from, to, forceRefresh) {
     var r = await fetch(url, {headers:{Authorization:'Bearer '+token}});
     var d;
     try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
-    if (!r.ok) { anShowErr(d.error||'Ошибка'); return; }
+    AN_LOAD.serverPending=false;
+    if (!r.ok) { anLoadFail(); anShowErr(d.error||'Ошибка'); return; }
+    ['funnel','chart','finance'].forEach(function(k){anLoadBusy(k,false);});
+    anLoadSet('funnel','done'); anLoadSet('chart','done');
+    anLoadSet('finance', d.finance && d.finance.status==='unavailable' ? 'error' : 'done');
     AN.financeReady = !!(d.finance && d.finance.status === 'ready');
     anUpdateMetrics(d.totals, d.prevTotals, AN.period, d.finance);
     anRenderDiagnosis(d.diagnosis);
@@ -3277,8 +3307,76 @@ async function anLoad(from, to, forceRefresh) {
     document.getElementById('anUpdatedAt').textContent=dataTime.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+dataLabel+rateStr;
     AN.sources={funnel:sources, finance:d.finance||{}, financeCache:cache.finance||null, rubKztRate:usesRub?d.rubKztRate:null, dateTo:d.dateTo, ads:AN.sources&&AN.sources.adsFor===d.dateFrom+d.dateTo?AN.sources.ads:null, adsFor:d.dateFrom+d.dateTo};
     anRenderSourcesTip();
-  } catch(e) { anShowErr('Ошибка соединения'); }
+  } catch(e) { AN_LOAD.serverPending=false; anLoadFail(); anShowErr('Ошибка соединения'); }
   finally { if(btn) btn.disabled=false; }
+}
+
+// ── Индикатор загрузки «Аналитики»: реальные шаги сервера (воронка, график,
+// финотчёт) и запросы страницы (прибыль по товарам, реклама).
+var AN_LOAD={steps:{},pollTimer:null,showTimer:null,serverPending:false,seq:0};
+var AN_LOAD_STEPS=[
+  {key:'funnel',label:'Заказы и выкупы',w:25,blocks:['.an-metrics','#anDx']},
+  {key:'chart',label:'График',w:25,blocks:['.an-chart-card']},
+  {key:'finance',label:'Финансовый отчёт',w:20,blocks:['.an-pnl']},
+  {key:'products',label:'Прибыль по товарам',w:20,blocks:['.an-prod']},
+  {key:'ads',label:'Реклама',w:10,blocks:[]}
+];
+function anLoadBusy(stepKey,busy){
+  var st=AN_LOAD_STEPS.find(function(x){return x.key===stepKey;});
+  (st?st.blocks:[]).forEach(function(sel){document.querySelectorAll('#anMain '+sel).forEach(function(el){el.classList.toggle('an-busy',busy);if(busy)el.setAttribute('aria-busy','true');else el.removeAttribute('aria-busy');});});
+}
+function anLoadFinished(state){return state==='done'||state==='error'||state==='skipped';}
+function anLoadStart(){
+  AN_LOAD.seq++;
+  AN_LOAD.steps={};
+  AN_LOAD_STEPS.forEach(function(st){AN_LOAD.steps[st.key]={state:'pending'};anLoadBusy(st.key,true);});
+  AN_LOAD.serverPending=true;
+  clearTimeout(AN_LOAD.showTimer);clearTimeout(AN_LOAD.pollTimer);
+  // Ответ из кэша приходит за доли секунды — тогда индикатор не показываем.
+  AN_LOAD.showTimer=setTimeout(function(){if(!anLoadAllDone()){document.getElementById('anLoad').hidden=false;anLoadRender();}},700);
+  AN_LOAD.pollTimer=setTimeout(anLoadPoll,800);
+}
+function anLoadAllDone(){return AN_LOAD_STEPS.every(function(st){return anLoadFinished((AN_LOAD.steps[st.key]||{}).state);});}
+// fromServer: шаг готов на сервере, но блок заполнится только с ответом — подсветку не снимаем.
+function anLoadSet(key,state,extra,fromServer){
+  var cur=AN_LOAD.steps[key]||{};
+  if(anLoadFinished(cur.state)&&!anLoadFinished(state)) return;
+  AN_LOAD.steps[key]=Object.assign({state:state},extra||{});
+  if(anLoadFinished(state)&&!fromServer) anLoadBusy(key,false);
+  anLoadRender();
+  if(anLoadAllDone()){
+    clearTimeout(AN_LOAD.showTimer);clearTimeout(AN_LOAD.pollTimer);
+    setTimeout(function(){if(anLoadAllDone())document.getElementById('anLoad').hidden=true;},900);
+  }
+}
+async function anLoadPoll(){
+  if(!AN_LOAD.serverPending) return;
+  var seq=AN_LOAD.seq;
+  try{
+    var r=await fetch('/api/wb-analytics/progress',{headers:{Authorization:'Bearer '+token}});
+    var d=await r.json();
+    if(seq!==AN_LOAD.seq||!AN_LOAD.serverPending) return;
+    ['funnel','chart','finance'].forEach(function(k){var x=(d.steps||{})[k];if(x&&x.state!=='pending')anLoadSet(k,x.state,{done:x.done,total:x.total},true);});
+  }catch(e){}
+  if(seq===AN_LOAD.seq&&AN_LOAD.serverPending) AN_LOAD.pollTimer=setTimeout(anLoadPoll,1500);
+}
+function anLoadRender(){
+  var done=0,total=0,ready=0;
+  var items=AN_LOAD_STEPS.map(function(st){
+    var x=AN_LOAD.steps[st.key]||{state:'pending'};
+    total+=st.w;
+    var part=anLoadFinished(x.state)?1:(x.state==='running'?(x.total?0.15+0.85*(x.done||0)/x.total:0.35):0);
+    done+=st.w*part;
+    if(anLoadFinished(x.state)) ready++;
+    var extra=x.state==='running'&&x.total?' '+(x.done||0)+' из '+x.total:'';
+    var mark=x.state==='done'?'✓ ':x.state==='error'?'! ':'';
+    return '<li class="an-ld-'+x.state+'"><span class="an-load-dot" aria-hidden="true"></span>'+mark+st.label+extra+(x.state==='error'?' — недоступно':'')+'</li>';
+  });
+  var pct=Math.min(100,Math.round(done/total*100));
+  document.getElementById('anLoadSteps').innerHTML=items.join('');
+  document.getElementById('anLoadFill').style.width=pct+'%';
+  document.getElementById('anLoadPct').textContent=pct+'%';
+  document.getElementById('anLoadText').textContent=ready===AN_LOAD_STEPS.length?'Аналитика загружена':'Загружаем аналитику · готово '+ready+' из '+AN_LOAD_STEPS.length;
 }
 
 var anAdsRequestSeq=0;
@@ -3290,6 +3388,7 @@ async function anLoadAds(from, to, forceRefresh) {
   var lbl=document.getElementById('anAdSpendLbl');
   AN.adSpend=null; anRenderAdShare();
   if(el) el.textContent='...';
+  anLoadSet('ads','running');
   try {
     var url='/api/wb-advertising?from='+from+'&to='+to+(forceRefresh?'&refresh=1':'');
     var r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
@@ -3300,8 +3399,10 @@ async function anLoadAds(from, to, forceRefresh) {
       anSetUnavailable('anAdSpend');
       if(lbl) lbl.title=d.error||'Затраты на рекламу недоступны';
       anSetAdsSource({error:d.error||'Затраты на рекламу недоступны'}, from, to);
+      anLoadSet('ads','error');
       return;
     }
+    anLoadSet('ads','done');
     AN.adSpend=Number((d.totals||{}).spend)||0;
     anSetVal('anAdSpend', AN.adSpend);
     anSetAdsSource({cache:d.cache||null}, from, to);
@@ -3311,6 +3412,7 @@ async function anLoadAds(from, to, forceRefresh) {
     if(seq!==anAdsRequestSeq) return;
     anSetUnavailable('anAdSpend');
     if(lbl) lbl.title='Ошибка соединения';
+    anLoadSet('ads','error');
   }
 }
 
@@ -3375,14 +3477,16 @@ async function anLoadProducts(from, to){
   AN_PROD.from=from; AN_PROD.to=to; AN_PROD.open=null; AN_PROD.details={};
   var status=document.getElementById('anProdStatus');
   if(status) status.textContent='Загружаем…';
+  anLoadSet('products','running');
   try{
     var r=await fetch('/api/wb-analytics/products?from='+from+'&to='+to,{headers:{Authorization:'Bearer '+token}});
     var d=await r.json().catch(function(){return {};});
     if(seq!==AN_PROD.seq) return;
-    if(!r.ok){AN_PROD.data=null;document.getElementById('anProdTable').innerHTML='';if(status)status.textContent=d.error||'Отчёт по товарам недоступен.';return;}
+    if(!r.ok){AN_PROD.data=null;document.getElementById('anProdTable').innerHTML='';if(status)status.textContent=d.error||'Отчёт по товарам недоступен.';anLoadSet('products','error');return;}
     AN_PROD.data=d;
     anRenderProducts();
-  }catch(e){ if(seq===AN_PROD.seq&&status) status.textContent='Нет связи с сервером.'; }
+    anLoadSet('products','done');
+  }catch(e){ if(seq===AN_PROD.seq){ if(status) status.textContent='Нет связи с сервером.'; anLoadSet('products','error'); } }
 }
 
 function anProdSort(key){
@@ -3528,6 +3632,13 @@ function anRenderDiagnosis(dx){
       '<p><b>Почему:</b> '+anDxEsc(a.why)+'</p><p><b>Что сделать:</b> '+anDxEsc(a.do)+'</p><p><b>Проверить через неделю:</b> '+anDxEsc(a.measure)+'</p></div></li>';
   }).join('')+'</ol>':'';
   document.getElementById('anDxNote').textContent=(dx.limits||[]).join(' ');
+}
+
+// Основной запрос не прошёл — зависимые блоки не загрузятся, индикатор закрываем.
+function anLoadFail(){
+  ['funnel','chart','finance'].forEach(function(k){anLoadBusy(k,false);});
+  ['funnel','chart','finance'].forEach(function(k){if(!anLoadFinished((AN_LOAD.steps[k]||{}).state))anLoadSet(k,'error');});
+  ['products','ads'].forEach(function(k){if(!anLoadFinished((AN_LOAD.steps[k]||{}).state))anLoadSet(k,'skipped');});
 }
 
 function anShowErr(msg) {

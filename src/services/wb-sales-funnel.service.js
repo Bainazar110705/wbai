@@ -263,7 +263,8 @@ function createSalesFunnelService({ fetchImpl = fetch, wait = ms => new Promise(
     };
   }
 
-  async function getPeriodBuckets({ token, selectedPeriod, totalSummary, bucketCount = 3 }) {
+  // onProgress(done, total) — для индикатора загрузки «Аналитики»: каждая часть графика — отдельный запрос к WB.
+  async function getPeriodBuckets({ token, selectedPeriod, totalSummary, bucketCount = 3, onProgress = () => {} }) {
     const ranges = splitPeriod(selectedPeriod, bucketCount);
     if (ranges.length === 1) {
       return {
@@ -278,8 +279,11 @@ function createSalesFunnelService({ fetchImpl = fetch, wait = ms => new Promise(
     }
 
     const buckets = [];
-    for (const range of ranges.slice(0, -1)) {
+    const requested = ranges.slice(0, -1);
+    onProgress(0, requested.length);
+    for (const range of requested) {
       const summary = await getPeriodSummary({ token, selectedPeriod: range });
+      onProgress(buckets.length + 1, requested.length);
       if (summary.currency !== totalSummary.currency) {
         throw new Error('Валюта WB Analytics изменилась между частями периода.');
       }

@@ -1371,6 +1371,40 @@ async function loadStoredFinance(userId, sync, dateFrom, dateTo, today) {
   return storedSourceInfo({ rows, currency }, sync.finance_at || sync.last_success_at);
 }
 
+// Ход загрузки «Аналитики» для индикатора на странице: какой шаг идёт сейчас.
+// Хранится в памяти по пользователю; через минуту после конца запись не нужна.
+const analyticsProgress = new Map();
+const ANALYTICS_PROGRESS_TTL_MS = 60 * 1000;
+
+function startAnalyticsProgress(userId) {
+  for (const [key, value] of analyticsProgress) {
+    if (Date.now() - value.updatedAt > ANALYTICS_PROGRESS_TTL_MS) analyticsProgress.delete(key);
+  }
+  const progress = {
+    active: true,
+    updatedAt: Date.now(),
+    steps: { funnel: { state: 'pending' }, chart: { state: 'pending' }, finance: { state: 'pending' } }
+  };
+  analyticsProgress.set(userId, progress);
+  return (step, state, extra = {}) => {
+    progress.steps[step] = { state, ...extra };
+    progress.updatedAt = Date.now();
+  };
+}
+
+function finishAnalyticsProgress(userId) {
+  const progress = analyticsProgress.get(userId);
+  if (progress) {
+    progress.active = false;
+    progress.updatedAt = Date.now();
+  }
+}
+
+app.get('/api/wb-analytics/progress', authMiddleware, (req, res) => {
+  const progress = analyticsProgress.get(req.user.id);
+  res.json(progress ? { active: progress.active, steps: progress.steps } : { active: false, steps: {} });
+});
+
 // Период Аналитики: свой (from/to) или кнопка (неделя, месяц…), и прошлый период той же длины.
 function analyticsRange({ period, from, to }, moscowToday) {
   let dateFrom, dateTo;
@@ -1463,9 +1497,11 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const inRange = day => day >= dateFrom && day <= dateTo;
   const prevInRange = day => day >= prevFrom && day <= prevTo;
   const funnelTtlMs = funnelCacheTtlMs(dateTo, moscowToday);
+  const step = startAnalyticsProgress(req.user.id);
 
   try {
     // Карточки, график и себестоимость используют один источник — Sales Funnel WB.
+    step('funnel', 'running');
     const salesFunnelSource = await loadAnalyticsSource({
       userId: req.user.id,
       // V4: в кэше есть переходы и корзины по товарам для вывода «трафик или конверсия».
@@ -1485,6 +1521,8 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
 
     // Дневная история дольше 7 дней требует отдельной Jam-выгрузки. Поэтому
     // строим до трёх честных интервалов из того же Sales Funnel и сверяем их с итогом.
+    step('funnel', 'done');
+    step('chart', 'running', { done: 0, total: 0 });
     const funnelBucketsSource = await loadAnalyticsSource({
       userId: req.user.id,
       source: 'salesFunnelBucketsV1',
@@ -1497,9 +1535,11 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
         token: wbToken,
         selectedPeriod: { start: dateFrom, end: dateTo },
         totalSummary: salesFunnel,
-        bucketCount: 3
+        bucketCount: 3,
+        onProgress: (done, total) => step('chart', 'running', { done, total })
       })
     });
+    step('chart', 'done');
     const funnelBuckets = Array.isArray(funnelBucketsSource.payload?.buckets)
       ? funnelBucketsSource.payload.buckets
       : [];
@@ -1511,13 +1551,16 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
 
     const storedSync = await storedSourcesSync(req.user.id, { force: forceRefresh });
     let reportRaw = [], financeSource = null, financeCurrency = null, financeErrorCode = null;
+    step('finance', 'running');
     try {
       financeSource = await loadFinanceForPeriod({
         userId: req.user.id, token: wbToken, sync: storedSync, dateFrom: prevFrom, dateTo, today: moscowToday, force: forceRefresh
       });
       reportRaw = Array.isArray(financeSource.payload?.rows) ? financeSource.payload.rows : [];
       financeCurrency = financeSource.payload?.currency || null;
+      step('finance', 'done');
     } catch(e) {
+      step('finance', 'error');
       financeErrorCode = e.code || `WB_FINANCE_${e.status || 500}`;
       logger.warn('wb_finance_unavailable', { userId: req.user.id, code: financeErrorCode, error: e.message });
     }
@@ -1717,8 +1760,10 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
              calculated_at=NOW()`,
       [req.user.id, dateFrom, dateTo, JSON.stringify(response), salesFunnelSource.fetchedAt, financeSource?.fetchedAt || null]
     );
+    finishAnalyticsProgress(req.user.id);
     res.json(response);
   } catch(e) {
+    finishAnalyticsProgress(req.user.id);
     logger.error('wb_analytics_failed', { userId: req.user.id, status: e.status || 500, error: e.message });
     const status = [400, 401, 402, 403, 429, 502].includes(e.status) ? e.status : 500;
     res.status(status).json({ error: e.message, needsAnalyticsPermission: !!e.needsAnalyticsPermission });
