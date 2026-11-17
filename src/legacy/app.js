@@ -38,6 +38,13 @@ const { registerAnalyticsProductsRoutes } = require('../routes/analytics-product
 const { stockInfo } = require('../services/wb-rnp.service');
 const { addDays } = require('../services/wb-rnp-sync.service');
 const { createPaidStorageService } = require('../services/wb-paid-storage.service');
+const { createShopsRepository } = require('../repositories/shops.repository');
+const { createShopsService } = require('../services/shops.service');
+const { createSellerService } = require('../services/wb-seller.service');
+const { createShopsController } = require('../controllers/shops.controller');
+const { registerShopsRoutes } = require('../routes/shops.routes');
+const { createShopMiddleware } = require('../middleware/shop');
+const { AppError } = require('../platform/errors');
 const { buildStrictProductContext, STRICT_PRODUCT_FACTS_RULES } = require('../services/infographic-facts');
 const { createInfographicBriefService, briefToPromptParts, needsAutoBrief } = require('../services/infographic-brief');
 const { parseFalError } = require('../services/fal-errors');
@@ -73,6 +80,17 @@ const {
 } = createAuthMiddleware({ usersRepository, jwtSecret: JWT_SECRET, adminKey: ADMIN_KEY });
 const authController = createAuthController(authService);
 const templatesController = createTemplatesController(templatesService);
+const shopsRepository = createShopsRepository(db);
+const resolveShop = createShopMiddleware({ repository: shopsRepository });
+const shopsService = createShopsService({
+  repository: shopsRepository,
+  usersRepository,
+  validateToken: token => validateWbToken(token),
+  getSellerInfo: createSellerService().getSellerInfo,
+  getCatalogNmIds: async token => (await salesFunnelService.getCatalog({ token, date: dateInTimeZone(new Date(), 'Europe/Moscow') })).map(product => product.nmId),
+  syncService: rnpSyncService,
+  logger
+});
 
 function numberOrZero(value) {
   const parsed = Number(value);
@@ -182,7 +200,7 @@ app.use(cors({
     return cb(null, allowedOrigins.has(origin));
   },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key', 'X-Shop-Id'],
   maxAge: 600
 }));
 app.use(express.json({ limit: '20mb' }));
@@ -195,20 +213,21 @@ registerTemplatesRoutes(app, {
   auth: authMiddleware,
   subscription: checkSubscription
 });
+registerShopsRoutes(app, { controller: createShopsController(shopsService), auth: authMiddleware });
 registerRnpRoutes(app, {
   controller: createRnpController({ repository: rnpRepository, syncService: rnpSyncService, getRubKztRate }),
-  auth: authMiddleware
+  auth: authMiddleware,
+  shop: resolveShop
 });
 registerAnalyticsProductsRoutes(app, {
   controller: createAnalyticsProductsController({
-    getToken: userId => rnpRepository.getToken(userId),
-    storedSync: userId => storedSourcesSync(userId),
+    storedSync: shopId => storedSourcesSync(shopId),
     resolveRange: analyticsRange,
     loadFinance: loadFinanceForPeriod,
     loadStockDays: loadStoredStockDays,
     // Воронку по товарам берём только из кэша «Аналитики», лишний раз WB не спрашиваем.
-    findFunnel: async (userId, range) => {
-      const cached = await findAnalyticsSourceCache(userId, 'salesFunnelV4', range.prevFrom, range.dateTo, undefined, true);
+    findFunnel: async (shopId, range) => {
+      const cached = await findAnalyticsSourceCache(shopId, 'salesFunnelV4', range.prevFrom, range.dateTo, undefined, true);
       const payload = cached ? parseAnalyticsCachePayload(cached.payload) : null;
       return Array.isArray(payload?.funnel) ? payload.funnel : [];
     },
@@ -216,7 +235,8 @@ registerAnalyticsProductsRoutes(app, {
     getRubKztRate,
     today: () => dateInTimeZone(new Date(), 'Europe/Moscow')
   }),
-  auth: authMiddleware
+  auth: authMiddleware,
+  shop: resolveShop
 });
 
 // === ПРОКСИ ДЛЯ ИЗОБРАЖЕНИЙ (для Canvas) ===
@@ -1087,18 +1107,19 @@ app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
 //  WB API TOKEN + АНАЛИТИКА
 // ═══════════════════════════════════════════════════
 
-// Таблица: CREATE wb_api_token column (добавляется один раз через db.js)
 
 // ── Себестоимость товаров ─────────────────────────────────────────────────────
 
 // GET /api/product-costs — список артикулов с себестоимостью
-app.get('/api/product-costs', authMiddleware, async (req, res) => {
-  const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE user_id=? ORDER BY name', [req.user.id]);
+app.get('/api/product-costs', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE shop_id=? ORDER BY name', [req.shop.id]);
   res.json({ items: rows });
 });
 
 // POST /api/product-costs — сохранить себестоимость (массив артикулов)
-app.post('/api/product-costs', authMiddleware, async (req, res) => {
+app.post('/api/product-costs', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const { items } = req.body; // [{supplier_article, name, cost_price}]
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Нет данных' });
   for (const item of items) {
@@ -1107,19 +1128,18 @@ app.post('/api/product-costs', authMiddleware, async (req, res) => {
     const name = (item.name || '').slice(0, 200);
     if (!article) continue;
     await db.runAsync(
-      `INSERT INTO product_costs (user_id, supplier_article, name, cost_price, updated_at)
+      `INSERT INTO product_costs (shop_id, supplier_article, name, cost_price, updated_at)
        VALUES (?,?,?,?, NOW())
-       ON CONFLICT (user_id, supplier_article) DO UPDATE SET cost_price=EXCLUDED.cost_price, name=EXCLUDED.name, updated_at=NOW()`,
-      [req.user.id, article, name, cost]
+       ON CONFLICT (shop_id, supplier_article) DO UPDATE SET cost_price=EXCLUDED.cost_price, name=EXCLUDED.name, updated_at=NOW()`,
+      [req.shop.id, article, name, cost]
     );
   }
   res.json({ ok: true });
 });
 
 // GET /api/wb-articles — артикулы с заказами за последние 30 дней (для заполнения себестоимости)
-app.get('/api/wb-articles', authMiddleware, async (req, res) => {
-  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+app.get('/api/wb-articles', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
 
   try {
     const dateTo = dateInTimeZone(new Date(), 'Europe/Moscow');
@@ -1131,13 +1151,13 @@ app.get('/api/wb-articles', authMiddleware, async (req, res) => {
     let funnelError = null;
     try {
       articlesSource = await loadAnalyticsSource({
-        userId: req.user.id,
+        shopId: req.shop?.id,
         source: 'salesFunnelArticles',
         dateFrom,
         dateTo,
         exactRange: true,
         fetchSource: () => salesFunnelService.getProducts({
-          token: u.wb_api_token,
+          token: req.shop.token,
           selectedPeriod: { start: dateFrom, end: dateTo }
         })
       });
@@ -1165,9 +1185,9 @@ app.get('/api/wb-articles', authMiddleware, async (req, res) => {
     const yearAgo = new Date(`${dateTo}T12:00:00.000Z`);
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
     const [catalog, sold, saved] = await Promise.all([
-      rnpRepository.listProducts(req.user.id),
-      rnpRepository.soldVendorCodes(req.user.id, yearAgo.toISOString().slice(0, 10)),
-      db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE user_id=?', [req.user.id])
+      rnpRepository.listProducts(req.shop.id),
+      rnpRepository.soldVendorCodes(req.shop.id, yearAgo.toISOString().slice(0, 10)),
+      db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE shop_id=?', [req.shop.id])
     ]);
     const subjectByVendor = new Map(catalog.map(row => [normalizeVendorCode(row.vendor_code), row.subject]));
     catalog.filter(row => Number(row.stock_wb) + Number(row.stock_mp) > 0).forEach(row => add(row.vendor_code, row.subject));
@@ -1189,49 +1209,45 @@ app.get('/api/wb-articles', authMiddleware, async (req, res) => {
 });
 
 // POST /api/wb-token — сохранить токен WB
-app.post('/api/wb-token', authMiddleware, async (req, res) => {
-  const { token: wbToken } = req.body;
-  if (!wbToken?.trim()) return res.status(400).json({ error: 'Введите токен' });
-  // Нормализуем — убираем Bearer если пользователь вставил с префиксом
-  const cleanToken = wbToken.trim().replace(/^Bearer\s+/i, '');
-  // Проверяем токен
+// Проверка токена WB: доступы «Статистика» и «Аналитика». Временный сбой сети
+// не мешает сохранить токен — загрузка повторится сама.
+async function validateWbToken(token) {
   try {
     const test = await fetch(`https://statistics-api.wildberries.ru/api/v1/supplier/sales?dateFrom=${new Date(Date.now()-86400000).toISOString().slice(0,10)}`, {
-      headers: { Authorization: `Bearer ${cleanToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
-    if (test.status === 401) return res.status(400).json({ error: 'Токен недействителен. Создайте новый в WB.' });
-    if (test.status === 403) return res.status(400).json({ error: 'Нет прав. Нужен доступ «Статистика» при создании токена.' });
+    if (test.status === 401) throw new AppError(400, 'Токен недействителен. Создайте новый в WB.', 'WB_TOKEN_INVALID');
+    if (test.status === 403) throw new AppError(400, 'Нет прав. Нужен доступ «Статистика» при создании токена.', 'WB_TOKEN_NO_STATISTICS');
     const today = dateInTimeZone(new Date(), 'Europe/Moscow');
-    await salesFunnelService.validateAccess({ token: cleanToken, date: today });
-  } catch(e) {
-    if (e.status) return res.status(400).json({ error: e.message, needsAnalyticsPermission: !!e.needsAnalyticsPermission });
-    // Временный сбой сети не должен блокировать сохранение ранее созданного токена.
-    logger.warn('wb_token_validation_unavailable', { userId: req.user.id, error: e.message });
-  }
-  await db.runAsync('UPDATE users SET wb_api_token=? WHERE id=?', [cleanToken, req.user.id]);
-  // Импорт кабинета начинается сразу после подключения токена. Новый токен может
-  // быть от другого кабинета, поэтому загружаем заново, даже если данные свежие.
-  try {
-    await rnpRepository.ensureSync(req.user.id);
-    await rnpRepository.markViewed(req.user.id);
-    await rnpRepository.updateSync(req.user.id, { last_success_at: null });
-    rnpSyncService.syncUser(req.user.id);
+    await salesFunnelService.validateAccess({ token, date: today });
   } catch (error) {
-    logger.warn('wb_import_start_failed', { userId: req.user.id, error: error.message });
+    if (error instanceof AppError) throw error;
+    if (error.status) throw new AppError(400, error.message, error.needsAnalyticsPermission ? 'WB_TOKEN_NO_ANALYTICS' : 'WB_TOKEN_REJECTED');
+    logger.warn('wb_token_validation_unavailable', { error: error.message });
   }
-  res.json({ ok: true });
+}
+
+// Старые методы одного токена — теперь работают с выбранным магазином.
+// POST /api/wb-token: заменить токен выбранного магазина или добавить первый.
+app.post('/api/wb-token', authMiddleware, resolveShop, async (req, res) => {
+  try {
+    if (req.shop) await shopsService.replaceToken(req.user.id, req.shop.id, req.body?.token);
+    else await shopsService.add(req.user.id, req.body?.token);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.status ? error.message : 'Не удалось сохранить токен.' });
+  }
 });
 
-// DELETE /api/wb-token
-app.delete('/api/wb-token', authMiddleware, async (req, res) => {
-  await db.runAsync('UPDATE users SET wb_api_token=NULL WHERE id=?', [req.user.id]);
+// DELETE /api/wb-token — удалить выбранный магазин со всеми его данными.
+app.delete('/api/wb-token', authMiddleware, resolveShop, async (req, res) => {
+  if (req.shop) await shopsService.remove(req.user.id, req.shop.id);
   res.json({ ok: true });
 });
 
 // GET /api/wb-token/status
-app.get('/api/wb-token/status', authMiddleware, async (req, res) => {
-  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  res.json({ hasToken: !!u?.wb_api_token, tokenPreview: u?.wb_api_token ? '****'+u.wb_api_token.slice(-6) : null });
+app.get('/api/wb-token/status', authMiddleware, resolveShop, async (req, res) => {
+  res.json({ hasToken: !!req.shop, tokenPreview: req.shop ? '****' + req.shop.token.slice(-6) : null });
 });
 
 // WB обновляет заказы примерно раз в 30 минут, но пользователь может часто
@@ -1269,8 +1285,8 @@ function analyticsCacheInfo(row, cached, stale, refreshLimited = false) {
   };
 }
 
-async function findAnalyticsSourceCache(userId, source, dateFrom, dateTo, freshAfter, exactRange = false) {
-  const params = [userId, source, dateFrom, dateTo];
+async function findAnalyticsSourceCache(shopId, source, dateFrom, dateTo, freshAfter, exactRange = false) {
+  const params = [shopId, source, dateFrom, dateTo];
   let freshness = '';
   if (freshAfter) {
     params.push(freshAfter);
@@ -1279,14 +1295,14 @@ async function findAnalyticsSourceCache(userId, source, dateFrom, dateTo, freshA
   return db.getAsync(
     `SELECT payload, fetched_at
      FROM wb_analytics_source_cache
-     WHERE user_id=? AND source=? AND ${exactRange ? 'date_from=?::date AND date_to=?::date' : 'date_from<=?::date AND date_to>=?::date'} ${freshness}
+     WHERE shop_id=? AND source=? AND ${exactRange ? 'date_from=?::date AND date_to=?::date' : 'date_from<=?::date AND date_to>=?::date'} ${freshness}
      ORDER BY fetched_at DESC LIMIT 1`,
     params
   );
 }
 
 async function loadAnalyticsSource({
-  userId,
+  shopId,
   source,
   dateFrom,
   dateTo,
@@ -1300,21 +1316,21 @@ async function loadAnalyticsSource({
   if (!ttl) throw new Error(`Не задан TTL для источника ${source}`);
   const maxAge = force ? minRefreshAgeMs : ttl;
   const freshAfter = new Date(Date.now() - maxAge).toISOString();
-  const cached = await findAnalyticsSourceCache(userId, source, dateFrom, dateTo, freshAfter, exactRange);
+  const cached = await findAnalyticsSourceCache(shopId, source, dateFrom, dateTo, freshAfter, exactRange);
   if (cached) return analyticsCacheInfo(cached, true, false, force);
 
-  const requestKey = `${userId}:${source}:${dateFrom}:${dateTo}`;
+  const requestKey = `${shopId}:${source}:${dateFrom}:${dateTo}`;
   let pending = wbAnalyticsSourceRequests.get(requestKey);
   if (!pending) {
     pending = (async () => {
       const payload = await fetchSource();
       const fetchedAt = new Date().toISOString();
       await db.runAsync(
-        `INSERT INTO wb_analytics_source_cache (user_id, source, date_from, date_to, payload, fetched_at)
+        `INSERT INTO wb_analytics_source_cache (shop_id, source, date_from, date_to, payload, fetched_at)
          VALUES (?, ?, ?, ?, ?::jsonb, ?)
-         ON CONFLICT (user_id, source, date_from, date_to) DO UPDATE
+         ON CONFLICT (shop_id, source, date_from, date_to) DO UPDATE
            SET payload=EXCLUDED.payload, fetched_at=EXCLUDED.fetched_at`,
-        [userId, source, dateFrom, dateTo, JSON.stringify(payload), fetchedAt]
+        [shopId, source, dateFrom, dateTo, JSON.stringify(payload), fetchedAt]
       );
       return { payload, fetchedAt };
     })().finally(() => wbAnalyticsSourceRequests.delete(requestKey));
@@ -1326,7 +1342,7 @@ async function loadAnalyticsSource({
     return { payload: result.payload, cached: false, stale: false, refreshLimited: false, fetchedAt: result.fetchedAt };
   } catch (error) {
     // Если WB временно недоступен, не стираем ранее полученные данные за тот же период.
-    const stale = await findAnalyticsSourceCache(userId, source, dateFrom, dateTo, undefined, exactRange);
+    const stale = await findAnalyticsSourceCache(shopId, source, dateFrom, dateTo, undefined, exactRange);
     if (stale) return analyticsCacheInfo(stale, true, true, false);
     throw error;
   }
@@ -1335,15 +1351,15 @@ async function loadAnalyticsSource({
 // GET /api/wb-analytics
 // Реклама и финотчёт уже хранятся у нас после фоновой загрузки (та же, что у РНП).
 // Если сохранённые дни покрывают период, WB не спрашиваем; иначе — прежний запрос.
-async function storedSourcesSync(userId, { force = false } = {}) {
+async function storedSourcesSync(shopId, { force = false } = {}) {
   try {
-    await rnpRepository.ensureSync(userId);
-    await rnpRepository.markViewed(userId);
-    const sync = await rnpRepository.getSync(userId);
-    rnpSyncService.requestSync(userId, sync, { force });
+    await rnpRepository.ensureSync(shopId);
+    await rnpRepository.markViewed(shopId);
+    const sync = await rnpRepository.getSync(shopId);
+    rnpSyncService.requestSync(shopId, sync, { force });
     return sync;
   } catch (error) {
-    logger.warn('stored_sources_unavailable', { userId, error: error.message });
+    logger.warn('stored_sources_unavailable', { shopId, error: error.message });
     return null;
   }
 }
@@ -1364,9 +1380,9 @@ function storedCovers(storedFrom, storedTo, dateFrom, dateTo, today) {
   return !!(storedFrom && storedTo && storedFrom <= dateFrom && storedTo >= needTo);
 }
 
-async function loadStoredFinance(userId, sync, dateFrom, dateTo, today) {
+async function loadStoredFinance(shopId, sync, dateFrom, dateTo, today) {
   if (!sync || !storedCovers(sync.finance_from, sync.finance_to, dateFrom, dateTo, today)) return null;
-  const rows = await rnpRepository.listFinanceRows(userId, dateFrom, dateTo);
+  const rows = await rnpRepository.listFinanceRows(shopId, dateFrom, dateTo);
   const currency = rows.find(row => row.currency)?.currency || sync.finance_currency || null;
   return storedSourceInfo({ rows, currency }, sync.finance_at || sync.last_success_at);
 }
@@ -1376,7 +1392,7 @@ async function loadStoredFinance(userId, sync, dateFrom, dateTo, today) {
 const analyticsProgress = new Map();
 const ANALYTICS_PROGRESS_TTL_MS = 60 * 1000;
 
-function startAnalyticsProgress(userId) {
+function startAnalyticsProgress(shopId) {
   for (const [key, value] of analyticsProgress) {
     if (Date.now() - value.updatedAt > ANALYTICS_PROGRESS_TTL_MS) analyticsProgress.delete(key);
   }
@@ -1385,23 +1401,23 @@ function startAnalyticsProgress(userId) {
     updatedAt: Date.now(),
     steps: { funnel: { state: 'pending' }, chart: { state: 'pending' }, finance: { state: 'pending' } }
   };
-  analyticsProgress.set(userId, progress);
+  analyticsProgress.set(shopId, progress);
   return (step, state, extra = {}) => {
     progress.steps[step] = { state, ...extra };
     progress.updatedAt = Date.now();
   };
 }
 
-function finishAnalyticsProgress(userId) {
-  const progress = analyticsProgress.get(userId);
+function finishAnalyticsProgress(shopId) {
+  const progress = analyticsProgress.get(shopId);
   if (progress) {
     progress.active = false;
     progress.updatedAt = Date.now();
   }
 }
 
-app.get('/api/wb-analytics/progress', authMiddleware, (req, res) => {
-  const progress = analyticsProgress.get(req.user.id);
+app.get('/api/wb-analytics/progress', authMiddleware, resolveShop, (req, res) => {
+  const progress = req.shop ? analyticsProgress.get(req.shop.id) : null;
   res.json(progress ? { active: progress.active, steps: progress.steps } : { active: false, steps: {} });
 });
 
@@ -1439,9 +1455,9 @@ function analyticsRange({ period, from, to }, moscowToday) {
 }
 
 // Финотчёт за период: из нашей базы, иначе кэш или запрос к WB.
-async function loadFinanceForPeriod({ userId, token, sync, dateFrom, dateTo, today, force = false }) {
-  return await loadStoredFinance(userId, sync, dateFrom, dateTo, today) || loadAnalyticsSource({
-    userId,
+async function loadFinanceForPeriod({ shopId, token, sync, dateFrom, dateTo, today, force = false }) {
+  return await loadStoredFinance(shopId, sync, dateFrom, dateTo, today) || loadAnalyticsSource({
+    shopId,
     // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
     source: 'financeV5',
     dateFrom,
@@ -1455,20 +1471,20 @@ async function loadFinanceForPeriod({ userId, token, sync, dateFrom, dateTo, tod
 }
 
 // Запас в днях по товарам из сохранённых остатков (как в РНП): для действия «довезти товар».
-async function loadStoredStockDays(userId, sync, today) {
+async function loadStoredStockDays(shopId, sync, today) {
   if (!sync?.stocks_at) return null;
   const windowDays = 14;
   const [products, recent] = await Promise.all([
-    rnpRepository.listProducts(userId),
-    rnpRepository.orderCountsByNm(userId, addDays(today, -windowDays), addDays(today, -1))
+    rnpRepository.listProducts(shopId),
+    rnpRepository.orderCountsByNm(shopId, addDays(today, -windowDays), addDays(today, -1))
   ]);
   const recentByNm = new Map(recent.map(row => [Number(row.nm_id), Number(row.orders) || 0]));
   return new Map(products.map(row => [Number(row.nm_id), stockInfo(row, recentByNm.get(Number(row.nm_id)) || 0, windowDays)]));
 }
 
-async function loadStoredAdvertising(userId, sync, dateFrom, dateTo, today) {
+async function loadStoredAdvertising(shopId, sync, dateFrom, dateTo, today) {
   if (!sync || !storedCovers(sync.ads_from, sync.ads_synced_to, dateFrom, dateTo, today)) return null;
-  const row = await rnpRepository.adTotals(userId, dateFrom, dateTo);
+  const row = await rnpRepository.adTotals(shopId, dateFrom, dateTo);
   return storedSourceInfo({
     currency: sync.ads_currency || null,
     campaignCount: numberOrZero(row?.campaign_count),
@@ -1482,12 +1498,11 @@ async function loadStoredAdvertising(userId, sync, dateFrom, dateTo, today) {
   }, sync.ads_at || sync.last_success_at);
 }
 
-app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
+app.get('/api/wb-analytics', authMiddleware, resolveShop, async (req, res) => {
   const { period, from, to, refresh } = req.query;
   const forceRefresh = refresh === '1';
-  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
-  const wbToken = u.wb_api_token;
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const wbToken = req.shop.token;
 
   const now = new Date();
   const moscowToday = dateInTimeZone(now, 'Europe/Moscow');
@@ -1497,13 +1512,13 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
   const inRange = day => day >= dateFrom && day <= dateTo;
   const prevInRange = day => day >= prevFrom && day <= prevTo;
   const funnelTtlMs = funnelCacheTtlMs(dateTo, moscowToday);
-  const step = startAnalyticsProgress(req.user.id);
+  const step = startAnalyticsProgress(req.shop.id);
 
   try {
     // Карточки, график и себестоимость используют один источник — Sales Funnel WB.
     step('funnel', 'running');
     const salesFunnelSource = await loadAnalyticsSource({
-      userId: req.user.id,
+      shopId: req.shop?.id,
       // V4: в кэше есть переходы и корзины по товарам для вывода «трафик или конверсия».
       source: 'salesFunnelV4',
       dateFrom: prevFrom,
@@ -1524,7 +1539,7 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     step('funnel', 'done');
     step('chart', 'running', { done: 0, total: 0 });
     const funnelBucketsSource = await loadAnalyticsSource({
-      userId: req.user.id,
+      shopId: req.shop?.id,
       source: 'salesFunnelBucketsV1',
       dateFrom,
       dateTo,
@@ -1549,12 +1564,12 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       throw error;
     }
 
-    const storedSync = await storedSourcesSync(req.user.id, { force: forceRefresh });
+    const storedSync = await storedSourcesSync(req.shop.id, { force: forceRefresh });
     let reportRaw = [], financeSource = null, financeCurrency = null, financeErrorCode = null;
     step('finance', 'running');
     try {
       financeSource = await loadFinanceForPeriod({
-        userId: req.user.id, token: wbToken, sync: storedSync, dateFrom: prevFrom, dateTo, today: moscowToday, force: forceRefresh
+        shopId: req.shop?.id, token: wbToken, sync: storedSync, dateFrom: prevFrom, dateTo, today: moscowToday, force: forceRefresh
       });
       reportRaw = Array.isArray(financeSource.payload?.rows) ? financeSource.payload.rows : [];
       financeCurrency = financeSource.payload?.currency || null;
@@ -1562,12 +1577,12 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     } catch(e) {
       step('finance', 'error');
       financeErrorCode = e.code || `WB_FINANCE_${e.status || 500}`;
-      logger.warn('wb_finance_unavailable', { userId: req.user.id, code: financeErrorCode, error: e.message });
+      logger.warn('wb_finance_unavailable', { shopId: req.shop?.id, code: financeErrorCode, error: e.message });
     }
 
     const costsRows = await db.allAsync(
-      'SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?',
-      [req.user.id]
+      'SELECT supplier_article, cost_price FROM product_costs WHERE shop_id=?',
+      [req.shop.id]
     );
     const costsMap = Object.fromEntries(costsRows.map(row => [String(row.supplier_article || '').trim(), numberOrZero(row.cost_price)]));
 
@@ -1717,10 +1732,10 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
       diagnosis = diagnoseFunnel({
         products: Array.isArray(salesFunnel?.funnel) ? salesFunnel.funnel : [],
         toKzt: funnelMoneyToKzt,
-        stocks: await loadStoredStockDays(req.user.id, storedSync, moscowToday)
+        stocks: await loadStoredStockDays(req.shop.id, storedSync, moscowToday)
       });
     } catch (error) {
-      logger.warn('wb_funnel_diagnosis_failed', { userId: req.user.id, error: error.message });
+      logger.warn('wb_funnel_diagnosis_failed', { shopId: req.shop?.id, error: error.message });
     }
     const response = {
       rows: kztRows,
@@ -1751,30 +1766,29 @@ app.get('/api/wb-analytics', authMiddleware, async (req, res) => {
     };
     await db.runAsync(
       `INSERT INTO wb_analytics_snapshots
-       (user_id, date_from, date_to, payload, orders_fetched_at, finance_fetched_at, calculated_at)
+       (shop_id, date_from, date_to, payload, orders_fetched_at, finance_fetched_at, calculated_at)
        VALUES (?, ?, ?, ?::jsonb, ?, ?, NOW())
-       ON CONFLICT (user_id, date_from, date_to) DO UPDATE
+       ON CONFLICT (shop_id, date_from, date_to) DO UPDATE
          SET payload=EXCLUDED.payload,
              orders_fetched_at=EXCLUDED.orders_fetched_at,
              finance_fetched_at=EXCLUDED.finance_fetched_at,
              calculated_at=NOW()`,
-      [req.user.id, dateFrom, dateTo, JSON.stringify(response), salesFunnelSource.fetchedAt, financeSource?.fetchedAt || null]
+      [req.shop.id, dateFrom, dateTo, JSON.stringify(response), salesFunnelSource.fetchedAt, financeSource?.fetchedAt || null]
     );
-    finishAnalyticsProgress(req.user.id);
+    finishAnalyticsProgress(req.shop.id);
     res.json(response);
   } catch(e) {
-    finishAnalyticsProgress(req.user.id);
-    logger.error('wb_analytics_failed', { userId: req.user.id, status: e.status || 500, error: e.message });
+    finishAnalyticsProgress(req.shop.id);
+    logger.error('wb_analytics_failed', { shopId: req.shop?.id, status: e.status || 500, error: e.message });
     const status = [400, 401, 402, 403, 429, 502].includes(e.status) ? e.status : 500;
     res.status(status).json({ error: e.message, needsAnalyticsPermission: !!e.needsAnalyticsPermission });
   }
 });
 
 // ── GET /api/wb-weekly-report — Недельные отчёты WB (seller-services API) ─────
-app.get('/api/wb-weekly-report', authMiddleware, async (req, res) => {
-  const u = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!u?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
-  const wbToken = u.wb_api_token;
+app.get('/api/wb-weekly-report', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  const wbToken = req.shop.token;
 
   try {
     // Пробрасываем параметры пагинации если есть
@@ -1864,16 +1878,18 @@ async function managerWbFetch(url, token) {
   return response.json();
 }
 
-app.get('/api/manager-campaigns', authMiddleware, async (req, res) => {
+app.get('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const assignments = await db.allAsync(
     `SELECT id, manager_name, campaign_id, campaign_name, created_at, updated_at
-     FROM manager_campaigns WHERE user_id=? ORDER BY manager_name, campaign_name, campaign_id`,
-    [req.user.id]
+     FROM manager_campaigns WHERE shop_id=? ORDER BY manager_name, campaign_name, campaign_id`,
+    [req.shop.id]
   );
   res.json({ assignments });
 });
 
-app.post('/api/manager-campaigns', authMiddleware, async (req, res) => {
+app.post('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const body = req.body || {};
   const managerName = String(body.manager_name || '').trim().replace(/\s+/g, ' ');
   const campaignId = managerCampaignId(body.campaign_id);
@@ -1882,27 +1898,27 @@ app.post('/api/manager-campaigns', authMiddleware, async (req, res) => {
   if (!campaignId) return res.status(400).json({ error: 'Выберите корректную рекламную кампанию.' });
 
   await db.runAsync(
-    `INSERT INTO manager_campaigns (user_id, manager_name, campaign_id, campaign_name, updated_at)
+    `INSERT INTO manager_campaigns (shop_id, manager_name, campaign_id, campaign_name, updated_at)
      VALUES (?, ?, ?, ?, NOW())
-     ON CONFLICT (user_id, campaign_id) DO UPDATE
+     ON CONFLICT (shop_id, campaign_id) DO UPDATE
        SET manager_name=EXCLUDED.manager_name, campaign_name=EXCLUDED.campaign_name, updated_at=NOW()`,
-    [req.user.id, managerName, campaignId, campaignName]
+    [req.shop.id, managerName, campaignId, campaignName]
   );
   res.json({ ok: true });
 });
 
-app.delete('/api/manager-campaigns/:id', authMiddleware, async (req, res) => {
+app.delete('/api/manager-campaigns/:id', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'Некорректное назначение.' });
-  await db.runAsync('DELETE FROM manager_campaigns WHERE id=? AND user_id=?', [id, req.user.id]);
+  await db.runAsync('DELETE FROM manager_campaigns WHERE id=? AND shop_id=?', [id, req.shop.id]);
   res.json({ ok: true });
 });
 
-app.get('/api/wb-advert-campaigns', authMiddleware, async (req, res) => {
-  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+app.get('/api/wb-advert-campaigns', authMiddleware, resolveShop, async (req, res) => {
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   try {
-    const payload = await managerWbFetch('https://advert-api.wildberries.ru/api/advert/v2/adverts', user.wb_api_token);
+    const payload = await managerWbFetch('https://advert-api.wildberries.ru/api/advert/v2/adverts', req.shop.token);
     const campaigns = extractAdvertisingCampaigns(payload);
     res.json({ campaigns });
   } catch (error) {
@@ -1915,28 +1931,27 @@ app.get('/api/wb-advert-campaigns', authMiddleware, async (req, res) => {
 const ADVERTISING_OPEN_PERIOD_TTL_MS = 15 * 60 * 1000;
 const ADVERTISING_MAX_PERIOD_DAYS = 93;
 
-app.get('/api/wb-advertising', authMiddleware, async (req, res) => {
+app.get('/api/wb-advertising', authMiddleware, resolveShop, async (req, res) => {
   const { from, to, refresh } = req.query;
   const fromTime = managerReportDate(from);
   const toTime = managerReportDate(to);
   if (fromTime === null || toTime === null || fromTime > toTime || (toTime - fromTime) / 86400000 >= ADVERTISING_MAX_PERIOD_DAYS) {
     return res.status(400).json({ error: `Укажите корректный период не более ${ADVERTISING_MAX_PERIOD_DAYS} дней.` });
   }
-  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
 
   try {
     const moscowToday = dateInTimeZone(new Date(), 'Europe/Moscow');
-    const storedSync = await storedSourcesSync(req.user.id, { force: refresh === '1' });
-    const source = await loadStoredAdvertising(req.user.id, storedSync, from, to, moscowToday) || await loadAnalyticsSource({
-      userId: req.user.id,
+    const storedSync = await storedSourcesSync(req.shop.id, { force: refresh === '1' });
+    const source = await loadStoredAdvertising(req.shop.id, storedSync, from, to, moscowToday) || await loadAnalyticsSource({
+      shopId: req.shop?.id,
       source: 'advertisingStatsV1',
       dateFrom: from,
       dateTo: to,
       exactRange: true,
       force: refresh === '1',
       ttlMs: to >= moscowToday ? ADVERTISING_OPEN_PERIOD_TTL_MS : undefined,
-      fetchSource: () => advertisingStatsService.getPeriodStats({ token: user.wb_api_token, dateFrom: from, dateTo: to })
+      fetchSource: () => advertisingStatsService.getPeriodStats({ token: req.shop.token, dateFrom: from, dateTo: to })
     });
     const stats = source.payload || {};
     const raw = stats.totals || {};
@@ -1966,24 +1981,23 @@ app.get('/api/wb-advertising', authMiddleware, async (req, res) => {
       cache: { cached: source.cached, stale: source.stale, refreshLimited: source.refreshLimited, fetchedAt: source.fetchedAt, ...(source.stored ? { stored: true } : {}) }
     });
   } catch (error) {
-    logger.warn('wb_advertising_unavailable', { userId: req.user.id, code: error.code, status: error.status });
+    logger.warn('wb_advertising_unavailable', { shopId: req.shop?.id, code: error.code, status: error.status });
     res.status(error.status || 502).json({ error: error.message || 'Не удалось получить статистику рекламы WB.' });
   }
 });
 
-app.get('/api/wb-manager-report', authMiddleware, async (req, res) => {
+app.get('/api/wb-manager-report', authMiddleware, resolveShop, async (req, res) => {
   const range = managerReportRange(req.query);
   if (!range) return res.status(400).json({ error: 'Укажите корректный период не более 31 дня.' });
 
   const assignments = await db.allAsync(
     `SELECT manager_name, campaign_id, campaign_name
-     FROM manager_campaigns WHERE user_id=? ORDER BY manager_name, campaign_id`,
-    [req.user.id]
+     FROM manager_campaigns WHERE shop_id=? ORDER BY manager_name, campaign_id`,
+    [req.shop.id]
   );
   if (!assignments.length) return res.json({ dateFrom: range.dateFrom, dateTo: range.dateTo, managers: [], rubKztRate: null });
 
-  const user = await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [req.user.id]);
-  if (!user?.wb_api_token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+  if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
 
   try {
     const assignmentByCampaign = new Map(assignments.map(item => [Number(item.campaign_id), item]));
@@ -1995,7 +2009,7 @@ app.get('/api/wb-manager-report', authMiddleware, async (req, res) => {
     // Сохранённое в БД имя остаётся только резервом для архивных кампаний.
     const campaignsPayload = await managerWbFetch(
       'https://advert-api.wildberries.ru/api/advert/v2/adverts',
-      user.wb_api_token
+      req.shop.token
     );
     const currentCampaigns = extractAdvertisingCampaigns(campaignsPayload);
     const currentCampaignById = new Map(currentCampaigns.map(campaign => [campaign.id, campaign]));
@@ -2003,7 +2017,7 @@ app.get('/api/wb-manager-report', authMiddleware, async (req, res) => {
 
     const charges = await managerWbFetch(
       `https://advert-api.wildberries.ru/adv/v1/upd?from=${range.dateFrom}&to=${range.dateTo}`,
-      user.wb_api_token
+      req.shop.token
     );
     for (const charge of Array.isArray(charges) ? charges : []) {
       const campaignId = managerCampaignId(charge?.advertId ?? charge?.id);
@@ -2020,7 +2034,7 @@ app.get('/api/wb-manager-report', authMiddleware, async (req, res) => {
       const ids = campaignIds.slice(index, index + 50).join(',');
       const stats = await managerWbFetch(
         `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${ids}&beginDate=${range.dateFrom}&endDate=${range.dateTo}`,
-        user.wb_api_token
+        req.shop.token
       );
       for (const campaign of Array.isArray(stats) ? stats : []) {
         const campaignId = managerCampaignId(campaign?.advertId ?? campaign?.id);

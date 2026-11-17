@@ -103,26 +103,31 @@ function createRnpSyncService({
   setIntervalImpl = setInterval
 }) {
   const running = new Map();
+  // Магазины, чью текущую загрузку нужно прервать (например, заменили токен).
+  const cancelled = new Set();
 
-  async function run(userId) {
-    const token = await repository.getToken(userId);
+  function throwIfCancelled(shopId) {
+    if (cancelled.has(shopId)) throw Object.assign(new Error('Загрузка прервана'), { cancelled: true });
+  }
+
+  async function run(shopId) {
+    const token = await repository.getToken(shopId);
     if (!token) return;
-    await repository.ensureSync(userId);
-    const fingerprint = tokenFingerprint(token);
-    const previous = await repository.getSync(userId);
-    const tokenChanged = previous.token_fingerprint !== fingerprint;
-    if (tokenChanged) await repository.resetData(userId, fingerprint);
+    await repository.ensureSync(shopId);
+    // Смену кабинета обрабатывает замена токена магазина (shops.service): здесь только загрузка.
+    const previous = await repository.getSync(shopId);
 
     const progress = {
-      initial: tokenChanged || !previous.last_success_at,
+      initial: !previous.last_success_at,
       steps: Object.fromEntries(STEPS.map(step => [step, 'pending'])),
       counts: { orders: 0, sales: 0, ads: 0, finance: 0 }
     };
-    const sync = await repository.claimSync(userId, progress);
+    const sync = await repository.claimSync(shopId, progress);
     if (!sync) return;
 
-    const saveProgress = () => repository.updateSync(userId, { progress });
+    const saveProgress = () => repository.updateSync(shopId, { progress });
     const setStep = async (step, state) => {
+      throwIfCancelled(shopId);
       progress.steps[step] = state;
       await saveProgress();
     };
@@ -141,25 +146,27 @@ function createRnpSyncService({
           token,
           cursor: sync[`${step}_cursor`] || `${historyStart}T00:00:00`,
           onPage: async (rows, cursor) => {
-            await save(userId, rows);
+            throwIfCancelled(shopId);
+            await save(shopId, rows);
             progress.counts[step] += rows.length;
-            await repository.updateSync(userId, { [`${step}_cursor`]: cursor, progress });
+            await repository.updateSync(shopId, { [`${step}_cursor`]: cursor, progress });
           }
         });
         progress.steps[step] = 'done';
-        await repository.updateSync(userId, { [`${step}_at`]: now().toISOString(), progress });
+        await repository.updateSync(shopId, { [`${step}_at`]: now().toISOString(), progress });
       }
 
       // Названия и остатки — снимок из воронки WB на сейчас; ошибка не мешает остальной таблице.
       await setStep('stocks', 'running');
       try {
         const catalog = await salesFunnelService.getCatalog({ token, date: today });
-        await repository.replaceProducts(userId, catalog);
+        await repository.replaceProducts(shopId, catalog);
         result.stocks_at = now().toISOString();
         await setStep('stocks', 'done');
       } catch (error) {
+        if (error.cancelled) throw error;
         result.stocks_error = error.message;
-        logger.warn('rnp_stocks_sync_failed', { userId, code: error.code, error: error.message });
+        logger.warn('rnp_stocks_sync_failed', { shopId, code: error.code, error: error.message });
         await setStep('stocks', 'error');
       }
 
@@ -174,29 +181,32 @@ function createRnpSyncService({
           dateFrom: adsFrom,
           dateTo: today,
           onChunk: async ({ period, rows, currency }) => {
-            await repository.replaceAdSpend(userId, period.from, period.to, rows);
+            throwIfCancelled(shopId);
+            await repository.replaceAdSpend(shopId, period.from, period.to, rows);
             progress.counts.ads += rows.length;
             const adsFromStored = !sync.ads_from || period.from < sync.ads_from ? period.from : sync.ads_from;
             sync.ads_from = adsFromStored;
-            await repository.updateSync(userId, { ads_synced_to: period.to, ads_from: adsFromStored, ads_currency: currency, progress });
+            await repository.updateSync(shopId, { ads_synced_to: period.to, ads_from: adsFromStored, ads_currency: currency, progress });
           }
         });
         result.ads_at = now().toISOString();
         await setStep('ads', 'done');
       } catch (error) {
+        if (error.cancelled) throw error;
         result.ads_error = error.message;
-        logger.warn('rnp_ads_sync_failed', { userId, code: error.code, error: error.message });
+        logger.warn('rnp_ads_sync_failed', { shopId, code: error.code, error: error.message });
         await setStep('ads', 'error');
       }
 
       await setStep('finance', 'running');
       try {
-        await syncFinance({ userId, token, sync, today, progress });
+        await syncFinance({ shopId, token, sync, today, progress });
         result.finance_at = now().toISOString();
         await setStep('finance', 'done');
       } catch (error) {
+        if (error.cancelled) throw error;
         result.finance_error = error.message;
-        logger.warn('rnp_finance_sync_failed', { userId, code: error.code, error: error.message });
+        logger.warn('rnp_finance_sync_failed', { shopId, code: error.code, error: error.message });
         await setStep('finance', 'error');
       }
 
@@ -204,12 +214,13 @@ function createRnpSyncService({
       await setStep('storage', storageService ? 'running' : 'skipped');
       if (storageService) {
         try {
-          await syncStorage({ userId, token, sync, today });
+          await syncStorage({ shopId, token, sync, today });
           result.storage_at = now().toISOString();
           await setStep('storage', 'done');
         } catch (error) {
+          if (error.cancelled) throw error;
           result.storage_error = error.message;
-          logger.warn('rnp_storage_sync_failed', { userId, code: error.code, error: error.message });
+          logger.warn('rnp_storage_sync_failed', { shopId, code: error.code, error: error.message });
           await setStep('storage', 'error');
         }
       }
@@ -218,7 +229,7 @@ function createRnpSyncService({
       await setStep('costs', 'running');
       const costsFrom = addDays(today, -UNIT_COSTS_DAYS);
       const costsTo = addDays(today, -1);
-      const financeRows = await repository.listFinanceRows(userId, costsFrom, costsTo);
+      const financeRows = await repository.listFinanceRows(shopId, costsFrom, costsTo);
       if (financeRows.length) {
         result.unit_costs = computeUnitCosts(financeRows, { currency: financeRows[0].currency, dateFrom: costsFrom, dateTo: costsTo });
         result.unit_costs_at = now().toISOString();
@@ -228,17 +239,22 @@ function createRnpSyncService({
         await setStep('costs', 'error');
       }
 
-      await repository.updateSync(userId, {
+      await repository.updateSync(shopId, {
         ...result,
         status: 'idle',
         finished_at: now().toISOString(),
         last_success_at: now().toISOString()
       });
-      logger.info('rnp_sync_completed', { userId, ...progress.counts });
+      logger.info('rnp_sync_completed', { shopId, ...progress.counts });
     } catch (error) {
-      logger.warn('rnp_sync_failed', { userId, code: error.code, error: error.message });
+      if (error.cancelled) {
+        await repository.updateSync(shopId, { status: 'idle', progress, finished_at: now().toISOString() });
+        logger.info('rnp_sync_cancelled', { shopId });
+        return;
+      }
+      logger.warn('rnp_sync_failed', { shopId, code: error.code, error: error.message });
       STEPS.forEach(step => { if (progress.steps[step] === 'running') progress.steps[step] = 'error'; });
-      await repository.updateSync(userId, {
+      await repository.updateSync(shopId, {
         status: 'error',
         progress,
         finished_at: now().toISOString(),
@@ -261,7 +277,7 @@ function createRnpSyncService({
   }
 
   // Сначала свежий отрезок, затем — догрузка старых месяцев от новых к старым.
-  async function syncFinance({ userId, token, sync, today, progress }) {
+  async function syncFinance({ shopId, token, sync, today, progress }) {
     const targetFrom = addDays(today, -(FINANCE_HISTORY_DAYS - 1));
     let financeFrom = sync.finance_to ? sync.finance_from : null;
     let financeTo = sync.finance_to || null;
@@ -285,16 +301,17 @@ function createRnpSyncService({
       } catch (error) {
         // Старее WB не отдаёт — считаем историю собранной до этой даты.
         if (!window.recent && error.code === 'WB_FINANCE_400') {
-          await repository.updateSync(userId, { finance_from: targetFrom });
+          await repository.updateSync(shopId, { finance_from: targetFrom });
           return;
         }
         throw error;
       }
-      await repository.replaceFinanceRows(userId, window.from, window.to, loaded.rows);
+      throwIfCancelled(shopId);
+      await repository.replaceFinanceRows(shopId, window.from, window.to, loaded.rows);
       progress.counts.finance += loaded.rows.length;
       if (!financeFrom || window.from < financeFrom) financeFrom = window.from;
       if (window.recent) financeTo = window.to;
-      await repository.updateSync(userId, {
+      await repository.updateSync(shopId, {
         finance_from: financeFrom,
         finance_to: financeTo,
         ...(loaded.currency ? { finance_currency: loaded.currency } : {}),
@@ -304,7 +321,7 @@ function createRnpSyncService({
   }
 
   // Сначала свежие дни, затем история назад; каждый кусок сохраняется сразу.
-  async function syncStorage({ userId, token, sync, today }) {
+  async function syncStorage({ shopId, token, sync, today }) {
     const yesterday = addDays(today, -1);
     const targetFrom = addDays(today, -STORAGE_HISTORY_DAYS);
     let storageFrom = sync.storage_synced_to ? sync.storage_from : null;
@@ -329,42 +346,43 @@ function createRnpSyncService({
         dateFrom: window.from,
         dateTo: window.to,
         onChunk: async ({ period, rows }) => {
-          await repository.replaceStorage(userId, period.from, period.to, rows);
+          throwIfCancelled(shopId);
+          await repository.replaceStorage(shopId, period.from, period.to, rows);
           if (!storageFrom || period.from < storageFrom) storageFrom = period.from;
           if (window.recent && (!storageTo || period.to > storageTo)) storageTo = period.to;
-          await repository.updateSync(userId, { storage_from: storageFrom, storage_synced_to: storageTo || period.to });
+          await repository.updateSync(shopId, { storage_from: storageFrom, storage_synced_to: storageTo || period.to });
         }
       });
     }
   }
 
-  function syncUser(userId) {
-    if (running.has(userId)) return running.get(userId);
-    const task = run(userId)
-      .catch(error => logger.error('rnp_sync_crashed', { userId, error: error.message }))
-      .finally(() => running.delete(userId));
-    running.set(userId, task);
+  function syncUser(shopId) {
+    if (running.has(shopId)) return running.get(shopId);
+    const task = run(shopId)
+      .catch(error => logger.error('rnp_sync_crashed', { shopId, error: error.message }))
+      .finally(() => running.delete(shopId));
+    running.set(shopId, task);
     return task;
   }
 
   // Открытие страницы запускает догрузку, если данные старше 30 минут.
-  function requestSync(userId, sync, { force = false } = {}) {
-    if (running.has(userId) || sync?.status === 'running') return false;
+  function requestSync(shopId, sync, { force = false } = {}) {
+    if (running.has(shopId) || sync?.status === 'running') return false;
     const lastSuccess = sync?.last_success_at ? new Date(sync.last_success_at).getTime() : 0;
     const age = now().getTime() - lastSuccess;
     const due = force ? age > MANUAL_REFRESH_AFTER_MS : age > REFRESH_AFTER_MINUTES * 60 * 1000;
     if (!due) return false;
-    syncUser(userId);
+    syncUser(shopId);
     return true;
   }
 
   async function tick() {
     try {
-      const userIds = await repository.listDueUserIds({
+      const shopIds = await repository.listDueShopIds({
         viewedWithinHours: VIEWED_WITHIN_HOURS,
         refreshAfterMinutes: REFRESH_AFTER_MINUTES
       });
-      userIds.forEach(syncUser);
+      shopIds.forEach(syncUser);
     } catch (error) {
       logger.warn('rnp_scheduler_failed', { error: error.message });
     }
@@ -378,7 +396,27 @@ function createRnpSyncService({
     return timer;
   }
 
-  return { syncUser, requestSync, startScheduler, isRunning: userId => running.has(userId) };
+  // Прервать идущую загрузку магазина и начать заново (новый токен).
+  async function restart(shopId) {
+    const current = running.get(shopId);
+    if (current) {
+      cancelled.add(shopId);
+      await current;
+    }
+    cancelled.delete(shopId);
+    return syncUser(shopId);
+  }
+
+  // Удалить магазин: идущая загрузка прерывается и больше не пишет в базу.
+  async function stop(shopId) {
+    const current = running.get(shopId);
+    if (!current) return;
+    cancelled.add(shopId);
+    await current;
+    cancelled.delete(shopId);
+  }
+
+  return { syncUser, syncShop: syncUser, requestSync, startScheduler, restart, stop, isRunning: shopId => running.has(shopId) };
 }
 
 module.exports = {

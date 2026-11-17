@@ -43,229 +43,230 @@ function createRnpRepository(db) {
   }
 
   return {
-    getSync: userId => db.getAsync(
-      `SELECT *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to, storage_synced_to::text AS storage_synced_to, storage_from::text AS storage_from FROM wb_rnp_sync WHERE user_id=?`,
-      [userId]
+    getSync: shopId => db.getAsync(
+      `SELECT *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to, storage_synced_to::text AS storage_synced_to, storage_from::text AS storage_from FROM wb_rnp_sync WHERE shop_id=?`,
+      [shopId]
     ),
 
-    ensureSync: userId => db.runAsync(
-      'INSERT INTO wb_rnp_sync (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING',
-      [userId]
+    ensureSync: shopId => db.runAsync(
+      'INSERT INTO wb_rnp_sync (shop_id) VALUES (?) ON CONFLICT (shop_id) DO NOTHING',
+      [shopId]
     ),
 
     // Захват синхронизации: зависшая больше 30 минут считается прерванной.
-    claimSync: async (userId, progress) => {
+    claimSync: async (shopId, progress) => {
       const rows = await db.allAsync(
         `UPDATE wb_rnp_sync
            SET status='running', started_at=NOW(), finished_at=NULL, last_error=NULL, progress=?::jsonb
-         WHERE user_id=? AND (status <> 'running' OR started_at < NOW() - INTERVAL '30 minutes')
+         WHERE shop_id=? AND (status <> 'running' OR started_at < NOW() - INTERVAL '30 minutes')
          RETURNING *, ads_synced_to::text AS ads_synced_to, ads_from::text AS ads_from, finance_from::text AS finance_from, finance_to::text AS finance_to, storage_synced_to::text AS storage_synced_to, storage_from::text AS storage_from`,
-        [JSON.stringify(progress), userId]
+        [JSON.stringify(progress), shopId]
       );
       return rows[0] || null;
     },
 
-    updateSync: async (userId, fields) => {
+    updateSync: async (shopId, fields) => {
       const entries = Object.entries(fields).filter(([key]) => SYNC_FIELDS.has(key));
       if (!entries.length) return;
       const assignments = entries.map(([key]) => (JSON_FIELDS.has(key) ? `${key}=?::jsonb` : `${key}=?`)).join(', ');
       const values = entries.map(([key, value]) => (JSON_FIELDS.has(key) && value !== null ? JSON.stringify(value) : value));
-      await db.runAsync(`UPDATE wb_rnp_sync SET ${assignments} WHERE user_id=?`, [...values, userId]);
+      await db.runAsync(`UPDATE wb_rnp_sync SET ${assignments} WHERE shop_id=?`, [...values, shopId]);
     },
 
-    // Новый токен может принадлежать другому кабинету — старые данные не смешиваем.
-    resetData: async (userId, tokenFingerprint) => {
-      await db.runAsync('DELETE FROM wb_orders WHERE user_id=?', [userId]);
-      await db.runAsync('DELETE FROM wb_sales WHERE user_id=?', [userId]);
-      await db.runAsync('DELETE FROM wb_ad_spend_daily WHERE user_id=?', [userId]);
-      await db.runAsync('DELETE FROM wb_products WHERE user_id=?', [userId]);
-      await db.runAsync('DELETE FROM wb_finance_rows WHERE user_id=?', [userId]);
-      await db.runAsync('DELETE FROM wb_storage_daily WHERE user_id=?', [userId]);
+    // Сброс загруженных данных WB магазина (себестоимость, планы и ярлыки не трогает).
+    resetData: async (shopId, tokenFingerprint) => {
+      await db.runAsync('DELETE FROM wb_orders WHERE shop_id=?', [shopId]);
+      await db.runAsync('DELETE FROM wb_sales WHERE shop_id=?', [shopId]);
+      await db.runAsync('DELETE FROM wb_ad_spend_daily WHERE shop_id=?', [shopId]);
+      await db.runAsync('DELETE FROM wb_products WHERE shop_id=?', [shopId]);
+      await db.runAsync('DELETE FROM wb_finance_rows WHERE shop_id=?', [shopId]);
+      await db.runAsync('DELETE FROM wb_storage_daily WHERE shop_id=?', [shopId]);
       await db.runAsync(
         `UPDATE wb_rnp_sync SET token_fingerprint=?, orders_cursor=NULL, sales_cursor=NULL, ads_synced_to=NULL,
            ads_currency=NULL, ads_error=NULL, unit_costs=NULL, unit_costs_at=NULL, last_success_at=NULL,
            stocks_at=NULL, stocks_error=NULL, orders_at=NULL, sales_at=NULL, ads_at=NULL, ads_from=NULL, costs_error=NULL,
            finance_from=NULL, finance_to=NULL, finance_at=NULL, finance_currency=NULL, finance_error=NULL,
            storage_from=NULL, storage_synced_to=NULL, storage_at=NULL, storage_error=NULL
-         WHERE user_id=?`,
-        [tokenFingerprint, userId]
+         WHERE shop_id=?`,
+        [tokenFingerprint, shopId]
       );
     },
 
-    markViewed: userId => db.runAsync('UPDATE wb_rnp_sync SET last_viewed_at=NOW() WHERE user_id=?', [userId]),
+    markViewed: shopId => db.runAsync('UPDATE wb_rnp_sync SET last_viewed_at=NOW() WHERE shop_id=?', [shopId]),
 
     // После перезапуска сервера незавершённые синхронизации продолжатся с курсоров.
     resetRunning: () => db.runAsync(`UPDATE wb_rnp_sync SET status='idle' WHERE status='running'`, []),
 
-    listDueUserIds: async ({ viewedWithinHours, refreshAfterMinutes }) => {
+    // Магазины, которые открывали недавно и чьи данные устарели.
+    listDueShopIds: async ({ viewedWithinHours, refreshAfterMinutes }) => {
       const rows = await db.allAsync(
-        `SELECT s.user_id FROM wb_rnp_sync s JOIN users u ON u.id = s.user_id
-         WHERE u.wb_api_token IS NOT NULL AND s.status <> 'running'
+        `SELECT s.shop_id FROM wb_rnp_sync s JOIN wb_shops w ON w.id = s.shop_id
+         WHERE s.status <> 'running'
            AND s.last_viewed_at > NOW() - make_interval(hours => ?::int)
            AND (s.last_success_at IS NULL OR s.last_success_at < NOW() - make_interval(mins => ?::int))
            AND (s.status <> 'error' OR s.finished_at < NOW() - make_interval(mins => ?::int))
          ORDER BY s.last_success_at NULLS FIRST LIMIT 20`,
         [viewedWithinHours, refreshAfterMinutes, refreshAfterMinutes]
       );
-      return rows.map(row => row.user_id);
+      return rows.map(row => row.shop_id);
     },
 
-    upsertOrders: (userId, rows) => upsertRows(
+    upsertOrders: (shopId, rows) => upsertRows(
       'wb_orders',
-      ['user_id', 'srid', 'order_date', 'last_change_date', 'nm_id', 'supplier_article', 'brand', 'subject',
+      ['shop_id', 'srid', 'order_date', 'last_change_date', 'nm_id', 'supplier_article', 'brand', 'subject',
         'price_with_disc', 'finished_price', 'is_cancel', 'region', 'warehouse'],
-      ['user_id', 'srid'],
+      ['shop_id', 'srid'],
       rows,
-      row => [userId, row.srid, row.orderDate, row.lastChangeDate, row.nmId, row.supplierArticle, row.brand, row.subject,
+      row => [shopId, row.srid, row.orderDate, row.lastChangeDate, row.nmId, row.supplierArticle, row.brand, row.subject,
         row.priceWithDisc, row.finishedPrice, row.isCancel, row.region, row.warehouse]
     ),
 
-    upsertSales: (userId, rows) => upsertRows(
+    upsertSales: (shopId, rows) => upsertRows(
       'wb_sales',
-      ['user_id', 'sale_id', 'srid', 'sale_date', 'last_change_date', 'nm_id', 'supplier_article', 'brand', 'subject',
+      ['shop_id', 'sale_id', 'srid', 'sale_date', 'last_change_date', 'nm_id', 'supplier_article', 'brand', 'subject',
         'is_return', 'price_with_disc', 'for_pay', 'finished_price'],
-      ['user_id', 'sale_id'],
+      ['shop_id', 'sale_id'],
       rows,
-      row => [userId, row.saleId, row.srid, row.saleDate, row.lastChangeDate, row.nmId, row.supplierArticle, row.brand,
+      row => [shopId, row.saleId, row.srid, row.saleDate, row.lastChangeDate, row.nmId, row.supplierArticle, row.brand,
         row.subject, row.isReturn, row.priceWithDisc, row.forPay, row.finishedPrice]
     ),
 
     // Кусок рекламы WB пересчитывает целиком, поэтому старые строки периода заменяются.
-    replaceAdSpend: async (userId, dateFrom, dateTo, rows) => {
-      await db.runAsync('DELETE FROM wb_ad_spend_daily WHERE user_id=? AND day BETWEEN ? AND ?', [userId, dateFrom, dateTo]);
+    replaceAdSpend: async (shopId, dateFrom, dateTo, rows) => {
+      await db.runAsync('DELETE FROM wb_ad_spend_daily WHERE shop_id=? AND day BETWEEN ? AND ?', [shopId, dateFrom, dateTo]);
       await upsertRows(
         'wb_ad_spend_daily',
-        ['user_id', 'day', 'advert_id', 'nm_id', 'spend', 'order_sum', 'views', 'clicks', 'orders'],
-        ['user_id', 'day', 'advert_id', 'nm_id'],
+        ['shop_id', 'day', 'advert_id', 'nm_id', 'spend', 'order_sum', 'views', 'clicks', 'orders'],
+        ['shop_id', 'day', 'advert_id', 'nm_id'],
         rows,
-        row => [userId, row.day, row.advertId, row.nmId, row.spend, row.orderSum || 0, Math.round(row.views), Math.round(row.clicks), Math.round(row.orders)]
+        row => [shopId, row.day, row.advertId, row.nmId, row.spend, row.orderSum || 0, Math.round(row.views), Math.round(row.clicks), Math.round(row.orders)]
       );
     },
 
-    listOrders: (userId, dateFrom, dateTo) => db.allAsync(
+    listOrders: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT ${LOCAL_TIMESTAMP('order_date')} AS order_date, nm_id, supplier_article, brand, subject,
               price_with_disc, is_cancel, region, warehouse
-       FROM wb_orders WHERE user_id=? AND order_date >= ?::date AND order_date < ?::date + 1`,
-      [userId, dateFrom, dateTo]
+       FROM wb_orders WHERE shop_id=? AND order_date >= ?::date AND order_date < ?::date + 1`,
+      [shopId, dateFrom, dateTo]
     ),
 
-    listSales: (userId, dateFrom, dateTo) => db.allAsync(
+    listSales: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT ${LOCAL_TIMESTAMP('sale_date')} AS sale_date, nm_id, supplier_article, brand, subject,
               is_return, price_with_disc, for_pay
-       FROM wb_sales WHERE user_id=? AND sale_date >= ?::date AND sale_date < ?::date + 1`,
-      [userId, dateFrom, dateTo]
+       FROM wb_sales WHERE shop_id=? AND sale_date >= ?::date AND sale_date < ?::date + 1`,
+      [shopId, dateFrom, dateTo]
     ),
 
-    listAdSpend: (userId, dateFrom, dateTo) => db.allAsync(
+    listAdSpend: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT day::text AS day, nm_id, SUM(spend) AS spend
-       FROM wb_ad_spend_daily WHERE user_id=? AND day BETWEEN ? AND ?
+       FROM wb_ad_spend_daily WHERE shop_id=? AND day BETWEEN ? AND ?
        GROUP BY day, nm_id`,
-      [userId, dateFrom, dateTo]
+      [shopId, dateFrom, dateTo]
     ),
 
-    dataRange: userId => db.getAsync(
+    dataRange: shopId => db.getAsync(
       `SELECT to_char(MIN(order_date), 'YYYY-MM-DD') AS first_day, COUNT(*)::int AS orders
-       FROM wb_orders WHERE user_id=?`,
-      [userId]
+       FROM wb_orders WHERE shop_id=?`,
+      [shopId]
     ),
 
     // Товары с остатками — снимок на момент загрузки: старый снимок заменяется целиком.
-    replaceProducts: async (userId, rows) => {
-      await db.runAsync('DELETE FROM wb_products WHERE user_id=?', [userId]);
+    replaceProducts: async (shopId, rows) => {
+      await db.runAsync('DELETE FROM wb_products WHERE shop_id=?', [shopId]);
       await upsertRows(
         'wb_products',
-        ['user_id', 'nm_id', 'title', 'vendor_code', 'brand', 'subject', 'stock_wb', 'stock_mp'],
-        ['user_id', 'nm_id'],
+        ['shop_id', 'nm_id', 'title', 'vendor_code', 'brand', 'subject', 'stock_wb', 'stock_mp'],
+        ['shop_id', 'nm_id'],
         rows,
-        row => [userId, row.nmId, row.title, row.vendorCode, row.brand, row.subject, Math.round(row.stockWb), Math.round(row.stockMp)]
+        row => [shopId, row.nmId, row.title, row.vendorCode, row.brand, row.subject, Math.round(row.stockWb), Math.round(row.stockMp)]
       );
     },
 
-    listProducts: userId => db.allAsync(
-      'SELECT nm_id, title, vendor_code, brand, subject, stock_wb, stock_mp FROM wb_products WHERE user_id=?',
-      [userId]
+    listProducts: shopId => db.allAsync(
+      'SELECT nm_id, title, vendor_code, brand, subject, stock_wb, stock_mp FROM wb_products WHERE shop_id=?',
+      [shopId]
     ),
 
     // Средние заказы в день для «хватит на N дней» считаем по последним дням, а не по выбранному периоду.
-    orderCountsByNm: (userId, dateFrom, dateTo) => db.allAsync(
+    orderCountsByNm: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT nm_id, COUNT(*)::int AS orders FROM wb_orders
-       WHERE user_id=? AND order_date >= ?::date AND order_date < ?::date + 1
+       WHERE shop_id=? AND order_date >= ?::date AND order_date < ?::date + 1
        GROUP BY nm_id`,
-      [userId, dateFrom, dateTo]
+      [shopId, dateFrom, dateTo]
     ),
 
-    recentProducts: (userId, dateFrom, dateTo) => db.allAsync(
+    recentProducts: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT nm_id, MAX(supplier_article) AS supplier_article, MAX(subject) AS subject,
               COUNT(*)::int AS orders, SUM(price_with_disc) AS orders_sum
-       FROM wb_orders WHERE user_id=? AND order_date >= ?::date AND order_date < ?::date + 1
+       FROM wb_orders WHERE shop_id=? AND order_date >= ?::date AND order_date < ?::date + 1
        GROUP BY nm_id`,
-      [userId, dateFrom, dateTo]
+      [shopId, dateFrom, dateTo]
     ),
 
-    listPlans: (userId, months) => db.allAsync(
-      `SELECT month, nm_id, orders_sum, orders_count FROM rnp_plans WHERE user_id=? AND month = ANY(?::text[])`,
-      [userId, months]
+    listPlans: (shopId, months) => db.allAsync(
+      `SELECT month, nm_id, orders_sum, orders_count FROM rnp_plans WHERE shop_id=? AND month = ANY(?::text[])`,
+      [shopId, months]
     ),
 
-    savePlans: async (userId, month, items) => {
+    savePlans: async (shopId, month, items) => {
       for (const item of items) {
         if (item.ordersSum === null && item.ordersCount === null) {
-          await db.runAsync('DELETE FROM rnp_plans WHERE user_id=? AND month=? AND nm_id=?', [userId, month, item.nmId]);
+          await db.runAsync('DELETE FROM rnp_plans WHERE shop_id=? AND month=? AND nm_id=?', [shopId, month, item.nmId]);
           continue;
         }
         await db.runAsync(
-          `INSERT INTO rnp_plans (user_id, month, nm_id, orders_sum, orders_count, updated_at) VALUES (?, ?, ?, ?, ?, NOW())
-           ON CONFLICT (user_id, month, nm_id) DO UPDATE
+          `INSERT INTO rnp_plans (shop_id, month, nm_id, orders_sum, orders_count, updated_at) VALUES (?, ?, ?, ?, ?, NOW())
+           ON CONFLICT (shop_id, month, nm_id) DO UPDATE
              SET orders_sum=EXCLUDED.orders_sum, orders_count=EXCLUDED.orders_count, updated_at=NOW()`,
-          [userId, month, item.nmId, item.ordersSum, item.ordersCount]
+          [shopId, month, item.nmId, item.ordersSum, item.ordersCount]
         );
       }
     },
 
-    listLabels: userId => db.allAsync('SELECT nm_id, labels FROM rnp_labels WHERE user_id=?', [userId]),
+    listLabels: shopId => db.allAsync('SELECT nm_id, labels FROM rnp_labels WHERE shop_id=?', [shopId]),
 
-    saveLabels: (userId, nmId, labels) => (labels.length
+    saveLabels: (shopId, nmId, labels) => (labels.length
       ? db.runAsync(
-        `INSERT INTO rnp_labels (user_id, nm_id, labels) VALUES (?, ?, ?::text[])
-         ON CONFLICT (user_id, nm_id) DO UPDATE SET labels=EXCLUDED.labels`,
-        [userId, nmId, labels]
+        `INSERT INTO rnp_labels (shop_id, nm_id, labels) VALUES (?, ?, ?::text[])
+         ON CONFLICT (shop_id, nm_id) DO UPDATE SET labels=EXCLUDED.labels`,
+        [shopId, nmId, labels]
       )
-      : db.runAsync('DELETE FROM rnp_labels WHERE user_id=? AND nm_id=?', [userId, nmId])),
+      : db.runAsync('DELETE FROM rnp_labels WHERE shop_id=? AND nm_id=?', [shopId, nmId])),
 
     // Итоги рекламы за период для «Аналитики WB» — те же поля, что даёт fullstats.
-    adTotals: (userId, dateFrom, dateTo) => db.getAsync(
+    adTotals: (shopId, dateFrom, dateTo) => db.getAsync(
       `SELECT COALESCE(SUM(spend), 0) AS spend, COALESCE(SUM(order_sum), 0) AS order_sum,
               COALESCE(SUM(views), 0)::bigint AS views, COALESCE(SUM(clicks), 0)::bigint AS clicks,
               COALESCE(SUM(orders), 0)::bigint AS orders,
               COUNT(DISTINCT advert_id) FILTER (WHERE spend > 0 OR views > 0)::int AS campaign_count
-       FROM wb_ad_spend_daily WHERE user_id=? AND day BETWEEN ? AND ?`,
-      [userId, dateFrom, dateTo]
+       FROM wb_ad_spend_daily WHERE shop_id=? AND day BETWEEN ? AND ?`,
+      [shopId, dateFrom, dateTo]
     ),
 
     // Кусок финотчёта WB пересчитывает целиком, поэтому строки периода заменяются.
-    replaceFinanceRows: async (userId, dateFrom, dateTo, rows) => {
-      await db.runAsync('DELETE FROM wb_finance_rows WHERE user_id=? AND rr_date BETWEEN ? AND ?', [userId, dateFrom, dateTo]);
+    replaceFinanceRows: async (shopId, dateFrom, dateTo, rows) => {
+      await db.runAsync('DELETE FROM wb_finance_rows WHERE shop_id=? AND rr_date BETWEEN ? AND ?', [shopId, dateFrom, dateTo]);
       await upsertRows(
         'wb_finance_rows',
-        ['user_id', 'rrd_id', 'rr_date', 'currency', 'vendor_code', 'quantity', 'operation', 'document_type', 'retail_amount',
+        ['shop_id', 'rrd_id', 'rr_date', 'currency', 'vendor_code', 'quantity', 'operation', 'document_type', 'retail_amount',
           'sales', 'payable', 'commission', 'logistics', 'storage', 'penalty', 'deduction', 'acceptance', 'additional_payment', 'margin',
           'nm_id', 'deduction_kind'],
-        ['user_id', 'rrd_id'],
+        ['shop_id', 'rrd_id'],
         rows.filter(row => row.rrdId && row.date >= dateFrom && row.date <= dateTo),
-        row => [userId, row.rrdId, row.date, row.currency, row.vendorCode, row.quantity, row.operation, row.documentType,
+        row => [shopId, row.rrdId, row.date, row.currency, row.vendorCode, row.quantity, row.operation, row.documentType,
           row.retailAmount, row.sales, row.payable, row.commission, row.logistics, row.storage, row.penalty, row.deduction,
           row.acceptance, row.additionalPayment, row.margin, row.nmId || null, row.deductionKind || null]
       );
     },
 
     // Строки в том же виде, что отдаёт normalizeFinanceRows.
-    listFinanceRows: async (userId, dateFrom, dateTo) => {
+    listFinanceRows: async (shopId, dateFrom, dateTo) => {
       const rows = await db.allAsync(
         `SELECT rr_date::text AS date, currency, vendor_code, quantity, operation, document_type, retail_amount, sales,
                 payable, commission, logistics, storage, penalty, deduction, acceptance, additional_payment, margin,
                 nm_id, deduction_kind
-         FROM wb_finance_rows WHERE user_id=? AND rr_date BETWEEN ? AND ? ORDER BY rrd_id`,
-        [userId, dateFrom, dateTo]
+         FROM wb_finance_rows WHERE shop_id=? AND rr_date BETWEEN ? AND ? ORDER BY rrd_id`,
+        [shopId, dateFrom, dateTo]
       );
       const money = value => Number(value) || 0;
       return rows.map(row => ({
@@ -293,32 +294,32 @@ function createRnpRepository(db) {
     },
 
     // Платное хранение: кусок отчёта WB пересчитывается целиком.
-    replaceStorage: async (userId, dateFrom, dateTo, rows) => {
-      await db.runAsync('DELETE FROM wb_storage_daily WHERE user_id=? AND day BETWEEN ? AND ?', [userId, dateFrom, dateTo]);
+    replaceStorage: async (shopId, dateFrom, dateTo, rows) => {
+      await db.runAsync('DELETE FROM wb_storage_daily WHERE shop_id=? AND day BETWEEN ? AND ?', [shopId, dateFrom, dateTo]);
       await upsertRows(
         'wb_storage_daily',
-        ['user_id', 'day', 'nm_id', 'cost'],
-        ['user_id', 'day', 'nm_id'],
+        ['shop_id', 'day', 'nm_id', 'cost'],
+        ['shop_id', 'day', 'nm_id'],
         rows,
-        row => [userId, row.day, row.nmId, row.cost]
+        row => [shopId, row.day, row.nmId, row.cost]
       );
     },
 
-    storageCostByNm: (userId, dateFrom, dateTo) => db.allAsync(
-      'SELECT nm_id, SUM(cost) AS cost FROM wb_storage_daily WHERE user_id=? AND day BETWEEN ? AND ? GROUP BY nm_id',
-      [userId, dateFrom, dateTo]
+    storageCostByNm: (shopId, dateFrom, dateTo) => db.allAsync(
+      'SELECT nm_id, SUM(cost) AS cost FROM wb_storage_daily WHERE shop_id=? AND day BETWEEN ? AND ? GROUP BY nm_id',
+      [shopId, dateFrom, dateTo]
     ),
 
     // Артикулы, которые продавались или возвращались по финотчёту, — им нужна себестоимость.
-    soldVendorCodes: (userId, dateFrom) => db.allAsync(
+    soldVendorCodes: (shopId, dateFrom) => db.allAsync(
       `SELECT DISTINCT vendor_code FROM wb_finance_rows
-       WHERE user_id=? AND rr_date >= ? AND vendor_code <> '' AND operation IN ('Продажа', 'Возврат')`,
-      [userId, dateFrom]
+       WHERE shop_id=? AND rr_date >= ? AND vendor_code <> '' AND operation IN ('Продажа', 'Возврат')`,
+      [shopId, dateFrom]
     ),
 
-    listCosts: userId => db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE user_id=?', [userId]),
+    listCosts: shopId => db.allAsync('SELECT supplier_article, cost_price FROM product_costs WHERE shop_id=?', [shopId]),
 
-    getToken: async userId => (await db.getAsync('SELECT wb_api_token FROM users WHERE id=?', [userId]))?.wb_api_token || null
+    getToken: async shopId => (await db.getAsync('SELECT token FROM wb_shops WHERE id=?', [shopId]))?.token || null
   };
 }
 

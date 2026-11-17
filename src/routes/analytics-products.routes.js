@@ -1,9 +1,9 @@
 const express = require('express');
 const { asyncHandler } = require('../platform/errors');
 
-function registerAnalyticsProductsRoutes(app, { controller, auth }) {
+function registerAnalyticsProductsRoutes(app, { controller, auth, shop }) {
   const router = express.Router();
-  router.get('/wb-analytics/products', auth, asyncHandler(controller.list));
+  router.get('/wb-analytics/products', auth, shop, asyncHandler(controller.list));
   app.use('/api', router);
 }
 

@@ -105,8 +105,8 @@ function sourceTimes(sync) {
 }
 
 function createRnpController({ repository, syncService, getRubKztRate, now = () => new Date() }) {
-  function syncInfo(userId, sync, dataRange) {
-    const running = syncService.isRunning(userId) || sync?.status === 'running';
+  function syncInfo(shopId, sync, dataRange) {
+    const running = syncService.isRunning(shopId) || sync?.status === 'running';
     // Таблицу РНП показываем, как только загружены заказы и выкупы; остальное догружается.
     const coreReady = !!(sync?.orders_at && sync?.sales_at);
     const importing = !sync?.last_success_at;
@@ -127,35 +127,35 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
     };
   }
 
-  async function loadState(userId) {
-    if (!await repository.getToken(userId)) return null;
-    await repository.ensureSync(userId);
-    await repository.markViewed(userId);
-    return repository.getSync(userId);
+  async function loadState(shopId) {
+    if (!shopId) return null;
+    await repository.ensureSync(shopId);
+    await repository.markViewed(shopId);
+    return repository.getSync(shopId);
   }
 
   return {
     async report(req, res) {
-      const userId = req.user.id;
+      const shopId = req.shop?.id;
       const today = moscowDate(now());
       const period = parsePeriod(req.query);
-      const sync = await loadState(userId);
+      const sync = await loadState(shopId);
       if (!sync) return res.status(400).json({ error: NO_TOKEN_MESSAGE, noToken: true });
-      syncService.requestSync(userId, sync);
-      const dataRange = await repository.dataRange(userId);
-      const info = syncInfo(userId, sync, dataRange);
+      syncService.requestSync(shopId, sync);
+      const dataRange = await repository.dataRange(shopId);
+      const info = syncInfo(shopId, sync, dataRange);
       // Пока идёт первая загрузка, неполную таблицу не показываем.
       if (info.initial) return res.json({ sync: info, report: null });
 
       const [orders, sales, adSpend, costs, plans, stocks, recentOrders, labels, rubKztRate] = await Promise.all([
-        repository.listOrders(userId, period.dateFrom, period.dateTo),
-        repository.listSales(userId, period.dateFrom, period.dateTo),
-        repository.listAdSpend(userId, period.dateFrom, period.dateTo),
-        repository.listCosts(userId),
-        repository.listPlans(userId, monthsOf(period.dateFrom, period.dateTo)),
-        sync.stocks_at ? repository.listProducts(userId) : null,
-        repository.orderCountsByNm(userId, addDays(today, -STOCK_WINDOW_DAYS), addDays(today, -1)),
-        repository.listLabels(userId),
+        repository.listOrders(shopId, period.dateFrom, period.dateTo),
+        repository.listSales(shopId, period.dateFrom, period.dateTo),
+        repository.listAdSpend(shopId, period.dateFrom, period.dateTo),
+        repository.listCosts(shopId),
+        repository.listPlans(shopId, monthsOf(period.dateFrom, period.dateTo)),
+        sync.stocks_at ? repository.listProducts(shopId) : null,
+        repository.orderCountsByNm(shopId, addDays(today, -STOCK_WINDOW_DAYS), addDays(today, -1)),
+        repository.listLabels(shopId),
         getRubKztRate()
       ]);
       const historyStart = addDays(today, -(HISTORY_DAYS - 1));
@@ -189,19 +189,21 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
     },
 
     async status(req, res) {
-      const sync = await repository.getSync(req.user.id);
-      const dataRange = await repository.dataRange(req.user.id);
-      res.json({ sync: syncInfo(req.user.id, sync, dataRange) });
+      if (!req.shop) return res.json({ sync: null, noToken: true });
+      const sync = await repository.getSync(req.shop.id);
+      const dataRange = await repository.dataRange(req.shop.id);
+      res.json({ sync: syncInfo(req.shop.id, sync, dataRange), shop: { id: req.shop.id, name: req.shop.name } });
     },
 
     // План на месяц: магазин (nmId 0) и товары с заказами за 30 дней как подсказка.
     async plans(req, res) {
-      const userId = req.user.id;
+      if (!req.shop) return res.status(400).json({ error: NO_TOKEN_MESSAGE, noToken: true });
+      const shopId = req.shop.id;
       const month = parseMonth(req.query.month);
       const today = moscowDate(now());
       const [plans, recent, rubKztRate] = await Promise.all([
-        repository.listPlans(userId, [month]),
-        repository.recentProducts(userId, addDays(today, -PLAN_HINT_DAYS), addDays(today, -1)),
+        repository.listPlans(shopId, [month]),
+        repository.recentProducts(shopId, addDays(today, -PLAN_HINT_DAYS), addDays(today, -1)),
         getRubKztRate()
       ]);
       const toKzt = converter(STATISTICS_CURRENCY, rubKztRate);
@@ -240,7 +242,8 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
     async savePlans(req, res) {
       const month = parseMonth(req.body?.month);
       const items = parsePlanItems(req.body?.items);
-      await repository.savePlans(req.user.id, month, items);
+      if (!req.shop) return res.status(400).json({ error: NO_TOKEN_MESSAGE, noToken: true });
+      await repository.savePlans(req.shop.id, month, items);
       res.json({ ok: true });
     },
 
@@ -248,14 +251,15 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
       const nmId = Number(req.body?.nmId);
       if (!Number.isSafeInteger(nmId) || nmId <= 0) throw new AppError(400, 'Некорректный артикул.', 'VALIDATION_ERROR');
       const labels = parseLabels(req.body?.labels);
-      await repository.saveLabels(req.user.id, nmId, labels);
+      if (!req.shop) return res.status(400).json({ error: NO_TOKEN_MESSAGE, noToken: true });
+      await repository.saveLabels(req.shop.id, nmId, labels);
       res.json({ ok: true, labels });
     },
 
     async refresh(req, res) {
-      const sync = await loadState(req.user.id);
+      const sync = await loadState(req.shop?.id);
       if (!sync) return res.status(400).json({ error: NO_TOKEN_MESSAGE, noToken: true });
-      const started = syncService.requestSync(req.user.id, sync, { force: true });
+      const started = syncService.requestSync(req.shop.id, sync, { force: true });
       res.json({ ok: true, started });
     }
   };

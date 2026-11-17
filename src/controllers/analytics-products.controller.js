@@ -16,7 +16,6 @@ function previousDay(day) {
 const DETAIL_KEY_RE = /^(nm:\d{1,15}|vc:.{1,255}|shop)$/;
 
 function createAnalyticsProductsController({
-  getToken,
   storedSync,
   resolveRange,
   loadFinance,
@@ -29,18 +28,18 @@ function createAnalyticsProductsController({
   return {
     // Прибыль по каждому товару за период «Аналитики»; ?key=nm:… — с разбивкой по дням.
     async list(req, res) {
-      const userId = req.user.id;
-      const token = await getToken(userId);
-      if (!token) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+      if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
+      const shopId = req.shop.id;
+      const token = req.shop.token;
       const moscowToday = today();
       const range = resolveRange(req.query, moscowToday);
       if (!range) return res.status(400).json({ error: 'Некорректный период аналитики.' });
       const detailKey = typeof req.query.key === 'string' && DETAIL_KEY_RE.test(req.query.key) ? req.query.key : null;
-      const sync = await storedSync(userId);
+      const sync = await storedSync(shopId);
 
       let finance;
       try {
-        finance = await loadFinance({ userId, token, sync, dateFrom: range.dateFrom, dateTo: range.dateTo, today: moscowToday });
+        finance = await loadFinance({ shopId, token, sync, dateFrom: range.dateFrom, dateTo: range.dateTo, today: moscowToday });
       } catch (error) {
         return res.status(error.status && error.status < 500 ? error.status : 502).json({ error: error.message || 'Финотчёт WB недоступен.' });
       }
@@ -53,13 +52,13 @@ function createAnalyticsProductsController({
       const storageNeedTo = range.dateTo >= moscowToday ? previousDay(moscowToday) : range.dateTo;
       const storageKnown = !!(sync?.storage_from && sync.storage_synced_to && sync.storage_from <= range.dateFrom && sync.storage_synced_to >= storageNeedTo);
       const [catalog, adRows, costs, rubKztRate, stockDays, funnel, storageRows] = await Promise.all([
-        repository.listProducts(userId),
-        sync?.ads_from && sync.ads_from <= range.dateFrom ? repository.listAdSpend(userId, range.dateFrom, range.dateTo) : [],
-        repository.listCosts(userId),
+        repository.listProducts(shopId),
+        sync?.ads_from && sync.ads_from <= range.dateFrom ? repository.listAdSpend(shopId, range.dateFrom, range.dateTo) : [],
+        repository.listCosts(shopId),
         getRubKztRate(),
-        loadStockDays(userId, sync, moscowToday),
-        findFunnel(userId, range),
-        storageKnown ? repository.storageCostByNm(userId, range.dateFrom, range.dateTo) : []
+        loadStockDays(shopId, sync, moscowToday),
+        findFunnel(shopId, range),
+        storageKnown ? repository.storageCostByNm(shopId, range.dateFrom, range.dateTo) : []
       ]);
       const storageByNm = new Map(storageRows.map(row => [Number(row.nm_id), Number(row.cost) || 0]));
       const adsToKzt = converter(sync?.ads_currency, rubKztRate);

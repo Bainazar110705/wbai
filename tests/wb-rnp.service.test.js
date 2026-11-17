@@ -253,7 +253,7 @@ test('sync loads history once, then only new rows from saved cursors', async () 
     ['2025-07-28', '2025-10-27'], ['2025-04-27', '2025-07-27'], ['2025-01-25', '2025-04-26']
   ], 'дальше — только последние 14 дней и продолжение истории');
   assert.equal(repository.state.sync.finance_from, '2025-01-25');
-  assert.equal(repository.state.calls.filter(call => call === 'reset').length, 1);
+  assert.equal(repository.state.calls.filter(call => call === 'reset').length, 0, 'данные очищает замена токена магазина, а не загрузка');
   assert.deepEqual(repository.state.calls.filter(call => call[0] === 'stocks'), [['stocks', 1], ['stocks', 1]], 'остатки обновляются при каждой загрузке');
   assert.ok(repository.state.sync.stocks_at);
   for (const field of ['orders_at', 'sales_at', 'ads_at', 'stocks_at', 'finance_at', 'unit_costs_at']) assert.ok(repository.state.sync[field], field);
@@ -472,7 +472,7 @@ test('status shows the RNP table once orders and sales are in, while the import 
       syncService: { isRunning: () => running },
       getRubKztRate: async () => 5
     });
-    await controller.status({ user: { id: 1 } }, { json: value => { body = value; } });
+    await controller.status({ user: { id: 1 }, shop: { id: 7, name: 'Магазин' } }, { json: value => { body = value; } });
     return body.sync;
   };
   const progress = { steps: { orders: 'done', sales: 'done', stocks: 'running' } };

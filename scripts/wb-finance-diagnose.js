@@ -15,8 +15,14 @@ async function resolveToken(email) {
   if (!email) throw new Error('Укажите --email или WB_TOKEN');
   const db = require('../db');
   try {
-    const row = await db.getAsync('SELECT wb_api_token FROM users WHERE LOWER(email)=LOWER(?)', [email]);
-    if (!row?.wb_api_token) throw new Error('У пользователя нет WB-токена');
+    // Магазин аккаунта: --shop ID или первый магазин.
+    const shopId = Number(arg('shop')) || null;
+    const row = await db.getAsync(
+      `SELECT s.token AS wb_api_token FROM wb_shops s JOIN users u ON u.id = s.user_id
+       WHERE LOWER(u.email)=LOWER(?) ${shopId ? 'AND s.id=?' : ''} ORDER BY s.id LIMIT 1`,
+      shopId ? [email, shopId] : [email]
+    );
+    if (!row?.wb_api_token) throw new Error('У пользователя нет такого магазина WB');
     return row.wb_api_token;
   } finally {
     await db.close();

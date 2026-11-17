@@ -959,6 +959,32 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-help-tip.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
 /* ОТЧЁТ О ПРИБЫЛИ */
+.shop-tabs-wrap:empty{display:none}
+.shop-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:-8px 0 18px;padding:4px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);width:max-content;max-width:100%}
+.shop-tab{border:0;background:transparent;color:var(--muted);font:700 13px 'Manrope',sans-serif;padding:8px 14px;border-radius:9px;cursor:pointer;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shop-tab[aria-selected="true"]{background:var(--p);color:#fff}
+.shop-tab:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.shop-tab.is-add{color:var(--p2);border:1px dashed var(--border)}
+.shop-empty{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 18px;text-align:center}
+.shop-empty[hidden]{display:none}
+.shop-empty-title{font-size:17px;font-weight:800;color:var(--text)}
+.shop-empty p{color:var(--muted);font-size:13px;line-height:1.6;max-width:460px;margin:8px auto 16px}
+.shop-list{display:grid;gap:10px;margin-bottom:16px}
+.shop-list:empty{display:none}
+.shop-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface2)}
+.shop-card.is-current{border-color:var(--p)}
+.shop-card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.shop-card-name{font-size:14px;font-weight:800;color:var(--text)}
+.shop-card-meta{font-size:12px;color:var(--muted);font-family:monospace}
+.shop-card-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.shop-card-actions button{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:600 12px 'Manrope',sans-serif;cursor:pointer}
+.shop-card-actions button:hover{border-color:var(--p)}
+.shop-card-actions button.is-danger{color:var(--red)}
+.shop-card-replace{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.shop-card-replace[hidden]{display:none}
+.shop-card-msg{font-size:12px;margin-top:8px;color:var(--muted)}
+.shop-card-msg.is-error{color:var(--red)}
+.shop-counter{font-size:12px;color:var(--muted)}
 .an-load{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 .an-load[hidden]{display:none}
 .an-load-top{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);margin-bottom:10px}
@@ -1570,29 +1596,25 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <span data-icon="user" aria-hidden="true"></span><span>Аккаунт и пароль</span>
       </button>
       <button class="settings-tab" type="button" role="tab" id="settings-tab-wb-api" aria-selected="false" aria-controls="settings-wb-api" onclick="settingsSwitch('wb-api')">
-        <span data-icon="plug" aria-hidden="true"></span><span>Интеграция WB API</span>
+        <span data-icon="plug" aria-hidden="true"></span><span>Магазины WB</span>
       </button>
     </div>
     <section class="settings-panel" id="settings-wb-api" role="tabpanel" aria-labelledby="settings-tab-wb-api" hidden>
     <div class="card">
-      <div class="card-title"><span data-icon="chart" aria-hidden="true"></span> Подключение WB API</div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Подключите токен Wildberries, чтобы WBai мог безопасно получать данные, необходимые для функций кабинета.</p>
+      <div class="card-title"><span data-icon="chart" aria-hidden="true"></span> Магазины WB</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Подключите токены кабинетов Wildberries — у каждого магазина своя «Аналитика», «РНП», себестоимость и планы. Данные разных магазинов не смешиваются.</p>
+      <div id="shopList" class="shop-list" aria-live="polite"></div>
       <div id="anTokenBlock" class="an-token-block">
-        <div style="font-size:15px;font-weight:700;margin-bottom:6px">Подключите WB API</div>
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px"><div style="font-size:15px;font-weight:700">Добавить магазин</div><div class="shop-counter" id="shopCounter"></div></div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.8">
           Создайте токен: <b>Настройки WB → Доступ к API → Для интеграции вручную → Персональный</b><br>
-          Нужные галочки только: <b style="color:var(--p2)">Статистика</b> и <b style="color:var(--p2)">Аналитика</b> · Уровень: <b>Только чтение</b>
+          Нужные галочки только: <b style="color:var(--p2)">Статистика</b>, <b style="color:var(--p2)">Аналитика</b>, <b style="color:var(--p2)">Продвижение</b> и <b style="color:var(--p2)">Финансы</b> · Уровень: <b>Только чтение</b>
         </div>
         <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
-          <textarea id="anTokenInput" class="an-input" rows="2" placeholder="Вставьте токен Wildberries API" aria-label="Токен Wildberries API"></textarea>
-          <button class="an-btn" id="anTokenSaveBtn" onclick="anSaveToken()">Подключить</button>
+          <textarea id="anTokenInput" class="an-input" rows="2" placeholder="Вставьте токен Wildberries API" aria-label="Токен Wildberries API нового магазина"></textarea>
+          <button class="an-btn" id="anTokenSaveBtn" onclick="shopAdd()">Добавить магазин</button>
         </div>
-        <div class="an-err" id="anTokenErr"></div>
-      </div>
-      <div id="anTokenStatus" class="an-token-status" style="display:none">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0"></div>
-        <div style="flex:1;font-size:12px"><b>WB API подключён</b> · <span id="anTokenPreview" style="color:var(--muted);font-family:monospace;font-size:11px"></span></div>
-        <button type="button" onclick="anDisconnectToken()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit">Отключить</button>
+        <div class="an-err" id="anTokenErr" role="alert"></div>
       </div>
     </div>
     </section>
@@ -1887,6 +1909,12 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   <!-- АНАЛИТИКА -->
   <div class="page" id="page-analytics">
     <div class="page-title"><span data-icon="chart" aria-hidden="true"></span> Аналитика</div>
+    <div class="shop-tabs-wrap" id="anShopTabs"></div>
+    <div class="shop-empty" id="anNoShop" hidden>
+      <div class="shop-empty-title">Добавьте первый магазин</div>
+      <p>«Аналитика» строится по данным вашего кабинета WB. Подключите токен магазина — можно несколько, у каждого будет своя страница.</p>
+      <button class="an-btn" type="button" onclick="openShopSettings()">Подключить магазин</button>
+    </div>
 
     <!-- Analytics UI (hidden until token connected) -->
     <div id="anMain" style="display:none">
@@ -2084,11 +2112,12 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   <div class="page" id="page-rnp">
     <div class="page-title"><span data-icon="activity" aria-hidden="true"></span> Рука на пульсе</div>
     <p class="rnp-lead">Заказы, выкупы, реклама и прибыль магазина по каждому дню — чтобы сразу видеть, где просели продажи. Суммы в тенге.</p>
+    <div class="shop-tabs-wrap" id="rnpShopTabs"></div>
 
     <div class="rnp-box rnp-empty" id="rnpNoToken" hidden>
-      <div class="rnp-box-title">Подключите токен WB</div>
-      <p>РНП строится по данным вашего кабинета WB. Подключите токен с доступами «Статистика», «Продвижение» и «Финансы» в разделе «Аналитика WB».</p>
-      <button class="rnp-btn primary" type="button" onclick="showPage('analytics')">Подключить токен</button>
+      <div class="rnp-box-title">Добавьте первый магазин</div>
+      <p>РНП строится по данным вашего кабинета WB. Подключите магазин в «Настройках → Магазины WB» — можно несколько, у каждого будет своя страница.</p>
+      <button class="rnp-btn primary" type="button" onclick="openShopSettings()">Подключить магазин</button>
     </div>
 
     <div class="rnp-box" id="rnpSync" hidden aria-live="polite">
@@ -2265,7 +2294,7 @@ async function init() {
     currentUser = d.user;
     setUser(d.user, d.subscription);
     checkSubExpiry(d.subscription);
-    wbSyncWatch();
+    loadShops().then(wbSyncWatch);
     if(d.subscription?.active) loadTemplates();
     else { document.getElementById('templatesContent').innerHTML='<div class="empty-state"><span data-icon="box" aria-hidden="true"></span> Шаблоны доступны после активации подписки.</div>'; window.wbaiInjectIcons?.(); }
     // Восстанавливаем последнюю открытую страницу
@@ -3184,6 +3213,171 @@ function isRenderHistory(){
 // ═══════════════════════════════════════════════════
 //  АНАЛИТИКА (WB API)
 // ═══════════════════════════════════════════════════
+// ── Магазины WB: у каждого свои данные; выбранный магазин общий для «Аналитики» и «РНП».
+var WB_SHOP = { list:[], current:null, limit:0, planName:'', loaded:false };
+var WB_SHOP_KEY = 'wbai_shop_id';
+
+// Запросы данных магазина уходят с заголовком X-Shop-Id выбранного магазина.
+function shopFetch(url, options){
+  options = options || {};
+  options.headers = Object.assign({Authorization:'Bearer '+token}, options.headers||{});
+  if (WB_SHOP.current) options.headers['X-Shop-Id'] = String(WB_SHOP.current);
+  return fetch(url, options);
+}
+
+function shopEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+async function loadShops(){
+  try{
+    var r = await fetch('/api/shops', {headers:{Authorization:'Bearer '+token}});
+    if(!r.ok) return;
+    var d = await r.json();
+    WB_SHOP.list = d.shops || [];
+    WB_SHOP.limit = d.limit || 0;
+    WB_SHOP.planName = d.planName || '';
+    WB_SHOP.loaded = true;
+    var saved = null;
+    try{ saved = Number(localStorage.getItem(WB_SHOP_KEY)) || null; }catch(e){}
+    var ids = WB_SHOP.list.map(function(x){ return x.id; });
+    WB_SHOP.current = ids.indexOf(WB_SHOP.current) >= 0 ? WB_SHOP.current : (ids.indexOf(saved) >= 0 ? saved : (ids[0] || null));
+    renderShopTabs();
+    renderShopSettings();
+  }catch(e){}
+}
+
+function renderShopTabs(){
+  ['anShopTabs','rnpShopTabs'].forEach(function(id){
+    var box = document.getElementById(id);
+    if(!box) return;
+    if(!WB_SHOP.list.length){ box.innerHTML=''; return; }
+    var canAdd = WB_SHOP.list.length < WB_SHOP.limit;
+    box.innerHTML = '<div class="shop-tabs" role="tablist" aria-label="Магазины">'+WB_SHOP.list.map(function(x){
+      var on = x.id===WB_SHOP.current;
+      return '<button type="button" role="tab" class="shop-tab" aria-selected="'+on+'"'+(on?'':' tabindex="-1"')+' title="'+shopEsc(x.name)+'" onclick="setShop('+x.id+')">'+shopEsc(x.name)+'</button>';
+    }).join('')+(canAdd?'<button type="button" class="shop-tab is-add" onclick="openShopSettings()">+ Добавить</button>':'')+'</div>';
+  });
+}
+
+function openShopSettings(){
+  showPage('settings');
+  settingsSwitch('wb-api');
+  setTimeout(function(){ var el=document.getElementById('anTokenInput'); if(el) el.focus(); }, 50);
+}
+
+// Другой магазин — другие данные: всё загруженное раньше сбрасываем и грузим заново.
+function setShop(id){
+  if(id===WB_SHOP.current) return;
+  WB_SHOP.current = id;
+  try{ localStorage.setItem(WB_SHOP_KEY, String(id)); }catch(e){}
+  renderShopTabs();
+  renderShopSettings();
+  resetShopState();
+  if(document.getElementById('page-analytics').classList.contains('active') && AN.hasToken){ AN.loaded=true; anLoad(); }
+  if(document.getElementById('page-rnp').classList.contains('active')) rnpLoad();
+  wbSyncWatch();
+}
+
+function resetShopState(){
+  AN.loaded=false; AN.data=[]; AN.sources=null;
+  if(typeof AN_PROD!=='undefined'){ AN_PROD.data=null; AN_PROD.details={}; AN_PROD.open=null; AN_PROD.seq++; var t=document.getElementById('anProdTable'); if(t) t.innerHTML=''; }
+  if(typeof AN_LOAD!=='undefined'){ AN_LOAD.seq++; AN_LOAD.serverPending=false; }
+  if(typeof RNP!=='undefined'){ RNP.data=null; RNP.sync=null; clearTimeout(RNP.pollTimer); }
+  if(typeof RNP_PLAN!=='undefined') RNP_PLAN.data=null;
+  if(typeof anAdsRequestSeq!=='undefined') anAdsRequestSeq++;
+}
+
+function renderShopSettings(){
+  var list = document.getElementById('shopList');
+  if(!list) return;
+  list.innerHTML = WB_SHOP.list.map(function(x){
+    return '<div class="shop-card'+(x.id===WB_SHOP.current?' is-current':'')+'" data-shop="'+x.id+'">'+
+      '<div class="shop-card-top"><span class="shop-card-name">'+shopEsc(x.name)+'</span><span class="shop-card-meta">'+shopEsc(x.tokenPreview||'')+'</span>'+
+      '<div class="shop-card-actions">'+
+        (x.id===WB_SHOP.current?'':'<button type="button" onclick="setShop('+x.id+')">Выбрать</button>')+
+        '<button type="button" onclick="shopRename('+x.id+')">Переименовать</button>'+
+        '<button type="button" onclick="shopToggleReplace('+x.id+')">Заменить токен</button>'+
+        '<button type="button" class="is-danger" onclick="shopRemove('+x.id+')">Удалить</button>'+
+      '</div></div>'+
+      '<div class="shop-card-replace" id="shopReplace'+x.id+'" hidden><textarea class="an-input" rows="2" id="shopReplaceInput'+x.id+'" placeholder="Новый токен этого магазина" aria-label="Новый токен магазина '+shopEsc(x.name)+'"></textarea><button class="an-btn" type="button" onclick="shopReplace('+x.id+')">Сохранить</button></div>'+
+      '<div class="shop-card-msg" id="shopMsg'+x.id+'" role="status"></div>'+
+    '</div>';
+  }).join('');
+  var counter = document.getElementById('shopCounter');
+  if(counter) counter.textContent = WB_SHOP.limit ? WB_SHOP.list.length+' из '+WB_SHOP.limit+' по тарифу «'+WB_SHOP.planName+'»' : '';
+  var block = document.getElementById('anTokenBlock');
+  var full = WB_SHOP.limit && WB_SHOP.list.length >= WB_SHOP.limit;
+  if(block){
+    document.getElementById('anTokenInput').disabled = !!full;
+    document.getElementById('anTokenSaveBtn').disabled = !!full;
+    var err = document.getElementById('anTokenErr');
+    if(full){ err.textContent='Достигнут лимит магазинов по тарифу. Удалите ненужный магазин или перейдите на тариф выше.'; err.style.display='block'; }
+  }
+}
+
+async function shopApi(method, url, body){
+  var r = await fetch(url, {method:method, headers:{'Content-Type':'application/json',Authorization:'Bearer '+token}, body: body?JSON.stringify(body):undefined});
+  var d = await r.json().catch(function(){return {};});
+  if(!r.ok) throw new Error(d.error||'Ошибка');
+  return d;
+}
+
+async function shopAdd(){
+  var input = document.getElementById('anTokenInput');
+  var btn = document.getElementById('anTokenSaveBtn');
+  var err = document.getElementById('anTokenErr');
+  var val = input.value.trim();
+  err.style.display = 'none';
+  if (!val) { err.textContent='Вставьте токен магазина'; err.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Проверяем токен…';
+  try {
+    var d = await shopApi('POST', '/api/shops', {token:val});
+    input.value='';
+    await loadShops();
+    setShop(d.shop.id);
+    setTimeout(wbSyncWatch, 1500);
+  } catch(e) { err.textContent=e.message||'Ошибка соединения'; err.style.display='block'; }
+  finally { btn.textContent='Добавить магазин'; renderShopSettings(); if(!(WB_SHOP.limit && WB_SHOP.list.length >= WB_SHOP.limit)) btn.disabled=false; }
+}
+
+function shopToggleReplace(id){
+  var box = document.getElementById('shopReplace'+id);
+  box.hidden = !box.hidden;
+  if(!box.hidden) document.getElementById('shopReplaceInput'+id).focus();
+}
+
+async function shopReplace(id){
+  var input = document.getElementById('shopReplaceInput'+id), msg = document.getElementById('shopMsg'+id);
+  if(!input.value.trim()){ msg.className='shop-card-msg is-error'; msg.textContent='Вставьте новый токен'; return; }
+  msg.className='shop-card-msg'; msg.textContent='Проверяем токен…';
+  try{
+    var d = await shopApi('PUT', '/api/shops/'+id+'/token', {token:input.value.trim()});
+    await loadShops();
+    if(id===WB_SHOP.current){ resetShopState(); }
+    var m = document.getElementById('shopMsg'+id);
+    if(m){ m.className='shop-card-msg'; m.textContent = d.shop.sameCabinet ? 'Токен заменён. Это тот же кабинет — все данные сохранены.' : 'Это другой кабинет WB: данные прежнего магазина удалены, загружаем новые.'; }
+    setTimeout(wbSyncWatch, 1500);
+  }catch(e){ msg.className='shop-card-msg is-error'; msg.textContent=e.message; }
+}
+
+async function shopRename(id){
+  var shop = WB_SHOP.list.find(function(x){ return x.id===id; });
+  var name = prompt('Название магазина', shop ? shop.name : '');
+  if(name===null) return;
+  try{ await shopApi('PATCH', '/api/shops/'+id, {name:name}); await loadShops(); }
+  catch(e){ var m=document.getElementById('shopMsg'+id); if(m){ m.className='shop-card-msg is-error'; m.textContent=e.message; } }
+}
+
+async function shopRemove(id){
+  var shop = WB_SHOP.list.find(function(x){ return x.id===id; });
+  if(!confirm('Удалить магазин «'+(shop?shop.name:'')+'»?\n\nУдалятся все его данные в WBai: себестоимость, планы, ярлыки и загруженная история. В кабинете WB ничего не изменится.')) return;
+  try{
+    await shopApi('DELETE', '/api/shops/'+id);
+    if(id===WB_SHOP.current){ WB_SHOP.current=null; resetShopState(); }
+    await loadShops();
+    AN.hasToken = WB_SHOP.list.length > 0;
+  }catch(e){ var m=document.getElementById('shopMsg'+id); if(m){ m.className='shop-card-msg is-error'; m.textContent=e.message; } }
+}
+
 var AN = { period:'2weeks', data:[], animFrame:null, animStart:null, initialized:false, loaded:false, hasToken:false, financeReady:false };
 var AN_MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 
@@ -3213,52 +3407,15 @@ async function anInit() {
   await anCheckToken();
 }
 
+// Есть ли магазины: от этого зависит, показывать «Аналитику» или «Добавьте первый магазин».
 async function anCheckToken() {
-  try {
-    var r = await fetch('/api/wb-token/status', {headers:{Authorization:'Bearer '+token}});
-    if (!r.ok) throw new Error('not ok');
-    var d = await r.json();
-    AN.hasToken = !!d.hasToken;
-    document.getElementById('anTokenBlock').style.display = d.hasToken ? 'none' : 'block';
-    document.getElementById('anTokenStatus').style.display = d.hasToken ? 'flex' : 'none';
-    var analyticsMain = document.getElementById('anMain');
-    if (analyticsMain) analyticsMain.style.display = d.hasToken ? 'block' : 'none';
-    if (d.hasToken) {
-      document.getElementById('anTokenPreview').textContent = d.tokenPreview || '';
-      if (AN.initialized && !AN.loaded) { AN.loaded = true; anLoad(); }
-    }
-  } catch(e) {
-    AN.hasToken = false;
-    document.getElementById('anTokenBlock').style.display = 'block';
-    document.getElementById('anTokenStatus').style.display = 'none';
-    var analyticsMain = document.getElementById('anMain');
-    if (analyticsMain) analyticsMain.style.display = 'none';
-  }
-}
-
-async function anSaveToken() {
-  var input = document.getElementById('anTokenInput');
-  var btn = document.getElementById('anTokenSaveBtn');
-  var err = document.getElementById('anTokenErr');
-  var val = input.value.trim();
-  err.style.display = 'none';
-  if (!val) { err.textContent='Введите токен'; err.style.display='block'; return; }
-  btn.disabled=true; btn.textContent='⏳ Проверяю...';
-  try {
-    var r = await fetch('/api/wb-token', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({token:val})});
-    var d = await r.json();
-    if (!r.ok) { err.textContent=d.error||'Ошибка'; err.style.display='block'; return; }
-    setTimeout(wbSyncWatch, 1500);
-    input.value='';
-    await anCheckToken();
-  } catch(e) { err.textContent='Ошибка соединения'; err.style.display='block'; }
-  finally { btn.disabled=false; btn.textContent='Подключить'; }
-}
-
-async function anDisconnectToken() {
-  if (!confirm('Отключить WB API?')) return;
-  await fetch('/api/wb-token', {method:'DELETE', headers:{Authorization:'Bearer '+token}});
-  AN.hasToken=false; AN.loaded=false; await anCheckToken();
+  await loadShops();
+  AN.hasToken = WB_SHOP.list.length > 0;
+  var analyticsMain = document.getElementById('anMain');
+  if (analyticsMain) analyticsMain.style.display = AN.hasToken ? 'block' : 'none';
+  var empty = document.getElementById('anNoShop');
+  if (empty) empty.hidden = AN.hasToken || !WB_SHOP.loaded;
+  if (AN.hasToken && AN.initialized && !AN.loaded) { AN.loaded = true; anLoad(); }
 }
 
 var AN_METRIC_IDS=['anMCount','anMSum','anMMargin','anMBuyCount','anMBuySum','anMCancelCount','anMCancelSum'];
@@ -3277,7 +3434,7 @@ async function anLoad(from, to, forceRefresh) {
     var url = '/api/wb-analytics?period='+AN.period;
     if (from&&to) url='/api/wb-analytics?from='+from+'&to='+to;
     if(forceRefresh) url += '&refresh=1';
-    var r = await fetch(url, {headers:{Authorization:'Bearer '+token}});
+    var r = await shopFetch(url);
     var d;
     try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
     AN_LOAD.serverPending=false;
@@ -3353,7 +3510,7 @@ async function anLoadPoll(){
   if(!AN_LOAD.serverPending) return;
   var seq=AN_LOAD.seq;
   try{
-    var r=await fetch('/api/wb-analytics/progress',{headers:{Authorization:'Bearer '+token}});
+    var r=await shopFetch('/api/wb-analytics/progress');
     var d=await r.json();
     if(seq!==AN_LOAD.seq||!AN_LOAD.serverPending) return;
     ['funnel','chart','finance'].forEach(function(k){var x=(d.steps||{})[k];if(x&&x.state!=='pending')anLoadSet(k,x.state,{done:x.done,total:x.total},true);});
@@ -3391,7 +3548,7 @@ async function anLoadAds(from, to, forceRefresh) {
   anLoadSet('ads','running');
   try {
     var url='/api/wb-advertising?from='+from+'&to='+to+(forceRefresh?'&refresh=1':'');
-    var r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+    var r=await shopFetch(url);
     var d;
     try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
     if(seq!==anAdsRequestSeq) return;
@@ -3479,7 +3636,7 @@ async function anLoadProducts(from, to){
   if(status) status.textContent='Загружаем…';
   anLoadSet('products','running');
   try{
-    var r=await fetch('/api/wb-analytics/products?from='+from+'&to='+to,{headers:{Authorization:'Bearer '+token}});
+    var r=await shopFetch('/api/wb-analytics/products?from='+from+'&to='+to);
     var d=await r.json().catch(function(){return {};});
     if(seq!==AN_PROD.seq) return;
     if(!r.ok){AN_PROD.data=null;document.getElementById('anProdTable').innerHTML='';if(status)status.textContent=d.error||'Отчёт по товарам недоступен.';anLoadSet('products','error');return;}
@@ -3533,7 +3690,7 @@ async function anToggleProduct(key){
   if(!AN_PROD.open||AN_PROD.details[key]) return;
   var seq=AN_PROD.seq;
   try{
-    var r=await fetch('/api/wb-analytics/products?from='+AN_PROD.from+'&to='+AN_PROD.to+'&key='+encodeURIComponent(key),{headers:{Authorization:'Bearer '+token}});
+    var r=await shopFetch('/api/wb-analytics/products?from='+AN_PROD.from+'&to='+AN_PROD.to+'&key='+encodeURIComponent(key));
     var d=await r.json().catch(function(){return {};});
     if(seq!==AN_PROD.seq) return;
     var p=r.ok?(d.products||[]).find(function(x){return x.key===key;}):null;
@@ -3918,11 +4075,11 @@ function rnpIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2
 function rnpShortDay(day){ return day.slice(8,10)+'.'+day.slice(5,7); }
 function rnpApi(path, options){
   options = options || {};
-  options.headers = Object.assign({Authorization:'Bearer '+token}, options.headers||{});
-  return fetch(path, options).then(function(r){ return r.json().catch(function(){return {};}).then(function(d){ d.__status=r.status; d.__ok=r.ok; return d; }); });
+  return shopFetch(path, options).then(function(r){ return r.json().catch(function(){return {};}).then(function(d){ d.__status=r.status; d.__ok=r.ok; return d; }); });
 }
 
-function rnpInit(){
+async function rnpInit(){
+  if(!WB_SHOP.loaded) await loadShops();
   if(!RNP.initialized){
     RNP.initialized = true;
     var to = new Date(), from = new Date(); from.setDate(from.getDate()-13);
@@ -4516,14 +4673,15 @@ async function wbSyncWatch(){
   clearTimeout(WB_SYNC.timer); WB_SYNC.timer = null;
   var box = document.getElementById('wbSync');
   try{
-    var r = await fetch('/api/rnp/status', {headers:{Authorization:'Bearer '+token}});
+    var r = await shopFetch('/api/rnp/status');
     if(!r.ok){ box.hidden = true; return; }
-    var s = (await r.json()).sync || {};
+    var d = await r.json();
+    var s = d.sync || {};
     if(s.importing && s.status==='running'){
       WB_SYNC.seenRunning = true;
       box.hidden = false; box.classList.remove('is-error');
       document.getElementById('wbSyncSpin').hidden = false;
-      document.getElementById('wbSyncText').textContent = 'Загружаем данные из WB';
+      document.getElementById('wbSyncText').textContent = d.shop && WB_SHOP.list.length > 1 ? 'Загружаем данные «'+d.shop.name+'»' : 'Загружаем данные из WB';
       document.getElementById('wbSyncSub').textContent = '· можно пользоваться кабинетом';
       document.getElementById('wbSyncBar').hidden = false;
       document.getElementById('wbSyncFill').style.width = (s.percent||0)+'%';
@@ -4554,7 +4712,7 @@ async function wbSyncWatch(){
 }
 async function wbSyncRetry(){
   document.getElementById('wbSyncRetry').disabled = true;
-  try{ await fetch('/api/rnp/refresh', {method:'POST', headers:{Authorization:'Bearer '+token}}); }
+  try{ await shopFetch('/api/rnp/refresh', {method:'POST'}); }
   finally { document.getElementById('wbSyncRetry').disabled = false; setTimeout(wbSyncWatch, 1500); }
 }
 
@@ -4645,7 +4803,7 @@ async function openCogsModal() {
 
   try {
     var token = localStorage.getItem('wbai_token');
-    var r = await fetch('/api/wb-articles', { headers: { Authorization: 'Bearer ' + token } });
+    var r = await shopFetch('/api/wb-articles');
     var data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка');
     _cogsArticles = data.articles || [];
@@ -4741,9 +4899,9 @@ async function saveCogs() {
 
   try {
     var token = localStorage.getItem('wbai_token');
-    var r = await fetch('/api/product-costs', {
+    var r = await shopFetch('/api/product-costs', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: items })
     });
     var data = await r.json();
