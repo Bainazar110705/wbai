@@ -3,7 +3,8 @@ function subscriptionPayload(user) {
   return { active: !!(end && end > new Date()), end };
 }
 
-function createAuthController(authService) {
+// creditsSummary начисляет положенные месячные фото и убирает сгоревшие до ответа /api/me.
+function createAuthController(authService, { creditsSummary = null } = {}) {
   return {
     async register(req, res) {
       try {
@@ -27,10 +28,16 @@ function createAuthController(authService) {
     },
 
     async me(req, res) {
+      const credits = creditsSummary ? await creditsSummary(req.user.id).catch(() => null) : null;
       const user = await authService.getProfile(req.user.id);
       if (!user) return res.status(404).json({ error: 'Не найден' });
       res.json({
-        user: { ...user, plan: user.plan || 'start', photo_credits: user.photo_credits || 0 },
+        user: {
+          ...user,
+          plan: user.plan || 'start',
+          photo_credits: user.photo_credits || 0,
+          ...(credits?.expiring ? { photo_credits_expiring: credits.expiring } : {})
+        },
         subscription: subscriptionPayload(user)
       });
     },

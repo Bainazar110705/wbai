@@ -19,25 +19,43 @@ async function init() {
   logger.info('database_ready');
 }
 
+// Плейсхолдеры ? в стиле SQLite переводятся в $N для pg.
+function toPg(query) {
+  let idx = 0;
+  return query.replace(/\?/g, () => `$${++idx}`);
+}
+
+// Те же методы поверх любого исполнителя запросов: пула или клиента транзакции.
+function helpers(executor) {
+  return {
+    getAsync: async (query, params) => (await executor.query(toPg(query), params)).rows[0] || null,
+    allAsync: async (query, params) => (await executor.query(toPg(query), params)).rows,
+    runAsync: async (query, params) => {
+      const result = await executor.query(toPg(query), params);
+      return { lastID: result.rows[0]?.id, changes: result.rowCount };
+    }
+  };
+}
+
+// Несколько запросов одной транзакцией: при ошибке всё откатывается.
+async function transaction(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(helpers(client));
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   init,
   close: () => pool.end(),
-  getAsync: async (query, params) => {
-    let idx = 0;
-    const pgQuery = query.replace(/\?/g, () => `$${++idx}`);
-    const result = await pool.query(pgQuery, params);
-    return result.rows[0] || null;
-  },
-  allAsync: async (query, params) => {
-    let idx = 0;
-    const pgQuery = query.replace(/\?/g, () => `$${++idx}`);
-    const result = await pool.query(pgQuery, params);
-    return result.rows;
-  },
-  runAsync: async (query, params) => {
-    let idx = 0;
-    const pgQuery = query.replace(/\?/g, () => `$${++idx}`);
-    const result = await pool.query(pgQuery, params);
-    return { lastID: result.rows[0]?.id, changes: result.rowCount };
-  }
+  ...helpers(pool),
+  transaction
 };

@@ -959,6 +959,16 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 .an-help-tip.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.an-help-tip{transition:none}}
 /* ОТЧЁТ О ПРИБЫЛИ */
+.credit-packs-group{margin-bottom:18px;padding:14px;border-radius:12px;border:1px solid var(--border)}
+.credit-packs-group.is-current{border-color:var(--p);background:var(--p3)}
+.credit-packs-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px}
+.credit-packs-group.is-current .credit-packs-title::after{content:' · ваш тариф';color:var(--p2)}
+.credit-packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.credit-pack{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.credit-pack-n{font-size:22px;font-weight:900;color:var(--text)}
+.credit-pack-u{font-size:12px;color:var(--muted);margin-bottom:8px}
+.credit-pack-price{font-size:16px;font-weight:800;color:var(--p2)}
+.credit-pack-per{font-size:11px;color:var(--muted)}
 .shop-tabs-wrap:empty{display:none}
 .shop-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:-8px 0 18px;padding:4px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);width:max-content;max-width:100%}
 .shop-tab{border:0;background:transparent;color:var(--muted);font:700 13px 'Manrope',sans-serif;padding:8px 14px;border-radius:9px;cursor:pointer;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1482,41 +1492,47 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <!-- СТАРТ -->
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px">
             <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">СТАРТ</div>
-            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">1 500 ₸</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">2 490 ₸</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц + 5 фото</div>
             <ul style="list-style:none;margin-bottom:14px">
-              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Ответы на отзывы</li>
-              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Ответы на вопросы</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Ответы на отзывы и вопросы</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> 5 фото ИИ-инфографики в месяц</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> До 3 магазинов WB</li>
               <li style="font-size:12px;color:var(--muted);padding:4px 0"><span data-icon="check" aria-hidden="true"></span> Поддержка Telegram</li>
             </ul>
-            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px;background:#888;color:#000"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 1 500 ₸</a>
+            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px;background:#888;color:#000"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 2 490 ₸</a>
           </div>
 
           <!-- ПРО -->
           <div style="background:var(--surface2);border:1.5px solid rgba(123,47,247,0.4);border-radius:14px;padding:18px;position:relative">
             <div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--p);color:#fff;font-size:10px;font-weight:700;padding:3px 12px;border-radius:0 0 8px 8px">ПОПУЛЯРНЫЙ</div>
             <div style="font-size:11px;color:var(--p2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:10px">ПРО</div>
-            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">3 000 ₸</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">6 990 ₸</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц + 15 фото</div>
             <ul style="list-style:none;margin-bottom:14px">
               <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Всё из Старта</li>
-              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Заполнение карточек WB</li>
-              <li style="font-size:12px;color:var(--muted);padding:4px 0"><span data-icon="check" aria-hidden="true"></span> Анализ конкурентов</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Аналитика WB: прибыль по товарам</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Рука на пульсе (РНП)</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Заполнение карточек WB с SEO, шаблоны</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> 15 фото ИИ-инфографики в месяц</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0"><span data-icon="check" aria-hidden="true"></span> До 6 магазинов WB</li>
             </ul>
-            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 3 000 ₸</a>
+            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 6 990 ₸</a>
           </div>
 
           <!-- МАКС -->
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px">
             <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">МАКС</div>
-            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">4 500 ₸</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц + 30 фото</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:2px">11 990 ₸</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">в месяц + 40 фото</div>
             <ul style="list-style:none;margin-bottom:14px">
               <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Всё из Про</li>
-              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> AI Инфографика (30 фото)</li>
-              <li style="font-size:12px;color:var(--muted);padding:4px 0"><span data-icon="check" aria-hidden="true"></span> Докупка фото-пакетов</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> 40 фото ИИ-инфографики в месяц, копятся 3 месяца</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Серии инфографики</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)"><span data-icon="check" aria-hidden="true"></span> Докупка фото дешевле</li>
+              <li style="font-size:12px;color:var(--muted);padding:4px 0"><span data-icon="check" aria-hidden="true"></span> До 12 магазинов WB</li>
             </ul>
-            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px;background:#9333ea;color:#fff"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 4 500 ₸</a>
+            <a class="kaspi-btn" href="https://pay.kaspi.kz/pay/yvd6uhlp" target="_blank" style="font-size:12px;padding:9px 14px;background:#9333ea;color:#fff"><span data-icon="credit-card" aria-hidden="true"></span> Оплатить 11 990 ₸</a>
           </div>
 
         </div>
@@ -1652,7 +1668,8 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         <div style="font-family:'Manrope',sans-serif;font-size:40px;font-weight:900;color:var(--p2)" id="creditsPageBalance">0</div>
         <div style="color:var(--muted);font-size:14px">фото-кредитов<br>для AI Инфографики</div>
       </div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.6">Каждый кредит = 1 генерация инфографики. Кредиты не сгорают — используйте когда удобно.</p>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6">Каждый кредит = 1 генерация инфографики (Pro-качество — 2 кредита).</p>
+      <p style="font-size:13px;color:var(--text);line-height:1.6;margin-top:6px" id="creditsExpiring" hidden></p>
     </div>
 
     <div class="card">
@@ -1661,53 +1678,46 @@ canvas.an-canvas{width:100%;height:200px;display:block}
         Выберите пакет и оплатите через Kaspi Pay. В комментарии укажите email и количество фото.<br>
         Кредиты добавятся в течение 1-2 часов.
       </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px">
-
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(123,47,247,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">10</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">990 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">99 ₸/фото</div>
+      <div class="credit-packs-group" id="creditPacksBase">
+        <div class="credit-packs-title">Тарифы Старт и Про</div>
+        <div class="credit-packs">
+        <div class="credit-pack">
+          <div class="credit-pack-n">10</div>
+          <div class="credit-pack-u">фото</div>
+          <div class="credit-pack-price">1 290 ₸</div>
+          <div class="credit-pack-per">129 ₸/фото</div>
         </div>
-
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(123,47,247,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">30</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">2 500 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">83 ₸/фото</div>
+        <div class="credit-pack">
+          <div class="credit-pack-n">50</div>
+          <div class="credit-pack-u">фото</div>
+          <div class="credit-pack-price">5 490 ₸</div>
+          <div class="credit-pack-per">110 ₸/фото</div>
         </div>
-
-        <div style="background:var(--surface2);border:1.5px solid rgba(123,47,247,0.4);border-radius:12px;padding:16px;text-align:center;position:relative;transition:border-color .2s">
-          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--p);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:10px;white-space:nowrap">ВЫГОДНО</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">50</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">3 900 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">78 ₸/фото</div>
         </div>
-
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(123,47,247,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">100</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">6 900 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">69 ₸/фото</div>
-        </div>
-
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(123,47,247,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">200</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">12 000 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">60 ₸/фото</div>
-        </div>
-
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(123,47,247,0.4)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">500</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">фото</div>
-          <div style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:var(--p2);margin-bottom:4px">27 000 ₸</div>
-          <div style="font-size:11px;color:var(--muted)">54 ₸/фото</div>
-        </div>
-
       </div>
-
+      <div class="credit-packs-group is-max" id="creditPacksMax">
+        <div class="credit-packs-title">Тариф Макс — со скидкой</div>
+        <div class="credit-packs">
+        <div class="credit-pack">
+          <div class="credit-pack-n">10</div>
+          <div class="credit-pack-u">фото</div>
+          <div class="credit-pack-price">990 ₸</div>
+          <div class="credit-pack-per">99 ₸/фото</div>
+        </div>
+        <div class="credit-pack">
+          <div class="credit-pack-n">50</div>
+          <div class="credit-pack-u">фото</div>
+          <div class="credit-pack-price">3 990 ₸</div>
+          <div class="credit-pack-per">80 ₸/фото</div>
+        </div>
+        <div class="credit-pack">
+          <div class="credit-pack-n">100</div>
+          <div class="credit-pack-u">фото</div>
+          <div class="credit-pack-price">6 990 ₸</div>
+          <div class="credit-pack-per">70 ₸/фото</div>
+        </div>
+        </div>
+      </div>
       <div style="background:var(--p3);border:1px solid rgba(123,47,247,0.25);border-radius:12px;padding:18px">
         <div style="font-size:13px;font-weight:700;color:var(--p2);margin-bottom:8px">Как оплатить</div>
         <ol style="color:var(--muted);font-size:13px;line-height:2;padding-left:18px">
@@ -1723,10 +1733,11 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <div class="card">
       <div class="card-title">ℹ️ Как работают кредиты</div>
       <ul style="color:var(--muted);font-size:13px;line-height:2.2;padding-left:18px">
-        <li>1 кредит = 1 генерация инфографики</li>
-        <li>Тариф Макс включает 30 кредитов каждый месяц</li>
+        <li>1 кредит = 1 генерация инфографики, Pro-качество — 2 кредита</li>
+        <li>Каждый месяц подписки: Старт — 5, Про — 15, Макс — 40 фото</li>
+        <li>Месячные фото Старт и Про сгорают через месяц, у <strong style="color:var(--p2)">Макс</strong> — через 3 месяца</li>
         <li>Докупленные кредиты <strong style="color:var(--text)">не сгорают</strong> — остаются до использования</li>
-        <li>Кредиты доступны только на тарифе <strong style="color:var(--p2)">Макс</strong></li>
+        <li>Сначала тратятся фото, которые сгорят раньше</li>
       </ul>
     </div>
   </div>
@@ -1769,7 +1780,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
           <span>Кредитов:</span> <b id="isCreditsNum">0</b>
         </div>
         <div class="is-credits is-no-plan" id="isNoPlanBadge" style="display:none">
-          <span data-icon="x-circle" aria-hidden="true"></span> Доступно на тарифе Макс
+          <span data-icon="x-circle" aria-hidden="true"></span> Нужна активная подписка
         </div>
       </div>
     </div>
@@ -1910,6 +1921,11 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   <div class="page" id="page-analytics">
     <div class="page-title"><span data-icon="chart" aria-hidden="true"></span> Аналитика</div>
     <div class="shop-tabs-wrap" id="anShopTabs"></div>
+    <div class="shop-empty" id="anLocked" hidden>
+      <div class="shop-empty-title">Доступно на тарифах Про и Макс</div>
+      <p>«Аналитика WB» показывает прибыль по каждому товару, расходы WB, рекламу и вывод «трафик или конверсия». Перейдите на тариф Про — 6 990 ₸ в месяц, в нём ещё «Рука на пульсе» и 15 фото инфографики.</p>
+      <button class="an-btn" type="button" onclick="showPage('subscription')">Выбрать тариф</button>
+    </div>
     <div class="shop-empty" id="anNoShop" hidden>
       <div class="shop-empty-title">Добавьте первый магазин</div>
       <p>«Аналитика» строится по данным вашего кабинета WB. Подключите токен магазина — можно несколько, у каждого будет своя страница.</p>
@@ -2113,6 +2129,11 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <div class="page-title"><span data-icon="activity" aria-hidden="true"></span> Рука на пульсе</div>
     <p class="rnp-lead">Заказы, выкупы, реклама и прибыль магазина по каждому дню — чтобы сразу видеть, где просели продажи. Суммы в тенге.</p>
     <div class="shop-tabs-wrap" id="rnpShopTabs"></div>
+    <div class="shop-empty" id="rnpLocked" hidden>
+      <div class="shop-empty-title">Доступно на тарифах Про и Макс</div>
+      <p>«Рука на пульсе» показывает заказы, выкупы, рекламу и прибыль по каждому дню и товару. Перейдите на тариф Про — 6 990 ₸ в месяц, в нём ещё «Аналитика WB» и 15 фото инфографики.</p>
+      <button class="an-btn" type="button" onclick="showPage('subscription')">Выбрать тариф</button>
+    </div>
 
     <div class="rnp-box rnp-empty" id="rnpNoToken" hidden>
       <div class="rnp-box-title">Добавьте первый магазин</div>
@@ -2305,6 +2326,11 @@ async function init() {
   } catch(e){ console.error(e); }
 }
 
+var WB_SUB_ACTIVE = false;
+// Инфографика доступна на любом тарифе при активной подписке; серии — только Макс.
+function isCanGenerate(){ return !!(currentUser && WB_SUB_ACTIVE); }
+function isMaxPlan(){ return !!(currentUser && currentUser.plan === 'max'); }
+
 function setUser(user, sub) {
   const initials = (user.name||user.email||'?')[0].toUpperCase();
   document.getElementById('profileAvatar').textContent = initials;
@@ -2327,13 +2353,22 @@ function setUser(user, sub) {
     ? 'До '+new Date(sub.end).toLocaleDateString('ru-RU') : '';
   document.getElementById('profileBannerSub').textContent = isActive ? 'Подписка активна' : 'Подписка не активна';
 
-  // Баланс кредитов на странице покупки
-  if (user.plan === 'max') {
-    var balCard = document.getElementById('creditsBalanceCard');
-    var balNum = document.getElementById('creditsPageBalance');
-    if (balCard) balCard.style.display = 'block';
-    if (balNum) balNum.textContent = user.photo_credits || 0;
+  // Фото-кредиты есть на всех тарифах: Старт 5, Про 15, Макс 40 в месяц.
+  WB_SUB_ACTIVE = !!(sub && sub.active);
+  var balCard = document.getElementById('creditsBalanceCard');
+  var balNum = document.getElementById('creditsPageBalance');
+  if (balCard) balCard.style.display = 'block';
+  if (balNum) balNum.textContent = user.photo_credits || 0;
+  var expEl = document.getElementById('creditsExpiring');
+  if (expEl) {
+    var exp = user.photo_credits_expiring;
+    expEl.hidden = !(exp && exp.amount);
+    if (exp && exp.amount) expEl.textContent = exp.amount + ' фото сгорят ' + new Date(exp.at).toLocaleDateString('ru-RU', {day:'numeric', month:'long'}) + ' — потратьте их раньше.';
   }
+  // Пакеты докупки: на Макс дешевле, подсвечиваем пакеты своего тарифа.
+  var packsBase = document.getElementById('creditPacksBase'), packsMax = document.getElementById('creditPacksMax');
+  if (packsBase) packsBase.classList.toggle('is-current', user.plan !== 'max');
+  if (packsMax) packsMax.classList.toggle('is-current', user.plan === 'max');
 
   // Показываем тариф и кредиты
   const planNames = { start: 'Старт', pro: 'Про', max: 'Макс' };
@@ -2343,11 +2378,10 @@ function setUser(user, sub) {
   var subPlanEl = document.getElementById('subPlanName');
   if (subPlanEl) subPlanEl.textContent = planName;
 
-  // Кредиты видны только на Макс тарифе
   var creditsBlock = document.getElementById('creditsBlock');
   var subCreditsEl = document.getElementById('subCredits');
   var creditsCard = document.getElementById('creditsCard');
-  if (user.plan === 'max') {
+  {
     if (creditsBlock) creditsBlock.style.display = 'block';
     if (subCreditsEl) subCreditsEl.textContent = credits;
     if (creditsCard) { creditsCard.style.display = 'block'; document.getElementById('statCredits').textContent = credits; }
@@ -2546,6 +2580,7 @@ var IS_MODE_HINTS = {
   series:  'Загрузите референс стиля + до 5 страниц — AI обработает все одновременно.'
 };
 function isSetMode(mode, btn) {
+  if(mode === 'series' && !isMaxPlan()) { isShowError('Серии инфографики доступны на тарифе Макс.'); return; }
   IS.mode = mode;
   ['isModeCreate','isModeRedesign','isModeSeries'].forEach(function(id){
     var el=document.getElementById(id); if(el){el.classList.remove('on');el.setAttribute('aria-pressed','false');}
@@ -2748,6 +2783,7 @@ function isPasteToZone(zone, b64) {
 
 // ── Series generate ───────────────────────────────────────────────────────────
 async function isGenerateSeries() {
+  if(!isMaxPlan()) { isShowError('Серии инфографики доступны на тарифе Макс.'); return; }
   if(!IS.refB64) { isShowError('Загрузите референс стиля'); return; }
   var pages = IS.seriesPages.filter(Boolean);
   if(!pages.length) { isShowError('Добавьте хотя бы одну страницу'); return; }
@@ -2904,7 +2940,7 @@ function isInit() {
 
 function isRefreshCredits() {
   if(!currentUser)return;
-  var ok=currentUser.plan==='max';
+  var ok=isCanGenerate();
   document.getElementById('isCreditsBadge').style.display=ok?'flex':'none';
   document.getElementById('isNoPlanBadge').style.display=ok?'none':'flex';
   document.getElementById('isGenBtn').disabled=!ok;
@@ -2970,7 +3006,7 @@ function isShowTab(tab){
 async function isGenerate(){
   if(IS.mode==='series'){isGenerateSeries();return;}
   if(!IS.prodB64){isShowError('Загрузите фото товара');return;}
-  if(!currentUser||currentUser.plan!=='max')return;
+  if(!isCanGenerate())return;
 
   // Parallel: each job gets unique id, no blocking
   var jobId='job_'+Date.now();
@@ -3096,7 +3132,7 @@ async function isGenerate(){
 function isUpdateGenBtn(){
   var btn=document.getElementById('isGenBtn');
   if(!btn)return;
-  var ok=currentUser&&currentUser.plan==='max';
+  var ok=isCanGenerate();
   btn.disabled=!ok;
   isSetGenerateButton(btn, IS.activeJobs > 0 ? 'Ещё генерацию (' + IS.activeJobs + ' активно)' : 'Генерировать');
 }
@@ -3407,6 +3443,14 @@ async function anInit() {
   await anCheckToken();
 }
 
+// Тариф без «Аналитики»: вместо данных — приглашение перейти на Про.
+function anShowLocked(locked){
+  var lock = document.getElementById('anLocked'), main = document.getElementById('anMain');
+  if(lock) lock.hidden = !locked;
+  if(main && locked) main.style.display = 'none';
+  if(main && !locked && AN.hasToken) main.style.display = 'block';
+}
+
 // Есть ли магазины: от этого зависит, показывать «Аналитику» или «Добавьте первый магазин».
 async function anCheckToken() {
   await loadShops();
@@ -3438,6 +3482,8 @@ async function anLoad(from, to, forceRefresh) {
     var d;
     try { d=await r.json(); } catch(je){ d={error:'Ошибка сервера '+r.status}; }
     AN_LOAD.serverPending=false;
+    if (d.analyticsLocked) { anLoadFail(); anShowLocked(true); return; }
+    anShowLocked(false);
     if (!r.ok) { anLoadFail(); anShowErr(d.error||'Ошибка'); return; }
     ['funnel','chart','finance'].forEach(function(k){anLoadBusy(k,false);});
     anLoadSet('funnel','done'); anLoadSet('chart','done');
@@ -4134,6 +4180,7 @@ function rnpPeriod(){
 }
 
 function rnpShow(section){
+  document.getElementById('rnpLocked').hidden = section!=='locked';
   document.getElementById('rnpNoToken').hidden = section!=='noToken';
   document.getElementById('rnpSync').hidden = section!=='sync';
   document.getElementById('rnpMain').hidden = section!=='main';
@@ -4145,6 +4192,7 @@ async function rnpLoad(){
   RNP.loading = true;
   try{
     var d = await rnpApi('/api/rnp?from='+p.from+'&to='+p.to);
+    if(d.analyticsLocked){ rnpShow('locked'); return; }
     if(d.noToken){ rnpShow('noToken'); return; }
     if(!d.__ok){ rnpShow('main'); rnpNotes([{error:true, html:rnpEsc(d.error||'Не удалось загрузить РНП. Попробуйте ещё раз.')}]); return; }
     RNP.sync = d.sync;
@@ -4201,6 +4249,7 @@ async function rnpRefresh(){
   btn.disabled = true;
   try{
     var d = await rnpApi('/api/rnp/refresh', {method:'POST'});
+    if(d.analyticsLocked){ rnpShow('locked'); return; }
     if(d.noToken){ rnpShow('noToken'); return; }
     if(RNP.sync){ RNP.sync.status = d.started ? 'running' : RNP.sync.status; }
     if(!RNP.data){ rnpLoad(); return; }

@@ -15,6 +15,7 @@ const { wrapAsyncRoutes } = require('../middleware/async-routes');
 const { createAuthMiddleware } = require('../middleware/auth');
 const { createUsersRepository } = require('../repositories/users.repository');
 const { createCreditsService } = require('../services/credits.service');
+const { createPhotoCreditsService } = require('../services/photo-credits.service');
 const { createStaticController } = require('../controllers/static.controller');
 const { registerStaticRoutes } = require('../routes/static.routes');
 const { createTemplatesRepository } = require('../repositories/templates.repository');
@@ -44,6 +45,7 @@ const { createSellerService } = require('../services/wb-seller.service');
 const { createShopsController } = require('../controllers/shops.controller');
 const { registerShopsRoutes } = require('../routes/shops.routes');
 const { createShopMiddleware } = require('../middleware/shop');
+const { createAnalyticsAccess } = require('../middleware/plan-access');
 const { AppError } = require('../platform/errors');
 const { buildStrictProductContext, STRICT_PRODUCT_FACTS_RULES } = require('../services/infographic-facts');
 const { createInfographicBriefService, briefToPromptParts, needsAutoBrief } = require('../services/infographic-brief');
@@ -54,7 +56,8 @@ wrapAsyncRoutes(app);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const { appUrl: APP_URL, jwtSecret: JWT_SECRET, adminKey: ADMIN_KEY, claudeApiKey: CLAUDE_API_KEY, falKey: FAL_KEY, allowedOrigins } = env;
 const usersRepository = createUsersRepository(db);
-const creditsService = createCreditsService(usersRepository);
+const photoCreditsService = createPhotoCreditsService({ db });
+const creditsService = createCreditsService(photoCreditsService);
 const templatesRepository = createTemplatesRepository(db);
 const authService = createAuthService({ usersRepository, bcrypt, jwt, jwtSecret: JWT_SECRET });
 const templatesService = createTemplatesService(templatesRepository);
@@ -78,10 +81,11 @@ const {
   requirePlan,
   admin: requireAdmin
 } = createAuthMiddleware({ usersRepository, jwtSecret: JWT_SECRET, adminKey: ADMIN_KEY });
-const authController = createAuthController(authService);
+const authController = createAuthController(authService, { creditsSummary: userId => photoCreditsService.summary(userId) });
 const templatesController = createTemplatesController(templatesService);
 const shopsRepository = createShopsRepository(db);
 const resolveShop = createShopMiddleware({ repository: shopsRepository });
+const analyticsAccess = createAnalyticsAccess({ usersRepository });
 const shopsService = createShopsService({
   repository: shopsRepository,
   usersRepository,
@@ -217,7 +221,8 @@ registerShopsRoutes(app, { controller: createShopsController(shopsService), auth
 registerRnpRoutes(app, {
   controller: createRnpController({ repository: rnpRepository, syncService: rnpSyncService, getRubKztRate }),
   auth: authMiddleware,
-  shop: resolveShop
+  shop: resolveShop,
+  access: analyticsAccess
 });
 registerAnalyticsProductsRoutes(app, {
   controller: createAnalyticsProductsController({
@@ -236,7 +241,8 @@ registerAnalyticsProductsRoutes(app, {
     today: () => dateInTimeZone(new Date(), 'Europe/Moscow')
   }),
   auth: authMiddleware,
-  shop: resolveShop
+  shop: resolveShop,
+  access: analyticsAccess
 });
 
 // === ПРОКСИ ДЛЯ ИЗОБРАЖЕНИЙ (для Canvas) ===
@@ -788,7 +794,8 @@ async function callFalApi(endpoint, body) {
   return resultJson;
 }
 
-app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
+// Инфографика на всех тарифах: месячные фото Старт 5 / Про 15 / Макс 40 и докупка.
+app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription, async (req, res) => {
   const { prompt, imageBase64, styleImageBase64, extraImages, productName, specs, modelId, mode, aspectRatio, numImages } = req.body;
   const strictProductFacts = req.body.strictProductFacts === true;
   let strictContext;
@@ -936,7 +943,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     allUrls.splice(requestedCount);
     if (!allUrls.length) {
       console.error('[WBai] fal.ai ответ без изображений:', JSON.stringify(result));
-      await creditsService.release(req.user.id, reservedCredits);
+      await creditsService.release(req.user.id, reservedCredits, reservation);
       reservedCredits = 0;
       return res.status(500).json({ error: 'Изображение не сгенерировано' });
     }
@@ -948,7 +955,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
     generationCompleted = true;
     if (usedCredits < reservedCredits) {
       const unusedCredits = reservedCredits - usedCredits;
-      await creditsService.release(req.user.id, unusedCredits);
+      await creditsService.release(req.user.id, unusedCredits, reservation);
       reservedCredits -= unusedCredits;
     }
     const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
@@ -963,7 +970,7 @@ app.post('/api/generate-image', imageLimiter, authMiddleware, checkSubscription,
   } catch(e) {
     if (!generationCompleted && reservedCredits > 0) {
       try {
-        await creditsService.release(req.user.id, reservedCredits);
+        await creditsService.release(req.user.id, reservedCredits, reservation);
       } catch (refundError) {
         console.error('[WBai] generate-image credit refund error:', refundError.message);
       }
@@ -1039,14 +1046,15 @@ app.post('/api/admin/activate', adminLimiter, requireAdmin, async (req, res) => 
   const start = current > now ? current : now;
   const end = new Date(start);
   end.setMonth(end.getMonth() + (months || 1));
-  const userPlan = plan || 'start';
-  // Тариф Макс — даём 30 кредитов за каждый месяц
-  const bonusCredits = userPlan === 'max' ? 30 * (months || 1) : 0;
+  const userPlan = ['start', 'pro', 'max'].includes(plan) ? plan : 'start';
+  const wasActive = !!(user.subscription_end && new Date(user.subscription_end) > now);
   await db.runAsync(
-    'UPDATE users SET subscription_end = ?, is_active = 1, plan = ?, photo_credits = photo_credits + ? WHERE id = ?',
-    [end.toISOString(), userPlan, bonusCredits, user.id]
+    'UPDATE users SET subscription_end = ?, is_active = 1, plan = ? WHERE id = ?',
+    [end.toISOString(), userPlan, user.id]
   );
-  res.json({ ok: true, subscription_end: end.toISOString(), plan: userPlan });
+  // Новые условия тарифа: месячные фото Старт 5 / Про 15 / Макс 40 начисляются сразу.
+  const photoCredits = await photoCreditsService.activatePlan(user.id, { planChanged: (user.plan || 'start') !== userPlan, wasActive });
+  res.json({ ok: true, subscription_end: end.toISOString(), plan: userPlan, photo_credits: photoCredits });
 });
 
 // Добавить фото-кредиты вручную
@@ -1057,13 +1065,9 @@ app.post('/api/admin/add-credits', adminLimiter, requireAdmin, async (req, res) 
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
   const amount = parseInt(credits);
   if (isNaN(amount)) return res.status(400).json({ error: 'Неверное количество' });
-  // Отрицательное значение = снятие кредитов
-  if (amount >= 0) {
-    await db.runAsync('UPDATE users SET photo_credits = photo_credits + ? WHERE id = ?', [amount, user.id]);
-  } else {
-    // Снимаем, но не ниже 0
-    await db.runAsync('UPDATE users SET photo_credits = GREATEST(0, photo_credits + ?) WHERE id = ?', [amount, user.id]);
-  }
+  // Положительное — докупленные фото (не сгорают), отрицательное — снятие, но не ниже 0.
+  if (amount >= 0) await photoCreditsService.addPurchase(user.id, amount);
+  else await photoCreditsService.deduct(user.id, -amount);
   await db.runAsync(
     'INSERT INTO credit_transactions (user_id, amount, note) VALUES (?, ?, ?)',
     [user.id, amount, note || (amount >= 0 ? 'Ручное пополнение' : 'Ручное снятие')]
@@ -1099,7 +1103,14 @@ app.get('/api/admin/templates', adminLimiter, requireAdmin, async (req, res) => 
 });
 
 app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
-  const users = await db.allAsync('SELECT id, email, name, subscription_end, created_at, plan, photo_credits FROM users ORDER BY id DESC', []);
+  // Баланс без сгоревших пачек — даже у тех, кто давно не заходил.
+  const users = await db.allAsync(
+    `SELECT u.id, u.email, u.name, u.subscription_end, u.created_at, u.plan,
+            (SELECT COALESCE(SUM(b.remaining), 0)::int FROM photo_credit_batches b
+             WHERE b.user_id = u.id AND b.remaining > 0 AND (b.expires_at IS NULL OR b.expires_at > NOW())) AS photo_credits
+     FROM users u ORDER BY u.id DESC`,
+    []
+  );
   res.json({ users });
 });
 
@@ -1111,14 +1122,14 @@ app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
 // ── Себестоимость товаров ─────────────────────────────────────────────────────
 
 // GET /api/product-costs — список артикулов с себестоимостью
-app.get('/api/product-costs', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/product-costs', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE shop_id=? ORDER BY name', [req.shop.id]);
   res.json({ items: rows });
 });
 
 // POST /api/product-costs — сохранить себестоимость (массив артикулов)
-app.post('/api/product-costs', authMiddleware, resolveShop, async (req, res) => {
+app.post('/api/product-costs', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const { items } = req.body; // [{supplier_article, name, cost_price}]
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Нет данных' });
@@ -1138,7 +1149,7 @@ app.post('/api/product-costs', authMiddleware, resolveShop, async (req, res) => 
 });
 
 // GET /api/wb-articles — артикулы с заказами за последние 30 дней (для заполнения себестоимости)
-app.get('/api/wb-articles', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-articles', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
 
   try {
@@ -1416,7 +1427,7 @@ function finishAnalyticsProgress(shopId) {
   }
 }
 
-app.get('/api/wb-analytics/progress', authMiddleware, resolveShop, (req, res) => {
+app.get('/api/wb-analytics/progress', authMiddleware, analyticsAccess, resolveShop, (req, res) => {
   const progress = req.shop ? analyticsProgress.get(req.shop.id) : null;
   res.json(progress ? { active: progress.active, steps: progress.steps } : { active: false, steps: {} });
 });
@@ -1498,7 +1509,7 @@ async function loadStoredAdvertising(shopId, sync, dateFrom, dateTo, today) {
   }, sync.ads_at || sync.last_success_at);
 }
 
-app.get('/api/wb-analytics', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   const { period, from, to, refresh } = req.query;
   const forceRefresh = refresh === '1';
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
@@ -1786,7 +1797,7 @@ app.get('/api/wb-analytics', authMiddleware, resolveShop, async (req, res) => {
 });
 
 // ── GET /api/wb-weekly-report — Недельные отчёты WB (seller-services API) ─────
-app.get('/api/wb-weekly-report', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-weekly-report', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const wbToken = req.shop.token;
 
@@ -1878,7 +1889,7 @@ async function managerWbFetch(url, token) {
   return response.json();
 }
 
-app.get('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/manager-campaigns', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const assignments = await db.allAsync(
     `SELECT id, manager_name, campaign_id, campaign_name, created_at, updated_at
@@ -1888,7 +1899,7 @@ app.get('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res) 
   res.json({ assignments });
 });
 
-app.post('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res) => {
+app.post('/api/manager-campaigns', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const body = req.body || {};
   const managerName = String(body.manager_name || '').trim().replace(/\s+/g, ' ');
@@ -1907,7 +1918,7 @@ app.post('/api/manager-campaigns', authMiddleware, resolveShop, async (req, res)
   res.json({ ok: true });
 });
 
-app.delete('/api/manager-campaigns/:id', authMiddleware, resolveShop, async (req, res) => {
+app.delete('/api/manager-campaigns/:id', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const id = Number(req.params.id);
   if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'Некорректное назначение.' });
@@ -1915,7 +1926,7 @@ app.delete('/api/manager-campaigns/:id', authMiddleware, resolveShop, async (req
   res.json({ ok: true });
 });
 
-app.get('/api/wb-advert-campaigns', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-advert-campaigns', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   try {
     const payload = await managerWbFetch('https://advert-api.wildberries.ru/api/advert/v2/adverts', req.shop.token);
@@ -1931,7 +1942,7 @@ app.get('/api/wb-advert-campaigns', authMiddleware, resolveShop, async (req, res
 const ADVERTISING_OPEN_PERIOD_TTL_MS = 15 * 60 * 1000;
 const ADVERTISING_MAX_PERIOD_DAYS = 93;
 
-app.get('/api/wb-advertising', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-advertising', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   const { from, to, refresh } = req.query;
   const fromTime = managerReportDate(from);
   const toTime = managerReportDate(to);
@@ -1986,7 +1997,7 @@ app.get('/api/wb-advertising', authMiddleware, resolveShop, async (req, res) => 
   }
 });
 
-app.get('/api/wb-manager-report', authMiddleware, resolveShop, async (req, res) => {
+app.get('/api/wb-manager-report', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   const range = managerReportRange(req.query);
   if (!range) return res.status(400).json({ error: 'Укажите корректный период не более 31 дня.' });
 
@@ -2102,6 +2113,7 @@ app.get('/api/wb-manager-report', authMiddleware, resolveShop, async (req, res) 
 app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan('max'), async (req, res) => {
   let reservedCredits = 0;
   let succeeded = 0;
+  let seriesReservation = null;
   try {
     const { pages, styleImageBase64, aspectRatio } = req.body;
     if (!pages?.length) return res.status(400).json({ error: 'Нет страниц для обработки' });
@@ -2113,8 +2125,8 @@ app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan(
 
     // Резервируем весь объём серии одним условным UPDATE. Неуспешные страницы
     // вернут неиспользованный остаток после обработки.
-    const reservation = await creditsService.reserve(req.user.id, pageList.length);
-    if (!reservation) {
+    seriesReservation = await creditsService.reserve(req.user.id, pageList.length);
+    if (!seriesReservation) {
       const userCredits = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
       const credits = userCredits?.photo_credits || 0;
       return res.status(403).json({ error: `Нужно ${pageList.length} кредитов, у вас ${credits}`, credits_required: true });
@@ -2160,7 +2172,7 @@ app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan(
 
     const unusedCredits = reservedCredits - succeeded;
     if (unusedCredits > 0) {
-      await creditsService.release(req.user.id, unusedCredits);
+      await creditsService.release(req.user.id, unusedCredits, seriesReservation);
       reservedCredits -= unusedCredits;
     }
     const remaining = await db.getAsync('SELECT photo_credits FROM users WHERE id = ?', [req.user.id]);
@@ -2170,7 +2182,7 @@ app.post('/api/generate-series', authMiddleware, checkSubscription, requirePlan(
     const refundableCredits = reservedCredits - succeeded;
     if (refundableCredits > 0) {
       try {
-        await creditsService.release(req.user.id, refundableCredits);
+        await creditsService.release(req.user.id, refundableCredits, seriesReservation);
       } catch (refundError) {
         console.error('[WBai] generate-series credit refund error:', refundError.message);
       }

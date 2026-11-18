@@ -385,16 +385,13 @@ function showAddCredits(email, userId) {
       <div style="font-size:12px;color:#8888aa;margin-bottom:18px;">${email}</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-        <button onclick="setCreditsAmount(10)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+10 фото<br><span style="color:#8888aa;font-size:10px">750 ₸</span></button>
-        <button onclick="setCreditsAmount(30)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+30 фото<br><span style="color:#8888aa;font-size:10px">1 900 ₸</span></button>
-        <button onclick="setCreditsAmount(50)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+50 фото<br><span style="color:#8888aa;font-size:10px">2 900 ₸</span></button>
-        <button onclick="setCreditsAmount(100)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+100 фото<br><span style="color:#8888aa;font-size:10px">5 000 ₸</span></button>
-        <button onclick="setCreditsAmount(200)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+200 фото<br><span style="color:#8888aa;font-size:10px">8 500 ₸</span></button>
-        <button onclick="setCreditsAmount(500)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+500 фото<br><span style="color:#8888aa;font-size:10px">18 000 ₸</span></button>
+        <button onclick="setCreditsAmount(10)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+10 фото<br><span style="color:#8888aa;font-size:10px">1 290 ₸ · Макс 990 ₸</span></button>
+        <button onclick="setCreditsAmount(50)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+50 фото<br><span style="color:#8888aa;font-size:10px">5 490 ₸ · Макс 3 990 ₸</span></button>
+        <button onclick="setCreditsAmount(100)" style="padding:8px;background:#1a1a2e;border:1px solid #2a2a40;color:#a855f7;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">+100 фото<br><span style="color:#8888aa;font-size:10px">только Макс · Макс 6 990 ₸</span></button>
       </div>
 
       <div style="margin-bottom:12px;">
-        <label for="creditsInput" style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять)</label>
+        <label for="creditsInput" style="font-size:11px;color:#8888aa;display:block;margin-bottom:5px;">Своё количество (отрицательное = снять). Добавленные фото не сгорают.</label>
         <input id="creditsInput" type="number" placeholder="например: 25 или -10" style="width:100%;background:#1a1a2e;border:1px solid #2a2a40;border-radius:8px;padding:9px 12px;color:#f0f0fa;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:16px;">

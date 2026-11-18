@@ -6,7 +6,8 @@ const migrations = [
   require('./005_rnp_plans_stocks'),
   require('./006_wb_stored_sources'),
   require('./007_finance_row_details'),
-  require('./008_wb_shops')
+  require('./008_wb_shops'),
+  require('./009_photo_credit_batches')
 ];
 const logger = require('../platform/logger');
 
