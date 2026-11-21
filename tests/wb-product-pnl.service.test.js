@@ -65,34 +65,78 @@ test('returns reduce sales and cost of goods, products without cost are flagged'
   assert.equal(fx201.totals.cogs, 0);
 });
 
-test('WB Promotion acts follow each product ad spend, other deductions follow sales', () => {
-  const rows = [
-    sale('2026-10-21', 'FX-200', 10000, 8000, { deductionKind: 'other' }),
-    sale('2026-10-21', 'FX-201', 10000, 8000, { deductionKind: 'other' }),
-    expense('2026-10-23', '', 'deduction', 900, { deductionKind: 'ads' }),
-    expense('2026-10-23', '', 'deduction', 200, { deductionKind: 'other' })
+const { applyAdSpend } = require('../src/services/wb-ad-cost.service');
+
+// Реальный случай: реклама оплачена с баланса, в финотчёте удержано меньше,
+// чем потрачено. В прибыли — фактический расход каждого товара.
+test('ads are the real campaign spend of each product, not the WB Promotion deduction', () => {
+  const finance = [
+    sale('2026-11-15', 'FX-200', 100000, 80000, { deductionKind: 'other' }),
+    sale('2026-11-15', 'FX-201', 20000, 16000, { deductionKind: 'other' }),
+    expense('2026-11-17', '', 'deduction', 10000, { deductionKind: 'ads' }),
+    expense('2026-11-17', '', 'deduction', 600, { deductionKind: 'other' })
   ];
-  const result = buildProductPnl({ rows, catalog, adSpendByNm: new Map([[11, 800], [22, 100]]) });
+  const { rows, adsReplaced, coverage } = applyAdSpend(finance, {
+    coverage: { from: '2026-08-24', to: '2026-11-21' },
+    spendRows: [
+      { day: '2026-11-15', nm_id: 11, spend: 39000 },
+      { day: '2026-11-16', nm_id: 22, spend: 3000 },
+      { day: '2026-11-16', nm_id: 0, spend: 500 }
+    ]
+  });
+  const result = buildProductPnl({ rows, catalog, adsReplaced, adsCoverage: coverage });
   const fx200 = result.products.find(p => p.nmId === 11);
   const fx201 = result.products.find(p => p.nmId === 22);
-  assert.equal(result.kindsKnown, true);
-  assert.deepEqual([fx200.totals.adsDeduction, fx201.totals.adsDeduction], [800, 100]);
-  assert.deepEqual([fx200.totals.otherDeduction, fx201.totals.otherDeduction], [100, 100]);
-  assert.equal(fx200.metrics.drr, 8);
+  const shop = result.products.find(p => p.key === SHOP_KEY);
+
+  assert.deepEqual([fx200.totals.advertising, fx201.totals.advertising], [39000, 3000]);
+  // ДРР у каждого свой: 39 000 / 100 000 и 3 000 / 20 000.
+  assert.deepEqual([fx200.metrics.drr, fx201.metrics.drr], [39, 15]);
+  assert.equal(shop.totals.advertising, 500, 'расход без товара — в общих расходах');
+  assert.equal(shop.metrics.drr, null);
+  // Удержание за пополнение баланса не вычитается второй раз, прочие удержания — по продажам.
+  assert.deepEqual([fx200.totals.otherDeduction, fx201.totals.otherDeduction], [500, 100]);
+  assert.equal(fx200.totals.profit, 80000 - 39000 - 500);
+  assert.equal(result.shop.profit, 80000 + 16000 - 39000 - 3000 - 500 - 600);
+  assert.equal(result.check.ok, true);
+});
+
+test('days without ad statistics keep the deduction as shop ads and never fake equal DRR', () => {
+  const finance = [
+    sale('2026-05-10', 'FX-200', 50000, 40000, { deductionKind: 'other' }),
+    sale('2026-05-10', 'FX-201', 50000, 40000, { deductionKind: 'other' }),
+    expense('2026-05-12', '', 'deduction', 7000, { deductionKind: 'ads' })
+  ];
+  const { rows, adsReplaced, coverage } = applyAdSpend(finance, { coverage: { from: '2026-08-24', to: '2026-11-21' }, spendRows: [] });
+  const result = buildProductPnl({ rows, catalog, adsReplaced, adsCoverage: coverage });
+  const fx200 = result.products.find(p => p.nmId === 11);
+  const shop = result.products.find(p => p.key === SHOP_KEY);
+  assert.equal(shop.totals.advertising, 7000);
+  assert.equal(fx200.totals.advertising, 0);
+  assert.equal(fx200.metrics.drr, null, 'нет статистики рекламы за эти дни — ДРР не выдумываем');
+  assert.equal(result.shop.profit, 80000 - 7000);
   assert.equal(result.check.ok, true);
 });
 
 test('a product with ad spend but no sales still carries its ads', () => {
-  const rows = [
-    sale('2026-10-21', 'FX-200', 10000, 8000, { deductionKind: 'other' }),
-    expense('2026-10-23', '', 'deduction', 500, { deductionKind: 'ads' })
-  ];
-  const result = buildProductPnl({ rows, catalog, adSpendByNm: new Map([[11, 0], [22, 500]]) });
+  const finance = [sale('2026-10-21', 'FX-200', 10000, 8000, { deductionKind: 'other' })];
+  const { rows, adsReplaced, coverage } = applyAdSpend(finance, {
+    coverage: { from: '2026-10-01', to: '2026-10-31' },
+    spendRows: [{ day: '2026-10-22', nm_id: 22, spend: 500 }]
+  });
+  const result = buildProductPnl({ rows, catalog, adsReplaced, adsCoverage: coverage });
   const fx201 = result.products.find(p => p.nmId === 22);
-  assert.equal(fx201.totals.adsDeduction, 500);
+  assert.equal(fx201.totals.advertising, 500);
   assert.equal(fx201.totals.profit, -500);
   assert.equal(fx201.flags.noSales, true);
   assert.equal(fx201.metrics.marginPct, null, 'без продаж маржа не считается');
+});
+
+test('without deduction types the finance report is left as is', () => {
+  const finance = [sale('2026-10-21', 'FX-200', 10000, 8000), expense('2026-10-23', '', 'deduction', 900)];
+  const applied = applyAdSpend(finance, { coverage: { from: '2026-10-01', to: '2026-10-31' }, spendRows: [{ day: '2026-10-21', nm_id: 11, spend: 900 }] });
+  assert.equal(applied.adsReplaced, false);
+  assert.equal(applied.rows, finance, 'реклама не посчитается дважды');
 });
 
 test('without any sales the shop expenses stay on one shop line', () => {

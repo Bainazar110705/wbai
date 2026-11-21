@@ -39,6 +39,7 @@ const { registerAnalyticsProductsRoutes } = require('../routes/analytics-product
 const { stockInfo } = require('../services/wb-rnp.service');
 const { addDays } = require('../services/wb-rnp-sync.service');
 const { createPaidStorageService } = require('../services/wb-paid-storage.service');
+const { applyAdSpend, spendConverter } = require('../services/wb-ad-cost.service');
 const { createShopsRepository } = require('../repositories/shops.repository');
 const { createShopsService } = require('../services/shops.service');
 const { createSellerService } = require('../services/wb-seller.service');
@@ -1466,7 +1467,28 @@ function analyticsRange({ period, from, to }, moscowToday) {
 }
 
 // Финотчёт за период: из нашей базы, иначе кэш или запрос к WB.
-async function loadFinanceForPeriod({ shopId, token, sync, dateFrom, dateTo, today, force = false }) {
+// Финотчёт за период, в котором реклама — фактический расход кампаний по дням
+// и товарам вместо удержаний «WB Продвижение» (см. wb-ad-cost.service).
+async function loadFinanceForPeriod(args) {
+  const finance = await loadRawFinanceForPeriod(args);
+  const rows = Array.isArray(finance?.payload?.rows) ? finance.payload.rows : [];
+  const sync = args.sync;
+  const coverage = sync?.ads_from && sync?.ads_synced_to ? { from: sync.ads_from, to: sync.ads_synced_to } : null;
+  const spendFrom = coverage && coverage.from > args.dateFrom ? coverage.from : args.dateFrom;
+  const spendRows = coverage && spendFrom <= args.dateTo
+    ? await rnpRepository.listAdSpend(args.shopId, spendFrom, args.dateTo)
+    : [];
+  const currency = finance?.payload?.currency || null;
+  const applied = applyAdSpend(rows, {
+    spendRows,
+    coverage,
+    currency,
+    spendToFinance: spendConverter(sync?.ads_currency, currency, spendRows.length ? await getRubKztRate() : 0)
+  });
+  return { ...finance, payload: { ...(finance?.payload || {}), rows: applied.rows }, adsReplaced: applied.adsReplaced, adsCoverage: applied.coverage };
+}
+
+async function loadRawFinanceForPeriod({ shopId, token, sync, dateFrom, dateTo, today, force = false }) {
   return await loadStoredFinance(shopId, sync, dateFrom, dateTo, today) || loadAnalyticsSource({
     shopId,
     // V5: комиссия как в ежедневном отчёте WB, старый кэш посчитан иначе.
@@ -1599,7 +1621,7 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
 
     const financeFields = [
       'retailAmount', 'sales', 'payable', 'commission', 'logistics', 'storage',
-      'penalty', 'deduction', 'acceptance', 'additionalPayment', 'margin'
+      'penalty', 'deduction', 'acceptance', 'additionalPayment', 'advertising', 'margin'
     ];
     const emptyFinance = () => Object.fromEntries(financeFields.map(field => [field, 0]));
     const currentFinance = emptyFinance();
@@ -1612,11 +1634,12 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
       const day = String(row.date || '').slice(0, 10);
       const target = inRange(day) ? currentFinance : (prevInRange(day) ? previousFinance : null);
       if (!target) continue;
+      // Строки «Реклама» не делают финотчёт доступным: нужны строки самого WB.
       if (target === currentFinance) {
-        currentFinanceRows++;
+        if (!row.synthetic) currentFinanceRows++;
         currentReportRows.push(row);
       } else {
-        previousFinanceRows++;
+        if (!row.synthetic) previousFinanceRows++;
         previousReportRows.push(row);
       }
       financeFields.forEach(field => { target[field] += numberOrZero(row[field]); });
@@ -1675,7 +1698,7 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
       for (const row of currentReportRows) {
         const day = String(row.date || '').slice(0, 10);
         if (day < bucket.start || day > bucket.end) continue;
-        bucketFinanceRows++;
+        if (!row.synthetic) bucketFinanceRows++;
         bucketReportRows.push(row);
         financeFields.forEach(field => { bucketFinance[field] += numberOrZero(row[field]); });
       }
@@ -1767,7 +1790,10 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
         currentAvailable: currentFinanceAvailable,
         previousAvailable: previousFinanceAvailable,
         currency: financeCurrency,
-        errorCode: financeErrorCode
+        errorCode: financeErrorCode,
+        // Реклама в прибыли — фактический расход кампаний за эти дни; за остальные — удержания WB.
+        adsReplaced: !!financeSource?.adsReplaced,
+        adsCoverage: financeSource?.adsCoverage || null
       },
       cache: {
         salesFunnel: sourceCache(salesFunnelSource),

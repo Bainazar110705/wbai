@@ -2052,7 +2052,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
             <div class="an-kpi-note" id="anKpiUnits">продано —</div>
           </div>
           <div class="an-kpi">
-            <div class="an-kpi-lbl">Расходы WB<button type="button" class="an-help" data-tip="Какую долю продаж забирает WB: комиссия, логистика, хранение, штрафы и удержания вместе." aria-label="Что такое расходы WB">?</button></div>
+            <div class="an-kpi-lbl">Расходы WB<button type="button" class="an-help" data-tip="Какую долю продаж забирает WB: комиссия, логистика, хранение, штрафы и удержания вместе. Реклама — отдельно, в «Доле рекламы»." aria-label="Что такое расходы WB">?</button></div>
             <div class="an-kpi-val" id="anKpiWbCostPct">—</div>
             <div class="an-kpi-note">от продаж</div>
           </div>
@@ -2075,12 +2075,13 @@ canvas.an-canvas{width:100%;height:200px;display:block}
             <tr class="an-pnl-row is-exp" style="--row-color:#9b59b6"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Хранение<button type="button" class="an-help" data-tip="Плата за хранение товаров на складах WB." aria-label="Что такое «Хранение»">?</button></span></td><td class="num" id="anMStorage">—</td><td class="num"><span class="an-pnl-share"><span id="anMStorageShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMStorageBar"></i></span></span></td></tr>
             <tr class="an-pnl-row is-exp" style="--row-color:#8e44ad"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Платная приёмка<button type="button" class="an-help" data-tip="Плата за приёмку поставок на склад WB." aria-label="Что такое «Платная приёмка»">?</button></span></td><td class="num" id="anMAcceptance">—</td><td class="num"><span class="an-pnl-share"><span id="anMAcceptanceShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMAcceptanceBar"></i></span></span></td></tr>
             <tr class="an-pnl-row is-exp" style="--row-color:#e74c3c"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Штрафы<button type="button" class="an-help" data-tip="Штрафы WB, например за нарушения при поставке или маркировке." aria-label="Что такое «Штрафы»">?</button></span></td><td class="num" id="anMPenalty">—</td><td class="num"><span class="an-pnl-share"><span id="anMPenaltyShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMPenaltyBar"></i></span></span></td></tr>
-            <tr class="an-pnl-row is-exp" style="--row-color:#d35400"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Удержания<button type="button" class="an-help" data-tip="В основном оплата рекламы WB Продвижения с баланса. WB удерживает её раз в неделю по актам, поэтому сумма может относиться к рекламе прошлой недели." aria-label="Что такое «Удержания»">?</button></span><span class="an-pnl-desc">в т.ч. оплата рекламы</span></td><td class="num" id="anMDeduction">—</td><td class="num"><span class="an-pnl-share"><span id="anMDeductionShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMDeductionBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#d35400"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Реклама WB Продвижение<button type="button" class="an-help" data-tip="Сколько реклама реально потратила за выбранные дни — по статистике кампаний WB Продвижение, совпадает со списаниями в рекламном кабинете. Удержания WB за пополнение рекламного баланса сюда не входят: это оплата, а не расход, и они приходят в другие дни." aria-label="Что такое «Реклама WB Продвижение»">?</button></span><span class="an-pnl-desc" id="anMAdvertisingDesc">фактический расход кампаний</span></td><td class="num" id="anMAdvertising">—</td><td class="num"><span class="an-pnl-share"><span id="anMAdvertisingShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMAdvertisingBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-exp" style="--row-color:#a04000"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Прочие удержания<button type="button" class="an-help" data-tip="Удержания WB кроме оплаты рекламы: например, за услуги, брак или маркировку." aria-label="Что такое «Прочие удержания»">?</button></span></td><td class="num" id="anMDeduction">—</td><td class="num"><span class="an-pnl-share"><span id="anMDeductionShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMDeductionBar"></i></span></span></td></tr>
             <tr class="an-pnl-row is-inc" style="--row-color:#27ae60"><td><span class="an-pnl-sign" aria-hidden="true">+</span><span class="an-pnl-name">Доплаты WB<button type="button" class="an-help" data-tip="Компенсации и доплаты от WB, например за потерянный товар." aria-label="Что такое «Доплаты WB»">?</button></span></td><td class="num" id="anMAdditionalPayment">—</td><td class="num"><span class="an-pnl-share"><span id="anMAdditionalPaymentShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMAdditionalPaymentBar"></i></span></span></td></tr>
-            <tr class="an-pnl-row is-sub"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">Итого от WB<button type="button" class="an-help" data-tip="Сколько WB перечислит вам за период. Совпадает с колонкой «Итого к оплате» в финансовом отчёте WB." aria-label="Что такое «Итого от WB»">?</button></span></td><td class="num" id="anPnlWbTotal">—</td><td class="num"><span class="an-pnl-share"><span id="anPnlWbTotalShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anPnlWbTotalBar"></i></span></span></td></tr>
+            <tr class="an-pnl-row is-sub"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">Итого после расходов WB<button type="button" class="an-help" data-tip="Продажи минус все расходы на WB, включая рекламу по фактическому расходу. Может отличаться от «Итого к оплате» в отчёте WB: WB удерживает пополнение рекламного баланса не в те дни, когда реклама тратится, а пополнение картой в отчёт не попадает вовсе." aria-label="Что такое «Итого от WB»">?</button></span></td><td class="num" id="anPnlWbTotal">—</td><td class="num"><span class="an-pnl-share"><span id="anPnlWbTotalShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anPnlWbTotalBar"></i></span></span></td></tr>
             <tr class="an-pnl-row is-exp" style="--row-color:#e74c3c"><td><span class="an-pnl-sign" aria-hidden="true">−</span><span class="an-pnl-name">Себестоимость<button type="button" class="an-help" data-tip="Ваша себестоимость, умноженная на число проданных штук (возвраты вычтены). Цены задаются кнопкой «Себестоимость товаров»." aria-label="Что такое «Себестоимость»">?</button></span><span class="an-pnl-desc">проданных товаров</span></td><td class="num" id="anMCogs">—</td><td class="num"><span class="an-pnl-share"><span id="anMCogsShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anMCogsBar"></i></span></span></td></tr>
             <tr class="an-pnl-row is-total"><td><span class="an-pnl-sign" aria-hidden="true">=</span><span class="an-pnl-name">Расчётная прибыль<button type="button" class="an-help" data-tip="Итого от WB минус себестоимость. Налог и расходы вне WB (доставка до склада, упаковка) не вычтены." aria-label="Что такое «Расчётная прибыль»">?</button></span></td><td class="num" id="anPnlProfit">—</td><td class="num"><span class="an-pnl-share"><span id="anPnlProfitShare">—</span><span class="an-pnl-bar" aria-hidden="true"><i id="anPnlProfitBar"></i></span></span></td></tr>
-            <tr class="an-pnl-row is-ref"><td><span class="an-pnl-sign" aria-hidden="true"></span><span class="an-pnl-name" id="anAdSpendLbl">Справочно: реклама за период<button type="button" class="an-help" data-tip="Сколько реклама реально потратила за выбранные дни, как в WB Продвижение → «Статистика». Не вычитается из прибыли: оплату рекламы WB уже удержал в строке «Удержания»." aria-label="Что такое «реклама за период»">?</button></span></td><td class="num" id="anAdSpend">—</td><td class="num"><span class="an-pnl-share" id="anAdSpendShare">—</span></td></tr>
+            <tr class="an-pnl-row is-ref" hidden><td><span class="an-pnl-sign" aria-hidden="true"></span><span class="an-pnl-name" id="anAdSpendLbl">Справочно: реклама за период</span></td><td class="num" id="anAdSpend">—</td><td class="num"><span class="an-pnl-share" id="anAdSpendShare">—</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -2090,7 +2091,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
       <section class="an-prod" aria-labelledby="anProdTitle">
         <div class="an-pnl-head">
           <div>
-            <h2 class="an-pnl-title" id="anProdTitle">Прибыль по товарам<button type="button" class="an-help" data-tip-wide data-tip="Тот же финансовый отчёт WB, разложенный по товарам. Большинство строк отчёта WB уже привязаны к товару — их просто собираем по артикулу. Расходы без артикула делим: хранение — по отчёту WB «Платное хранение», оплату WB Продвижение — по расходу на рекламу товара, остальное — по доле продаж. Сумма по всем товарам равна прибыли магазина в «Отчёте о прибыли»." aria-label="Как считается прибыль по товарам">?</button></h2>
+            <h2 class="an-pnl-title" id="anProdTitle">Прибыль по товарам<button type="button" class="an-help" data-tip-wide data-tip="Тот же финансовый отчёт WB, разложенный по товарам. Большинство строк отчёта WB уже привязаны к товару — их просто собираем по артикулу. Реклама — фактический расход кампаний каждого товара, поэтому ДРР у каждого товара свой. Расходы без артикула делим: хранение — по отчёту WB «Платное хранение», остальное — по доле продаж; реклама без товара — в строке «Общие расходы магазина». Сумма по всем товарам равна прибыли магазина в «Отчёте о прибыли»." aria-label="Как считается прибыль по товарам">?</button></h2>
             <div class="an-pnl-sub">Нажмите на товар, чтобы открыть его полный отчёт: все расходы, на 1 штуку и по дням.</div>
           </div>
         </div>
@@ -3666,7 +3667,7 @@ var AN_PROD_COLS=[
   {key:'units',label:'Продано, шт',val:function(p){return p.units.net;},fmt:function(v){return (v||0).toLocaleString('ru');}},
   {key:'retailAmount',label:'Продажи',val:function(p){return p.totals.retailAmount;}},
   {key:'wbCosts',label:'Расходы WB',val:function(p){return p.totals.wbCosts;}},
-  {key:'ads',label:'Реклама',val:function(p){return AN_PROD.data&&AN_PROD.data.kindsKnown?p.totals.adsDeduction:p.metrics.adSpend;}},
+  {key:'ads',label:'Реклама',val:function(p){return p.metrics.adSpend;}},
   {key:'cogs',label:'Себестоимость',val:function(p){return p.totals.cogs;}},
   {key:'profit',label:'Прибыль',val:function(p){return p.totals.profit;},profit:true},
   {key:'marginPct',label:'Маржа',val:function(p){return p.metrics.marginPct;},pct:true},
@@ -3721,10 +3722,13 @@ function anRenderProducts(){
     return tr;
   }).join('');
   var s=d.shop;
-  var total='<tr class="is-total"><td>Итого по магазину</td><td>'+d.products.reduce(function(a,p){return a+(p.units.net||0);},0).toLocaleString('ru')+'</td><td>'+anProdMoney(s.retailAmount)+'</td><td>'+anProdMoney(s.wbCosts)+'</td><td>'+anProdMoney(d.kindsKnown?s.adsDeduction:d.products.reduce(function(a,p){return a+(p.metrics.adSpend||0);},0))+'</td><td>'+anProdMoney(s.cogs)+'</td><td class="'+(s.profit<0?'is-loss':'is-gain')+'">'+anProdMoney(s.profit)+'</td><td>'+anProdPct(s.retailAmount?s.profit/s.retailAmount*100:null)+'</td><td>'+anProdPct(s.cogs?s.profit/s.cogs*100:null)+'</td></tr>';
+  var total='<tr class="is-total"><td>Итого по магазину</td><td>'+d.products.reduce(function(a,p){return a+(p.units.net||0);},0).toLocaleString('ru')+'</td><td>'+anProdMoney(s.retailAmount)+'</td><td>'+anProdMoney(s.wbCosts)+'</td><td>'+anProdMoney(d.adsReplaced?s.advertising:d.products.reduce(function(a,p){return a+(p.metrics.adSpend||0);},0))+'</td><td>'+anProdMoney(s.cogs)+'</td><td class="'+(s.profit<0?'is-loss':'is-gain')+'">'+anProdMoney(s.profit)+'</td><td>'+anProdPct(s.retailAmount?s.profit/s.retailAmount*100:null)+'</td><td>'+anProdPct(s.cogs?s.profit/s.cogs*100:null)+'</td></tr>';
   table.innerHTML=head+'<tbody>'+rows+total+'</tbody>';
   var note=d.products.length+' '+(d.products.length%10===1&&d.products.length%100!==11?'товар':'товаров')+' · '+(d.stored?'финотчёт из нашей базы':'финотчёт WB');
-  note+=d.kindsKnown?' · оплата рекламы разнесена по расходу товаров':' · оплата рекламы в удержаниях разнесена по продажам';
+  if(d.adsReplaced){
+    var cov=d.adsCoverage, fmt=function(x){return x.slice(8,10)+'.'+x.slice(5,7);};
+    note+=' · реклама — фактический расход кампаний'+(cov&&cov.from>d.period.dateFrom?' с '+fmt(cov.from)+', раньше — удержания WB в общих расходах':'');
+  } else note+=' · реклама — по удержаниям WB, разнесена по продажам';
   note+=d.storageKnown?' · хранение — по отчёту «Платное хранение»':' · хранение без артикула — по продажам';
   if(d.check&&!d.check.ok) note+=' · ⚠ сумма по товарам расходится с магазином, сообщите в поддержку';
   status.textContent=note;
@@ -3740,7 +3744,7 @@ async function anToggleProduct(key){
     var d=await r.json().catch(function(){return {};});
     if(seq!==AN_PROD.seq) return;
     var p=r.ok?(d.products||[]).find(function(x){return x.key===key;}):null;
-    AN_PROD.details[key]=p?{product:p,kindsKnown:d.kindsKnown,storageKnown:d.storageKnown}:{error:d.error||'Не удалось загрузить отчёт товара.'};
+    AN_PROD.details[key]=p?{product:p,kindsKnown:d.kindsKnown,adsReplaced:d.adsReplaced,storageKnown:d.storageKnown}:{error:d.error||'Не удалось загрузить отчёт товара.'};
   }catch(e){AN_PROD.details[key]={error:'Нет связи с сервером.'};}
   if(AN_PROD.open===key) anRenderProducts();
 }
@@ -3752,13 +3756,13 @@ function anProductDetail(detail){
     ['Продажи','retailAmount',1,''],['Комиссия WB','commission',-1,''],['К перечислению за товар','payable',1,'sub'],
     ['Логистика','logistics',-1,''],['Хранение','storage',-1,''],['Приёмка','acceptance',-1,''],['Штрафы','penalty',-1,'']
   ];
-  if(detail.kindsKnown) rows.push(['Реклама (оплата WB Продвижение)','adsDeduction',-1,''],['Прочие удержания','otherDeduction',-1,'']);
+  if(detail.adsReplaced) rows.push(['Реклама (расход кампаний товара)','advertising',-1,''],['Прочие удержания','deduction',-1,'']);
   else rows.push(['Удержания (в т.ч. оплата рекламы)','deduction',-1,'']);
-  rows.push(['Доплаты WB','additionalPayment',1,''],['Итого от WB','margin',1,'sub'],['Себестоимость','cogs',-1,''],['Прибыль','profit',1,'total']);
-  var allocOf=function(field){if(field==='otherDeduction')return (al.deduction||0)-(al.adsDeduction||0);return al[field]||0;};
+  rows.push(['Доплаты WB','additionalPayment',1,''],['Итого после расходов WB','margin',1,'sub'],['Себестоимость','cogs',-1,''],['Прибыль','profit',1,'total']);
+  var allocOf=function(field){return al[field]||0;};
   var table='<table class="an-pd-table"><thead><tr><th scope="col">Статья</th><th scope="col">Сумма</th><th scope="col">На 1 шт.</th><th scope="col">Доля продаж</th></tr></thead><tbody>'+rows.map(function(r){
     var v=(t[r[1]]||0)*r[2], a=Math.round(allocOf(r[1]));
-    var how=r[1]==='storage'?(detail.storageKnown?'по отчёту «Платное хранение»':'по доле продаж'):(r[1]==='adsDeduction'?'по расходу на рекламу':'по доле продаж');
+    var how=r[1]==='storage'?(detail.storageKnown?'по отчёту «Платное хранение»':'по доле продаж'):'по доле продаж';
     var hint=a&&r[3]!=='sub'&&r[3]!=='total'?'<span class="an-pd-alloc">в т.ч. общие расходы '+Math.abs(a).toLocaleString('ru')+' ₸, разнесены '+how+'</span>':'';
     return '<tr'+(r[3]?' class="is-'+r[3]+'"':'')+'><td>'+r[0]+hint+'</td><td'+(r[3]==='total'?' class="'+(v<0?'is-loss':'is-gain')+'"':'')+'>'+anProdMoney(v)+'</td><td>'+(units?anProdMoney(v/units):'—')+'</td><td>'+(sales?anProdPct(Math.abs(v)/sales*100):'—')+'</td></tr>';
   }).join('')+'</tbody></table>';
@@ -3769,7 +3773,7 @@ function anProductDetail(detail){
     tile('Прибыль с 1 шт.',anProdMoney(m.profitPerUnit),'средняя цена '+anProdMoney(m.avgPrice))+
     tile('ROI',anProdPct(m.roi),'прибыль на вложенную себестоимость')+
     tile('Продано',(p.units.sold||0)+' шт','возвратов '+(p.units.returned||0)+', итого '+units)+
-    tile('ДРР',anProdPct(m.drr),'реклама по кампаниям '+anProdMoney(m.adSpend))+
+    tile('ДРР',anProdPct(m.drr),(detail.adsReplaced?'расход на рекламу ':'реклама по кампаниям ')+anProdMoney(m.adSpend))+
     (st?tile('Остаток',(st.quantity||0)+' шт',st.daysLeft==null?'заказов не было 14 дней':'хватит на '+st.daysLeft+' дн'):'')+
   '</div>';
   var f=p.funnel;
@@ -3943,6 +3947,7 @@ var AN_PNL_ROWS=[
   {id:'anMStorage',field:'storage',sign:-1,flow:true},
   {id:'anMAcceptance',field:'acceptance',sign:-1,flow:true},
   {id:'anMPenalty',field:'penalty',sign:-1,flow:true},
+  {id:'anMAdvertising',field:'advertising',sign:-1,flow:true},
   {id:'anMDeduction',field:'deduction',sign:-1,flow:true},
   {id:'anMAdditionalPayment',field:'additionalPayment',sign:1,flow:true},
   {id:'anPnlWbTotal',field:'margin',sign:1},
@@ -3977,7 +3982,7 @@ function anRenderPnl(totals, financeReady, hasNetMargin){
   anSetText('anKpiMarginPct', financeReady&&hasNetMargin&&sales?anFmtPct(totals.net_margin/sales*100):'—');
   anSetText('anKpiUnitProfit', financeReady&&hasNetMargin&&units?anFmtSigned(totals.net_margin/units):'—');
   anSetText('anKpiUnits', financeReady?'продано '+units.toLocaleString('ru')+' шт.':'продано —');
-  anSetText('anKpiWbCostPct', financeReady&&sales?anFmtPct((sales-(Number(totals.margin)||0))/sales*100):'—');
+  anSetText('anKpiWbCostPct', financeReady&&sales?anFmtPct((sales-(Number(totals.margin)||0)-(Number(totals.advertising)||0))/sales*100):'—');
   anRenderAdShare();
 }
 

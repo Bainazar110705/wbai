@@ -76,7 +76,9 @@ function createAnalyticsProductsController({
         storageByNm,
         catalog,
         toKzt: converter(financeCurrency, rubKztRate),
-        detailKey
+        detailKey,
+        adsCoverage: finance?.adsCoverage || null,
+        adsReplaced: !!finance?.adsReplaced
       });
       const funnelByNm = new Map((funnel || []).map(item => [Number(item.nmId), item]));
       for (const product of report.products) {
@@ -89,7 +91,9 @@ function createAnalyticsProductsController({
         period: { dateFrom: range.dateFrom, dateTo: range.dateTo },
         currency: 'KZT',
         financeCurrency,
-        financeReady: rows.length > 0,
+        financeReady: rows.some(row => !row.synthetic),
+        adsReplaced: report.adsReplaced,
+        adsCoverage: finance?.adsCoverage || null,
         adsKnown: !!(sync?.ads_from && sync.ads_from <= range.dateFrom),
         kindsKnown: report.kindsKnown,
         storageKnown,
