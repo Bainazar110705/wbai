@@ -90,8 +90,9 @@ test('ads are the real campaign spend of each product, not the WB Promotion dedu
   const shop = result.products.find(p => p.key === SHOP_KEY);
 
   assert.deepEqual([fx200.totals.advertising, fx201.totals.advertising], [39000, 3000]);
-  // ДРР у каждого свой: 39 000 / 100 000 и 3 000 / 20 000.
-  assert.deepEqual([fx200.metrics.drr, fx201.metrics.drr], [39, 15]);
+  // ДРР от выкупов у каждого свой: 39 000 / 100 000 и 3 000 / 20 000.
+  assert.deepEqual([fx200.metrics.drrSales, fx201.metrics.drrSales], [39, 15]);
+  assert.equal(fx200.metrics.drr, null, 'заказы не переданы — ДРР от заказов не выдумываем');
   assert.equal(shop.totals.advertising, 500, 'расход без товара — в общих расходах');
   assert.equal(shop.metrics.drr, null);
   // Удержание за пополнение баланса не вычитается второй раз, прочие удержания — по продажам.
@@ -113,7 +114,7 @@ test('days without ad statistics keep the deduction as shop ads and never fake e
   const shop = result.products.find(p => p.key === SHOP_KEY);
   assert.equal(shop.totals.advertising, 7000);
   assert.equal(fx200.totals.advertising, 0);
-  assert.equal(fx200.metrics.drr, null, 'нет статистики рекламы за эти дни — ДРР не выдумываем');
+  assert.equal(fx200.metrics.drrSales, null, 'нет статистики рекламы за эти дни — ДРР не выдумываем');
   assert.equal(result.shop.profit, 80000 - 7000);
   assert.equal(result.check.ok, true);
 });
@@ -156,8 +157,8 @@ test('detail days split shared expenses by day and convert currency once', () =>
   const result = buildProductPnl({ rows, catalog, toKzt: value => value * 5, detailKey: 'nm:11' });
   const [product] = result.products;
   assert.deepEqual(product.days, [
-    { date: '2026-10-21', retailAmount: 500, wbCosts: 100, cogs: 0, profit: 400 },
-    { date: '2026-10-22', retailAmount: 0, wbCosts: 50, cogs: 0, profit: -50 }
+    { date: '2026-10-21', retailAmount: 500, wbCosts: 100, advertising: 0, cogs: 0, tax: 0, profit: 400 },
+    { date: '2026-10-22', retailAmount: 0, wbCosts: 50, advertising: 0, cogs: 0, tax: 0, profit: -50 }
   ]);
   assert.equal(product.totals.profit, 350);
   assert.equal(result.shop.profit, 350);
@@ -179,4 +180,53 @@ test('storage without an article follows each product storage cost, other expens
   assert.equal(fx201.totals.margin, 8000 - 800 - 100, 'итого от WB считается из своих статей');
   assert.equal(result.check.ok, true);
   assert.equal(fx200.totals.profit + fx201.totals.profit, result.shop.profit);
+});
+
+test('DRR is ad spend over the product orders, like WB and RNP; DRR from buyouts is extra', () => {
+  // Реклама выросла в конце недели: заказы уже есть, выкупы ещё в пути.
+  const finance = [
+    sale('2026-11-15', 'FX-201', 20000, 16000, { deductionKind: 'other' }),
+    sale('2026-11-15', 'FX-200', 50000, 40000, { deductionKind: 'other' })
+  ];
+  const { rows, adsReplaced, coverage } = applyAdSpend(finance, {
+    coverage: { from: '2026-08-24', to: '2026-11-21' },
+    spendRows: [{ day: '2026-11-20', nm_id: 22, spend: 26000 }]
+  });
+  const result = buildProductPnl({
+    rows, catalog, adsReplaced, adsCoverage: coverage,
+    ordersSumByNm: new Map([[22, 200000], [11, 100000]])
+  });
+  const fx201 = result.products.find(p => p.nmId === 22);
+  const fx200 = result.products.find(p => p.nmId === 11);
+  assert.equal(fx201.metrics.drr, 13, '26 000 / 200 000 заказов');
+  assert.equal(fx201.metrics.drrSales, 130, '26 000 / 20 000 выкупов');
+  assert.equal(fx201.metrics.ordersSum, 200000);
+  assert.equal(fx200.metrics.drr, 0, 'заказы есть, рекламы нет — ДРР 0');
+});
+
+test('detail days keep ads out of WB costs', () => {
+  const finance = [sale('2026-11-15', 'FX-200', 50000, 40000, { deductionKind: 'other', nmId: 11 })];
+  const { rows, adsReplaced, coverage } = applyAdSpend(finance, {
+    coverage: { from: '2026-08-24', to: '2026-11-21' },
+    spendRows: [{ day: '2026-11-15', nm_id: 11, spend: 7000 }]
+  });
+  const result = buildProductPnl({ rows, catalog, adsReplaced, adsCoverage: coverage, detailKey: 'nm:11' });
+  const [day] = result.products.find(p => p.nmId === 11).days;
+  assert.deepEqual([day.retailAmount, day.wbCosts, day.advertising, day.profit], [50000, 10000, 7000, 33000]);
+});
+
+test('seller tax is a share of each product sales and products still add up to the shop', () => {
+  const rows = [
+    sale('2026-10-21', 'FX-200', 30000, 24000),
+    sale('2026-10-21', 'FX-201', 10000, 8000),
+    expense('2026-10-22', '', 'storage', 400)
+  ];
+  const result = buildProductPnl({ rows, catalog, costsByVendorCode: { 'FX-200': 5000 }, taxRate: 4 });
+  const fx200 = result.products.find(p => p.nmId === 11);
+  const fx201 = result.products.find(p => p.nmId === 22);
+  assert.deepEqual([fx200.totals.tax, fx201.totals.tax], [1200, 400]);
+  assert.equal(fx200.totals.profit, 24000 - 300 - 5000 - 1200);
+  assert.equal(result.shop.tax, 1600);
+  assert.equal(result.shop.profit, fx200.totals.profit + fx201.totals.profit);
+  assert.equal(result.check.ok, true);
 });

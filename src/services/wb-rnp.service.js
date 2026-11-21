@@ -4,7 +4,7 @@ const { normalizeVendorCode } = require('./wb-finance.service');
 
 const METRICS = [
   'ordersSum', 'ordersCount', 'cancelCount', 'buyoutsSum', 'buyoutsCount', 'returnsSum', 'returnsCount',
-  'payout', 'cogs', 'wbCosts', 'adSpend'
+  'payout', 'cogs', 'wbCosts', 'adSpend', 'tax'
 ];
 const ABC_A_SHARE = 0.8;
 const ABC_B_SHARE = 0.95;
@@ -37,12 +37,12 @@ function percent(part, total) {
 }
 
 // Производные показатели. Прибыль — оценка: «к перечислению» по выкупам минус
-// возвраты, себестоимость, логистика/хранение WB на выкуп и реклама.
+// возвраты, себестоимость, логистика/хранение WB на выкуп, реклама и налог.
 function finalize(metrics, { future = false } = {}) {
   if (future) return null;
   const buyoutsNet = metrics.buyoutsSum - metrics.returnsSum;
   const hasMoneyFlow = metrics.buyoutsCount || metrics.returnsCount || metrics.adSpend;
-  const profit = hasMoneyFlow ? metrics.payout - metrics.cogs - metrics.wbCosts - metrics.adSpend : null;
+  const profit = hasMoneyFlow ? metrics.payout - metrics.cogs - metrics.wbCosts - metrics.adSpend - metrics.tax : null;
   return {
     ordersSum: round(metrics.ordersSum),
     ordersCount: metrics.ordersCount,
@@ -52,6 +52,7 @@ function finalize(metrics, { future = false } = {}) {
     returnsCount: metrics.returnsCount,
     buyoutPct: percent(metrics.buyoutsCount, metrics.buyoutsCount + metrics.returnsCount),
     adSpend: round(metrics.adSpend),
+    tax: round(metrics.tax),
     drr: percent(metrics.adSpend, metrics.ordersSum),
     profit: profit === null ? null : round(profit),
     margin: profit === null || buyoutsNet <= 0 ? null : percent(profit, buyoutsNet)
@@ -268,8 +269,11 @@ function buildRnpReport({
   labels = [],
   statisticsToKzt = number,
   adsToKzt = number,
-  financeToKzt = number
+  financeToKzt = number,
+  // Налог продавца, % от продаж: база — сколько заплатил покупатель (как «Вайлдберриз реализовал» в финотчёте).
+  taxRate = 0
 }) {
+  const taxShare = number(taxRate) / 100;
   const days = listDays(dateFrom, dateTo);
   const dayIndex = new Map(days.map((day, index) => [day, index]));
   const costByVendor = new Map(costs.map(row => [normalizeVendorCode(row.supplier_article), number(row.cost_price)]));
@@ -312,12 +316,15 @@ function buildRnpReport({
     const vendorCode = normalizeVendorCode(row.supplier_article);
     const unitCost = costByVendor.get(vendorCode) || 0;
     const payout = statisticsToKzt(row.for_pay);
+    const tax = taxShare ? statisticsToKzt(number(row.finished_price)) * taxShare : 0;
     if (row.is_return) {
+      add(product, index, 'tax', -tax);
       add(product, index, 'returnsCount', 1);
       add(product, index, 'returnsSum', statisticsToKzt(row.price_with_disc));
       add(product, index, 'payout', -payout);
       add(product, index, 'cogs', -unitCost);
     } else {
+      add(product, index, 'tax', tax);
       add(product, index, 'buyoutsCount', 1);
       add(product, index, 'buyoutsSum', statisticsToKzt(row.price_with_disc));
       add(product, index, 'payout', payout);

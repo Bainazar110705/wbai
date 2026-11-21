@@ -1126,15 +1126,26 @@ app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
 app.get('/api/product-costs', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const rows = await db.allAsync('SELECT supplier_article, name, cost_price FROM product_costs WHERE shop_id=? ORDER BY name', [req.shop.id]);
-  res.json({ items: rows });
+  res.json({ items: rows, taxRate: req.shop.taxRate || 0 });
 });
+
+// Налог продавца, % от продаж: 0–50, до сотых.
+function parseTaxRate(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const rate = Number(String(value).replace(',', '.'));
+  return Number.isFinite(rate) && rate >= 0 && rate <= 50 ? Math.round(rate * 100) / 100 : NaN;
+}
 
 // POST /api/product-costs — сохранить себестоимость (массив артикулов)
 app.post('/api/product-costs', authMiddleware, analyticsAccess, resolveShop, async (req, res) => {
   if (!req.shop) return res.status(400).json({ error: 'Токен WB не настроен', noToken: true });
   const { items } = req.body; // [{supplier_article, name, cost_price}]
-  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Нет данных' });
-  for (const item of items) {
+  const taxRate = parseTaxRate(req.body?.tax_rate);
+  if (Number.isNaN(taxRate)) return res.status(400).json({ error: 'Налог — число от 0 до 50 %.' });
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length && taxRate === null) return res.status(400).json({ error: 'Нет данных' });
+  if (taxRate !== null) await db.runAsync('UPDATE wb_shops SET tax_rate=? WHERE id=?', [taxRate, req.shop.id]);
+  for (const item of list) {
     const article = (item.supplier_article || '').trim();
     const cost = Math.max(0, parseInt(item.cost_price) || 0);
     const name = (item.name || '').slice(0, 200);
@@ -1688,8 +1699,13 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
       kztTotals[field] = currentFinanceAvailable ? financeMoneyToKzt(currentFinance[field]) : null;
       kztPrevTotals[field] = previousFinanceAvailable ? financeMoneyToKzt(previousFinance[field]) : null;
     });
-    kztTotals.net_margin = currentFinanceAvailable ? kztTotals.margin - kztTotals.cogs : null;
-    kztPrevTotals.net_margin = previousFinanceAvailable ? kztPrevTotals.margin - kztPrevTotals.cogs : null;
+    // Налог продавца — % от продаж (выкупы минус возвраты), ставка магазина.
+    const taxRate = numberOrZero(req.shop.taxRate) / 100;
+    const taxOf = retail => Math.round(numberOrZero(retail) * taxRate);
+    kztTotals.tax = currentFinanceAvailable ? taxOf(kztTotals.retailAmount) : null;
+    kztPrevTotals.tax = previousFinanceAvailable ? taxOf(kztPrevTotals.retailAmount) : null;
+    kztTotals.net_margin = currentFinanceAvailable ? kztTotals.margin - kztTotals.cogs - kztTotals.tax : null;
+    kztPrevTotals.net_margin = previousFinanceAvailable ? kztPrevTotals.margin - kztPrevTotals.cogs - kztPrevTotals.tax : null;
 
     const kztRows = funnelBuckets.map(bucket => {
       const bucketFinance = emptyFinance();
@@ -1720,7 +1736,8 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
       financeFields.forEach(field => {
         result[field] = financeAvailable ? financeMoneyToKzt(bucketFinance[field]) : null;
       });
-      result.net_margin = financeAvailable ? result.margin - result.cogs : null;
+      result.tax = financeAvailable ? taxOf(result.retailAmount) : null;
+      result.net_margin = financeAvailable ? result.margin - result.cogs - result.tax : null;
       return result;
     });
 
@@ -1745,12 +1762,13 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
           finance_available: currentFinanceAvailable
         };
         financeFields.forEach(field => { fullPeriodRow[field] = kztTotals[field]; });
+        fullPeriodRow.tax = kztTotals.tax;
         fullPeriodRow.net_margin = kztTotals.net_margin;
         kztRows.splice(0, kztRows.length, fullPeriodRow);
       } else {
         lastRow.orders = kztTotals.orders - previousOrders;
         lastRow.revenue = kztTotals.revenue - previousRevenue;
-        if (lastRow.finance_available) lastRow.net_margin = lastRow.margin - lastRow.cogs;
+        if (lastRow.finance_available) lastRow.net_margin = lastRow.margin - lastRow.cogs - lastRow.tax;
       }
     }
 
@@ -1785,6 +1803,7 @@ app.get('/api/wb-analytics', authMiddleware, analyticsAccess, resolveShop, async
       chartReconciled: funnelBucketsSource.payload?.reconciled !== false,
       metricCurrency: funnelCurrency,
       diagnosis,
+      taxRate: numberOrZero(req.shop.taxRate),
       finance: {
         status: currentFinanceAvailable ? 'ready' : (financeSource ? 'pending' : 'unavailable'),
         currentAvailable: currentFinanceAvailable,

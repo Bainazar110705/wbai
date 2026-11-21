@@ -175,7 +175,8 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
         unitCosts: sync.unit_costs,
         statisticsToKzt: converter(STATISTICS_CURRENCY, rubKztRate),
         adsToKzt: converter(sync.ads_currency, rubKztRate),
-        financeToKzt: converter(sync.unit_costs?.currency, rubKztRate)
+        financeToKzt: converter(sync.unit_costs?.currency, rubKztRate),
+        taxRate: req.shop?.taxRate || 0
       });
       res.json({
         sync: info,
@@ -183,6 +184,7 @@ function createRnpController({ repository, syncService, getRubKztRate, now = () 
           ...report,
           currency: 'KZT',
           rubKztRate: STATISTICS_CURRENCY === 'RUB' ? rubKztRate : null,
+          taxRate: req.shop?.taxRate || 0,
           stocksAt: sync.stocks_at || null
         }
       });

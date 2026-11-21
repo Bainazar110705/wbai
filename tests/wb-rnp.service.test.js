@@ -49,7 +49,7 @@ test('buildRnpReport sums the shop and products by day and estimates profit', ()
   assert.deepEqual(report.shop[0], {
     ordersSum: 2000, ordersCount: 2, cancelCount: 1, buyoutsSum: 1000, buyoutsCount: 1, returnsCount: 0,
     // 800 к перечислению − 300 себестоимость − 100 логистика − 150 реклама (с нераспределённой)
-    buyoutPct: 100, adSpend: 150, drr: 7.5, profit: 250, margin: 25
+    buyoutPct: 100, adSpend: 150, tax: 0, drr: 7.5, profit: 250, margin: 25
   });
   assert.equal(report.shop[2], null, 'будущий день пустой');
   // День 2: возврат товара 1 (−800 + 300) и выкуп товара 2 без себестоимости (400 − 60).
@@ -512,4 +512,19 @@ test('storage loads fresh days first, then older history within the per-sync bud
   assert.equal(repository.state.sync.storage_from, '2026-09-20');
   assert.equal(repository.state.sync.storage_synced_to, '2026-10-29');
   assert.equal(repository.state.sync.progress.steps.storage, 'done');
+});
+
+test('buildRnpReport subtracts seller tax from what buyers paid, returns give it back', () => {
+  const report = buildRnpReport({
+    dateFrom: '2026-10-01', dateTo: '2026-10-01', today: '2026-10-01',
+    sales: [
+      sale('2026-10-01', 1, 1000, 800, { finished_price: 900 }),
+      sale('2026-10-01', 1, 1000, 800, { finished_price: 900 }),
+      sale('2026-10-01', 1, 1000, 800, { finished_price: 900, is_return: true })
+    ],
+    taxRate: 4
+  });
+  // Налог 4 % с 900 (два выкупа минус возврат): 36; прибыль 800 − 36.
+  assert.equal(report.kpi.tax, 36);
+  assert.equal(report.kpi.profit, 800 - 36);
 });

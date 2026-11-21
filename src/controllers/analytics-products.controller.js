@@ -1,4 +1,7 @@
 const { buildProductPnl } = require('../services/wb-product-pnl.service');
+const { STATISTICS_CURRENCY } = require('../services/wb-statistics.service');
+
+const ORDERS_HISTORY_DAYS = 90;
 
 // Суммы WB переводим в тенге без округления каждой строки — округляем итоги.
 function converter(currency, rubKztRate) {
@@ -7,10 +10,14 @@ function converter(currency, rubKztRate) {
   return value => Number(value) || 0;
 }
 
-function previousDay(day) {
+function addDays(day, count) {
   const date = new Date(`${day}T12:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
+  date.setUTCDate(date.getUTCDate() + count);
   return date.toISOString().slice(0, 10);
+}
+
+function previousDay(day) {
+  return addDays(day, -1);
 }
 
 const DETAIL_KEY_RE = /^(nm:\d{1,15}|vc:.{1,255}|shop)$/;
@@ -51,15 +58,22 @@ function createAnalyticsProductsController({
       // Хранение по товарам используем, только если отчёт покрывает весь период (кроме сегодня).
       const storageNeedTo = range.dateTo >= moscowToday ? previousDay(moscowToday) : range.dateTo;
       const storageKnown = !!(sync?.storage_from && sync.storage_synced_to && sync.storage_from <= range.dateFrom && sync.storage_synced_to >= storageNeedTo);
-      const [catalog, adRows, costs, rubKztRate, stockDays, funnel, storageRows] = await Promise.all([
+      // Заказы хранятся за 90 дней (столько отдаёт Statistics API) — старее ДРР от заказов не считаем.
+      const ordersKnown = !!sync?.orders_at && range.dateFrom >= addDays(moscowToday, -(ORDERS_HISTORY_DAYS - 1));
+      const [catalog, adRows, costs, rubKztRate, stockDays, funnel, storageRows, orderRows] = await Promise.all([
         repository.listProducts(shopId),
         sync?.ads_from && sync.ads_from <= range.dateFrom ? repository.listAdSpend(shopId, range.dateFrom, range.dateTo) : [],
         repository.listCosts(shopId),
         getRubKztRate(),
         loadStockDays(shopId, sync, moscowToday),
         findFunnel(shopId, range),
-        storageKnown ? repository.storageCostByNm(shopId, range.dateFrom, range.dateTo) : []
+        storageKnown ? repository.storageCostByNm(shopId, range.dateFrom, range.dateTo) : [],
+        ordersKnown ? repository.recentProducts(shopId, range.dateFrom, range.dateTo) : null
       ]);
+      const ordersToKzt = converter(STATISTICS_CURRENCY, rubKztRate);
+      const ordersSumByNm = orderRows
+        ? new Map(orderRows.map(row => [Number(row.nm_id), ordersToKzt(row.orders_sum)]))
+        : null;
       const storageByNm = new Map(storageRows.map(row => [Number(row.nm_id), Number(row.cost) || 0]));
       const adsToKzt = converter(sync?.ads_currency, rubKztRate);
       const adSpendByNm = new Map();
@@ -78,7 +92,9 @@ function createAnalyticsProductsController({
         toKzt: converter(financeCurrency, rubKztRate),
         detailKey,
         adsCoverage: finance?.adsCoverage || null,
-        adsReplaced: !!finance?.adsReplaced
+        adsReplaced: !!finance?.adsReplaced,
+        ordersSumByNm,
+        taxRate: req.shop.taxRate || 0
       });
       const funnelByNm = new Map((funnel || []).map(item => [Number(item.nmId), item]));
       for (const product of report.products) {
@@ -95,6 +111,8 @@ function createAnalyticsProductsController({
         adsReplaced: report.adsReplaced,
         adsCoverage: finance?.adsCoverage || null,
         adsKnown: !!(sync?.ads_from && sync.ads_from <= range.dateFrom),
+        ordersKnown,
+        taxRate: req.shop.taxRate || 0,
         kindsKnown: report.kindsKnown,
         storageKnown,
         shop: report.shop,

@@ -4,7 +4,7 @@ const SHOP_DATA_TABLES = [
   'wb_orders', 'wb_sales', 'wb_ad_spend_daily', 'wb_rnp_sync', 'rnp_plans', 'wb_products',
   'rnp_labels', 'wb_finance_rows', 'wb_storage_daily'
 ];
-const SHOP_COLUMNS = 'id, user_id, name, seller_id, token, created_at';
+const SHOP_COLUMNS = 'id, user_id, name, seller_id, token, tax_rate, created_at';
 
 function createShopsRepository(db) {
   return {

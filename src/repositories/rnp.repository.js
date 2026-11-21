@@ -152,7 +152,7 @@ function createRnpRepository(db) {
 
     listSales: (shopId, dateFrom, dateTo) => db.allAsync(
       `SELECT ${LOCAL_TIMESTAMP('sale_date')} AS sale_date, nm_id, supplier_article, brand, subject,
-              is_return, price_with_disc, for_pay
+              is_return, price_with_disc, for_pay, finished_price
        FROM wb_sales WHERE shop_id=? AND sale_date >= ?::date AND sale_date < ?::date + 1`,
       [shopId, dateFrom, dateTo]
     ),

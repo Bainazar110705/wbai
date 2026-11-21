@@ -56,8 +56,14 @@ function buildProductPnl({
   detailKey = null,
   // Дни, за которые реклама — фактический расход кампаний (null — нет статистики).
   adsCoverage = null,
-  adsReplaced = false
+  adsReplaced = false,
+  // Сумма заказов товара за период в тенге (как в РНП) — база ДРР, как в WB.
+  // null — заказы за период не загружены, тогда ДРР только от выкупов.
+  ordersSumByNm = null,
+  // Налог продавца, % от продаж (выкупы минус возвраты).
+  taxRate = 0
 } = {}) {
+  const taxShare = number(taxRate) / 100;
   const byVendor = new Map();
   for (const item of catalog) {
     const vendorCode = normalizeVendorCode(item.vendor_code ?? item.vendorCode);
@@ -158,7 +164,8 @@ function buildProductPnl({
     const cogs = calculateRealizedCogs(product.rows, costsByVendorCode);
     shopCogs += cogs.cogs;
     const retail = toKzt(totals.retailAmount);
-    const profit = toKzt(totals.margin) - cogs.cogs;
+    const tax = retail * taxShare;
+    const profit = toKzt(totals.margin) - cogs.cogs - tax;
     // ДРР — фактический расход товара на рекламу к его выручке за те же дни.
     // Без статистики рекламы (старые данные без типа удержаний) — расход по
     // кампаниям справочно, в прибыль он не входит.
@@ -167,6 +174,9 @@ function buildProductPnl({
     const retailForAds = adsReplaced
       ? toKzt([...product.days.entries()].reduce((sum, [date, money]) => sum + (adsCovered(date) ? money.retailAmount : 0), 0))
       : retail;
+    // ДРР как в WB и РНП — от суммы заказов. От выкупов — отдельно: при росте
+    // рекламы выкупы отстают от заказов на дни, и ДРР от выкупов завышен.
+    const ordersSum = ordersSumByNm && product.nmId ? number(ordersSumByNm.get(product.nmId)) : null;
     const entry = {
       key: product.key,
       nmId: product.nmId,
@@ -179,6 +189,7 @@ function buildProductPnl({
         // Расходы WB без рекламы: реклама — отдельной колонкой.
         wbCosts: round(toKzt(totals.retailAmount - totals.margin - totals.advertising)),
         cogs: round(cogs.cogs),
+        tax: round(tax),
         profit: round(profit)
       },
       allocated: product.allocated ? roundMoney(Object.fromEntries(MONEY_FIELDS.map(field => [field, toKzt(product.allocated[field])]))) : null,
@@ -189,7 +200,9 @@ function buildProductPnl({
         profitPerUnit: round(cogs.netUnits > 0 ? profit / cogs.netUnits : null),
         avgPrice: round(cogs.netUnits > 0 ? retail / cogs.netUnits : null),
         adSpend: round(adSpend),
-        drr: product.key === SHOP_KEY ? null : round(retailForAds > 0 ? (adSpend / retailForAds) * 100 : null, 1)
+        ordersSum: round(ordersSum),
+        drr: product.key === SHOP_KEY ? null : round(ordersSum > 0 ? (adSpend / ordersSum) * 100 : null, 1),
+        drrSales: product.key === SHOP_KEY ? null : round(retailForAds > 0 ? (adSpend / retailForAds) * 100 : null, 1)
       },
       flags: {
         unpriced: cogs.unpricedUnits > 0,
@@ -202,12 +215,15 @@ function buildProductPnl({
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, money]) => {
           const dayCogs = calculateRealizedCogs(product.rows.filter(row => row.date === date), costsByVendorCode).cogs;
+          const dayTax = toKzt(money.retailAmount) * taxShare;
           return {
             date,
             retailAmount: round(toKzt(money.retailAmount)),
-            wbCosts: round(toKzt(money.retailAmount - money.margin)),
+            wbCosts: round(toKzt(money.retailAmount - money.margin - money.advertising)),
+            advertising: round(toKzt(money.advertising)),
             cogs: round(dayCogs),
-            profit: round(toKzt(money.margin) - dayCogs)
+            tax: round(dayTax),
+            profit: round(toKzt(money.margin) - dayCogs - dayTax)
           };
         });
     }
@@ -231,7 +247,8 @@ function buildProductPnl({
       ...roundMoney(Object.fromEntries(MONEY_FIELDS.map(field => [field, toKzt(shop[field])]))),
       wbCosts: round(toKzt(shop.retailAmount - shop.margin - shop.advertising)),
       cogs: round(shopCogs),
-      profit: round(toKzt(shop.margin) - shopCogs)
+      tax: round(toKzt(shop.retailAmount) * taxShare),
+      profit: round(toKzt(shop.margin) - shopCogs - toKzt(shop.retailAmount) * taxShare)
     },
     check: { ok: diffs.length === 0, diffs }
   };

@@ -12,7 +12,7 @@ function createShopMiddleware({ repository }) {
       } else {
         shop = await repository.firstForUser(req.user.id);
       }
-      req.shop = shop ? { id: shop.id, name: shop.name, token: shop.token, sellerId: shop.seller_id } : null;
+      req.shop = shop ? { id: shop.id, name: shop.name, token: shop.token, sellerId: shop.seller_id, taxRate: Number(shop.tax_rate) || 0 } : null;
       next();
     } catch (error) {
       next(error);
