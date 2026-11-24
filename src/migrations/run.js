@@ -8,7 +8,8 @@ const migrations = [
   require('./007_finance_row_details'),
   require('./008_wb_shops'),
   require('./009_photo_credit_batches'),
-  require('./010_shop_tax_rate')
+  require('./010_shop_tax_rate'),
+  require('./011_stock_changes')
 ];
 const logger = require('../platform/logger');
 

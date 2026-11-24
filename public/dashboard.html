@@ -1326,6 +1326,91 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   .rnp-plan-table .rnp-input{min-width:76px}
   .rnp-dialog-head,.rnp-dialog-body,.rnp-dialog-foot{padding-left:14px;padding-right:14px}
 }
+/* «Остатки на складах» */
+.st-warehouse{min-width:220px;max-width:100%}
+.st-search{position:relative;flex:1 1 240px;max-width:340px}
+.st-search [data-icon]{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.st-search .rnp-input{width:100%;padding-left:32px}
+.st-tools{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.st-tools [hidden]{display:none}
+.st-summary{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--muted);margin:-4px 0 12px}
+.st-summary b{color:var(--text);font-variant-numeric:tabular-nums}
+.st-result{border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.55;border:1px solid var(--border2);background:var(--surface2);color:var(--text)}
+.st-result[hidden]{display:none}
+.st-result.is-ok{background:var(--green-bg);border-color:transparent}
+.st-result.is-warn{background:var(--red-bg);border-color:transparent}
+.st-result ul{margin:6px 0 0;padding-left:18px;max-height:180px;overflow:auto}
+.st-result-close{float:right;margin:-4px -6px 0 8px}
+.st-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:10px;border-radius:12px;background:var(--p3);border:1px solid var(--border)}
+.st-bulk[hidden]{display:none}
+.st-bulk b{font-size:13px;color:var(--text);margin-right:4px}
+.st-num{width:96px;text-align:right;font-variant-numeric:tabular-nums}
+.st-link{border-color:transparent;background:transparent}
+.st-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow-x:auto}
+.st-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.st-table th{position:sticky;top:0;z-index:1;text-align:left;font-size:11px;font-weight:700;color:var(--muted);padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+.st-table td{padding:8px 12px;border-bottom:1px solid var(--border2);vertical-align:middle;color:var(--text)}
+.st-table tbody tr:last-child td{border-bottom:0}
+.st-table tr.is-changed td{background:color-mix(in srgb,var(--p) 7%,var(--surface))}
+.st-table tr.is-failed td{background:var(--red-bg)}
+.st-table .st-r{text-align:right}
+.st-check{width:36px}
+.st-check input,.st-table td input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--p)}
+.st-prod{display:flex;align-items:center;gap:10px;min-width:220px}
+.st-prod img,.st-prod .st-noimg{width:36px;height:48px;border-radius:6px;object-fit:cover;flex:none;background:var(--surface2)}
+.st-prod-code{font-weight:700;color:var(--text)}
+.st-prod-title{font-size:12px;color:var(--muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-sku{font-size:12px;color:var(--muted);white-space:nowrap}
+.st-cur{color:var(--muted)}
+.st-new{width:90px;min-height:34px;text-align:right;font-variant-numeric:tabular-nums}
+.st-table tr.is-changed .st-new{border-color:var(--p);font-weight:700}
+.st-err{display:block;font-size:11px;color:var(--red);margin-top:3px;white-space:normal;max-width:200px;margin-left:auto}
+.st-diff{display:block;font-size:11px;font-weight:700;margin-top:2px}
+.st-diff.is-up{color:var(--green)}
+.st-diff.is-down{color:var(--red)}
+.st-empty{text-align:center;padding:32px 16px;color:var(--muted)}
+.st-savebar{position:sticky;bottom:12px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--p);box-shadow:0 10px 30px rgba(20,10,40,.18)}
+.st-savebar[hidden]{display:none}
+.st-savebar-text{flex:1;min-width:200px;font-size:13px;color:var(--text)}
+.wb-view-mode .st-savebar{bottom:76px}
+.st-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 6px}
+.st-check-line{display:flex;align-items:center;gap:8px;font-size:13px;margin:12px 0 4px;color:var(--text)}
+.st-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.st-stats div{background:var(--surface2);border-radius:10px;padding:9px 11px}
+.st-stats dt{font-size:11px;color:var(--muted);font-weight:700}
+.st-stats dd{margin:2px 0 0;font-size:18px;font-weight:800;color:var(--text)}
+.st-list{list-style:none;margin:0;padding:0;font-size:12px;max-height:220px;overflow:auto;border:1px solid var(--border2);border-radius:10px}
+.st-list li{padding:6px 10px;border-bottom:1px solid var(--border2)}
+.st-list li:last-child{border-bottom:0}
+.st-hist{list-style:none;margin:0;padding:0}
+.st-hist li{padding:10px 0;border-bottom:1px solid var(--border2);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px}
+.st-hist li:last-child{border-bottom:0}
+.st-hist time{color:var(--muted);font-size:12px;min-width:120px}
+.st-hist-main{flex:1;min-width:200px}
+.st-hist-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--surface2);color:var(--muted);margin-left:6px}
+.st-hist-items{width:100%;font-size:12px}
+.st-hist-items table{width:100%;border-collapse:collapse}
+.st-hist-items td{padding:4px 6px;border-bottom:1px solid var(--border2)}
+.st-skeleton{display:grid;gap:8px;margin-top:14px}
+.st-skeleton span{height:14px;border-radius:6px;background:var(--border2);animation:stPulse 1.2s ease-in-out infinite}
+.st-skeleton span:nth-child(2){width:80%}.st-skeleton span:nth-child(3){width:60%}
+@keyframes stPulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.st-skeleton span{animation:none}}
+@media (max-width:760px){
+  .st-search{max-width:none;flex-basis:100%}
+  .st-warehouse{flex:1 1 100%}
+  .st-tools{margin-left:0;width:100%}
+  .st-tools .rnp-btn{flex:1 1 auto}
+  .st-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .st-table th:nth-child(4),.st-table td:nth-child(4),.st-table th:nth-child(5),.st-table td:nth-child(5){display:none}
+  .st-table th,.st-table td{padding-left:6px;padding-right:6px}
+  .st-table th{white-space:normal}
+  .st-prod{min-width:0;gap:8px}
+  .st-prod img,.st-prod .st-noimg{display:none}
+  .st-prod-title{max-width:104px}
+  .st-new{width:64px;padding-left:6px;padding-right:6px}
+  .st-savebar{bottom:8px}
+}
 /* Режим просмотра админа: кабинет пользователя только для чтения. */
 .wb-view-mode [data-view-hide]{display:none!important}
 .wb-view-mode{padding-bottom:64px}
@@ -1343,6 +1428,8 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 <link rel="stylesheet" href="/wbai-design.css">
 <script src="/wbai-theme.js"></script>
 <script src="/wbai-icons.js" defer></script>
+<script src="/wbai-xlsx.js" defer></script>
+<script src="/wbai-stocks.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">К содержимому</a>
@@ -1399,6 +1486,7 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <button class="nav-item" type="button" onclick="showPage('history');closeSidebar()"><span class="nav-icon" data-icon="clipboard" aria-hidden="true"></span>История запросов</button>
     <button class="nav-item" type="button" onclick="showPage('analytics');closeSidebar()"><span class="nav-icon" data-icon="chart" aria-hidden="true"></span>Аналитика WB</button>
     <button class="nav-item" type="button" onclick="showPage('rnp');closeSidebar()"><span class="nav-icon" data-icon="activity" aria-hidden="true"></span>РНП · Рука на пульсе</button>
+    <button class="nav-item" type="button" onclick="showPage('stocks');closeSidebar()"><span class="nav-icon" data-icon="layers" aria-hidden="true"></span>Остатки на складах</button>
     <button class="nav-item" type="button" onclick="showPage('settings');closeSidebar()"><span class="nav-icon" data-icon="settings" aria-hidden="true"></span>Настройки</button>
     <button class="nav-item" type="button" data-view-hide onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="image" aria-hidden="true"></span>Студия инфографики</button>
     <button class="nav-item" type="button" data-view-hide onclick="showPage('install');closeSidebar()"><span class="nav-icon" data-icon="download" aria-hidden="true"></span>Установка расширения</button>
@@ -2315,6 +2403,160 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     </dialog>
   </div>
 
+  <div class="page" id="page-stocks">
+    <div class="page-title"><span data-icon="layers" aria-hidden="true"></span> Остатки на складах</div>
+    <p class="rnp-lead">Остатки на ваших складах (FBS и DBS): меняйте сразу у многих товаров, загружайте из Excel, отменяйте ошибочные сохранения. Остатки на складах WB меняются только поставками.</p>
+    <div class="shop-tabs-wrap" id="stShopTabs"></div>
+
+    <div class="rnp-box rnp-empty" id="stNoShop" hidden>
+      <div class="rnp-box-title">Добавьте первый магазин</div>
+      <p>Остатки меняются через API WB. Подключите магазин в «Настройках → Магазины WB» токеном с категориями «Маркетплейс» и «Контент» без галочки «Только на чтение».</p>
+      <button class="rnp-btn primary" type="button" onclick="openShopSettings()">Подключить магазин</button>
+    </div>
+
+    <div class="rnp-box" id="stLoading" hidden aria-live="polite">
+      <div class="rnp-box-title">Загружаем товары и остатки из WB…</div>
+      <div class="rnp-box-sub">Карточки, размеры и баркоды — обычно несколько секунд, для больших каталогов до минуты.</div>
+      <div class="st-skeleton"><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="rnp-box" id="stError" hidden role="alert">
+      <div class="rnp-box-title">Не удалось загрузить остатки</div>
+      <p class="rnp-box-sub" id="stErrorText"></p>
+      <button class="rnp-btn primary" type="button" onclick="stLoad(true)"><span data-icon="refresh" aria-hidden="true"></span> Повторить</button>
+    </div>
+
+    <div class="rnp-box" id="stNoWarehouses" hidden>
+      <div class="rnp-box-title">В кабинете нет ваших складов</div>
+      <p class="rnp-box-sub">Остатки здесь — для складов продавца (FBS/DBS). Создайте склад в WB Partners: «Маркетплейс → Мои склады», затем нажмите «Обновить».</p>
+      <button class="rnp-btn" type="button" onclick="stInit(true)"><span data-icon="refresh" aria-hidden="true"></span> Обновить</button>
+    </div>
+
+    <div id="stMain" hidden>
+      <div class="rnp-toolbar">
+        <label class="sr-only" for="stWarehouse">Склад</label>
+        <select class="rnp-input st-warehouse" id="stWarehouse" onchange="stChangeWarehouse()"></select>
+        <div class="st-search">
+          <span data-icon="search" aria-hidden="true"></span>
+          <label class="sr-only" for="stSearch">Поиск</label>
+          <input class="rnp-input" id="stSearch" type="search" placeholder="Артикул, название, баркод" autocomplete="off" oninput="stOnFilter()">
+        </div>
+        <label class="sr-only" for="stFilter">Показать</label>
+        <select class="rnp-input" id="stFilter" onchange="stOnFilter()">
+          <option value="all">Все размеры</option>
+          <option value="zero">Нулевые</option>
+          <option value="instock">С остатком</option>
+          <option value="changed">Изменённые</option>
+          <option value="failed">С ошибкой</option>
+        </select>
+        <div class="st-tools">
+          <button class="rnp-btn" type="button" onclick="stExport()"><span data-icon="download" aria-hidden="true"></span> Скачать Excel</button>
+          <button class="rnp-btn" type="button" data-view-hide onclick="document.getElementById('stFile').click()"><span data-icon="upload" aria-hidden="true"></span> Загрузить файл</button>
+          <input type="file" id="stFile" accept=".xlsx,.csv,text/csv" hidden onchange="stImportFile(this)">
+          <button class="rnp-btn" type="button" id="stCopyBtn" data-view-hide onclick="stOpenCopy()" hidden><span data-icon="layers" aria-hidden="true"></span> С другого склада</button>
+          <button class="rnp-btn" type="button" onclick="stOpenHistory()"><span data-icon="clipboard" aria-hidden="true"></span> История</button>
+          <button class="rnp-btn" type="button" id="stRefreshBtn" onclick="stLoad(true)" aria-label="Обновить остатки из WB"><span data-icon="refresh" aria-hidden="true"></span></button>
+        </div>
+      </div>
+
+      <div class="st-summary" id="stSummary" aria-live="polite"></div>
+      <div class="st-result" id="stResult" hidden></div>
+
+      <div class="st-bulk" id="stBulk" hidden data-view-hide>
+        <b id="stBulkCount"></b>
+        <div class="rnp-seg rnp-seg-sm" role="group" aria-label="Действие">
+          <button type="button" data-op="set" aria-pressed="true">Поставить</button>
+          <button type="button" data-op="add" aria-pressed="false">Прибавить</button>
+          <button type="button" data-op="sub" aria-pressed="false">Убавить</button>
+        </div>
+        <label class="sr-only" for="stBulkValue">Количество</label>
+        <input class="rnp-input st-num" id="stBulkValue" type="number" min="0" max="100000" step="1" inputmode="numeric" placeholder="шт">
+        <button class="rnp-btn primary" type="button" onclick="stApplyBulk()">Применить</button>
+        <button class="rnp-btn" type="button" onclick="stApplyBulk('zero')">Обнулить</button>
+        <button class="rnp-btn st-link" type="button" onclick="stSelectNone()">Снять выбор</button>
+      </div>
+
+      <div class="st-table-wrap">
+        <table class="st-table" aria-label="Остатки по размерам">
+          <thead>
+            <tr>
+              <th scope="col" class="st-check" data-view-hide><input type="checkbox" id="stSelectAll" aria-label="Выбрать все по фильтру" onchange="stSelectAllToggle(this.checked)"></th>
+              <th scope="col">Товар</th>
+              <th scope="col">Размер</th>
+              <th scope="col">Баркод</th>
+              <th scope="col" class="st-r">На складах WB<button type="button" class="an-help" data-tip="Остаток товара на складах WB (все размеры) по последней загрузке РНП. Только для справки — меняется поставками." aria-label="Что такое остаток на складах WB">?</button></th>
+              <th scope="col" class="st-r">Сейчас</th>
+              <th scope="col" class="st-r">Новый остаток</th>
+            </tr>
+          </thead>
+          <tbody id="stBody"></tbody>
+        </table>
+      </div>
+      <div class="rnp-more"><button class="rnp-btn" type="button" id="stMore" hidden onclick="stRender(false)">Показать ещё</button></div>
+
+      <div class="st-savebar" id="stSavebar" hidden data-view-hide>
+        <div class="st-savebar-text" id="stSaveText" aria-live="polite"></div>
+        <button class="rnp-btn" type="button" onclick="stDiscard()">Отменить изменения</button>
+        <button class="rnp-btn primary" type="button" id="stSaveBtn" onclick="stSave()"><span data-icon="save" aria-hidden="true"></span> Сохранить в WB</button>
+      </div>
+    </div>
+
+    <dialog class="rnp-dialog" id="stImportDialog" aria-labelledby="stImportTitle">
+      <form method="dialog" onsubmit="return false">
+        <div class="rnp-dialog-head">
+          <div>
+            <div class="rnp-box-title" id="stImportTitle">Загрузка остатков из файла</div>
+            <div class="rnp-box-sub" id="stImportSub"></div>
+          </div>
+          <button class="rnp-btn" type="button" aria-label="Закрыть" onclick="document.getElementById('stImportDialog').close()"><span data-icon="x" aria-hidden="true"></span></button>
+        </div>
+        <div class="rnp-dialog-body" id="stImportBody"></div>
+        <div class="rnp-dialog-foot">
+          <button class="rnp-btn" type="button" onclick="document.getElementById('stImportDialog').close()">Отмена</button>
+          <button class="rnp-btn primary" type="button" id="stImportApplyBtn" onclick="stImportApply()">Подставить в таблицу</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="rnp-dialog" id="stCopyDialog" aria-labelledby="stCopyTitle">
+      <form method="dialog" onsubmit="return false">
+        <div class="rnp-dialog-head">
+          <div>
+            <div class="rnp-box-title" id="stCopyTitle">Скопировать остатки с другого склада</div>
+            <div class="rnp-box-sub">Остатки выбранного склада подставятся в таблицу текущего. Перед сохранением их можно проверить и поправить.</div>
+          </div>
+          <button class="rnp-btn" type="button" aria-label="Закрыть" onclick="document.getElementById('stCopyDialog').close()"><span data-icon="x" aria-hidden="true"></span></button>
+        </div>
+        <div class="rnp-dialog-body">
+          <label class="st-label" for="stCopyFrom">Откуда</label>
+          <select class="rnp-input" id="stCopyFrom" style="width:100%"></select>
+          <label class="st-check-line"><input type="checkbox" id="stCopyOnlyStock"> Только позиции, где на том складе есть остаток</label>
+          <div class="rnp-note rnp-is-error" id="stCopyError" hidden></div>
+        </div>
+        <div class="rnp-dialog-foot">
+          <button class="rnp-btn" type="button" onclick="document.getElementById('stCopyDialog').close()">Отмена</button>
+          <button class="rnp-btn primary" type="button" id="stCopyApplyBtn" onclick="stCopyApply()">Подставить</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="rnp-dialog" id="stHistoryDialog" aria-labelledby="stHistoryTitle">
+      <form method="dialog" onsubmit="return false">
+        <div class="rnp-dialog-head">
+          <div>
+            <div class="rnp-box-title" id="stHistoryTitle">История изменений остатков</div>
+            <div class="rnp-box-sub">Последние 30 сохранений. Отменить можно последнее сохранение по складу — позиции, которые после него изменили в WB, не трогаем.</div>
+          </div>
+          <button class="rnp-btn" type="button" aria-label="Закрыть" onclick="document.getElementById('stHistoryDialog').close()"><span data-icon="x" aria-hidden="true"></span></button>
+        </div>
+        <div class="rnp-dialog-body" id="stHistoryBody"></div>
+        <div class="rnp-dialog-foot">
+          <button class="rnp-btn" type="button" onclick="document.getElementById('stHistoryDialog').close()">Закрыть</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+
 </main>
 <script>
 // Режим просмотра для админа: пропуск «только чтение» приходит в #view=…
@@ -2481,7 +2723,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name)?.classList.add('active');
   if(name==='subscription') document.getElementById('page-credits')?.classList.add('active');
-  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',analytics:'аналитика',rnp:'рнп',settings:'настройки',install:'установка',infographic:'студия'};
+  const map={home:'главная',subscription:'подписка',templates:'шаблон',videos:'видео',history:'история',analytics:'аналитика',rnp:'рнп',stocks:'остатки',settings:'настройки',install:'установка',infographic:'студия'};
   document.querySelectorAll('.nav-item').forEach(n=>{
     const active=n.textContent.toLowerCase().includes(map[name]||name);
     n.classList.toggle('active',active);
@@ -2491,6 +2733,7 @@ function showPage(name) {
   if(name==='history') loadHistory();
   if(name==='analytics') anInit();
   if(name==='rnp') rnpInit();
+  if(name==='stocks') stInit();
   if(name==='infographic') isInit();
   if(name==='settings') settingsSwitch(localStorage.getItem('wbai_settings_section') || 'account');
   document.getElementById('main-content').focus({ preventScroll: true });
@@ -3349,7 +3592,7 @@ async function loadShops(){
 }
 
 function renderShopTabs(){
-  ['anShopTabs','rnpShopTabs'].forEach(function(id){
+  ['anShopTabs','rnpShopTabs','stShopTabs'].forEach(function(id){
     var box = document.getElementById(id);
     if(!box) return;
     if(!WB_SHOP.list.length){ box.innerHTML=''; return; }
@@ -3370,6 +3613,7 @@ function openShopSettings(){
 // Другой магазин — другие данные: всё загруженное раньше сбрасываем и грузим заново.
 function setShop(id){
   if(id===WB_SHOP.current) return;
+  if(typeof ST!=='undefined' && stDirtyCount() && !confirm('Несохранённые изменения остатков пропадут. Переключить магазин?')){ renderShopTabs(); return; }
   WB_SHOP.current = id;
   try{ if(!WB_VIEW) localStorage.setItem(WB_SHOP_KEY, String(id)); }catch(e){}
   renderShopTabs();
@@ -3377,6 +3621,7 @@ function setShop(id){
   resetShopState();
   if(document.getElementById('page-analytics').classList.contains('active') && AN.hasToken){ AN.loaded=true; anLoad(); }
   if(document.getElementById('page-rnp').classList.contains('active')) rnpLoad();
+  if(document.getElementById('page-stocks').classList.contains('active')) stInit();
   wbSyncWatch();
 }
 
@@ -3387,6 +3632,7 @@ function resetShopState(){
   if(typeof RNP!=='undefined'){ RNP.data=null; RNP.sync=null; clearTimeout(RNP.pollTimer); }
   if(typeof RNP_PLAN!=='undefined') RNP_PLAN.data=null;
   if(typeof anAdsRequestSeq!=='undefined') anAdsRequestSeq++;
+  if(typeof ST!=='undefined') stReset();
 }
 
 function renderShopSettings(){
@@ -4798,6 +5044,496 @@ async function rnpSavePlan(){
 
 // ── Импорт кабинета WB: общий индикатор на всех страницах
 var WB_SYNC = { timer:null, seenRunning:false };
+// ═══════════════════════════════════════════════════
+//  ОСТАТКИ НА СКЛАДАХ ПРОДАВЦА (FBS/DBS)
+// ═══════════════════════════════════════════════════
+var ST = { warehouses:null, warehouseId:null, items:[], byChrt:{}, edits:{}, failed:{}, selected:{}, filtered:[], shown:0, seq:0, source:'manual', op:'set', importMatch:null };
+var ST_PAGE = 200;
+var ST_WH_KEY = 'wbai_stock_wh';
+var ST_SOURCES = { manual:'вручную', bulk:'массово', import:'из файла', copy:'копия со склада', undo:'отмена' };
+var ST_DELIVERY = { 1:'FBS', 2:'DBS', 3:'DBW', 5:'C&C', 6:'EDBS' };
+
+function stFmt(n){ return Number(n||0).toLocaleString('ru-RU'); }
+function stDirtyCount(){ return Object.keys(ST.edits).length; }
+function stValue(item){ return Object.prototype.hasOwnProperty.call(ST.edits, item.chrtId) ? ST.edits[item.chrtId] : item.amount; }
+function stIsChanged(item){ return Object.prototype.hasOwnProperty.call(ST.edits, item.chrtId); }
+function stLabel(item){ return (item.vendorCode || item.nmId) + (item.size && item.size !== '0' ? ' · ' + item.size : ''); }
+function stWarehouse(id){ return (ST.warehouses || []).find(function(w){ return w.id === id; }) || null; }
+function stWarehouseName(w){ return w ? w.name + (ST_DELIVERY[w.deliveryType] ? ' · ' + ST_DELIVERY[w.deliveryType] : '') : ''; }
+
+function stShow(which){
+  ['stNoShop','stLoading','stError','stNoWarehouses','stMain'].forEach(function(id){ document.getElementById(id).hidden = id !== which; });
+}
+
+function stReset(){
+  ST.seq++;
+  ST.warehouses = null; ST.warehouseId = null; ST.items = []; ST.byChrt = {};
+  ST.edits = {}; ST.failed = {}; ST.selected = {}; ST.filtered = []; ST.source = 'manual';
+  var r = document.getElementById('stResult'); if(r) r.hidden = true;
+}
+
+function stShowError(d){
+  var msg = d.error || ('Ошибка ' + d.__status);
+  if(/Подключите магазин/.test(msg)){ stShow('stNoShop'); return; }
+  if(d.expired) msg = 'Подписка закончилась. «Остатки» доступны при активной подписке на любом тарифе.';
+  document.getElementById('stErrorText').textContent = msg;
+  stShow('stError');
+}
+
+async function stInit(fresh){
+  if(!WB_SHOP.loaded) await loadShops();
+  if(!WB_SHOP.list.length){ stShow('stNoShop'); return; }
+  if(ST.warehouses && ST.items.length && !fresh){ stShow('stMain'); return; }
+  var seq = ++ST.seq;
+  stShow('stLoading');
+  var d = await stApi('/api/stocks/warehouses' + (fresh ? '?fresh=1' : ''));
+  if(seq !== ST.seq) return;
+  if(!d.__ok){ stShowError(d); return; }
+  ST.warehouses = d.warehouses || [];
+  if(!ST.warehouses.length){ stShow('stNoWarehouses'); return; }
+  var saved = null;
+  try{ saved = Number(localStorage.getItem(ST_WH_KEY + ':' + WB_SHOP.current)) || null; }catch(e){}
+  var ids = ST.warehouses.map(function(w){ return w.id; });
+  ST.warehouseId = ids.indexOf(ST.warehouseId) >= 0 ? ST.warehouseId : (ids.indexOf(saved) >= 0 ? saved : ids[0]);
+  stRenderWarehouses();
+  await stLoad(fresh, seq);
+}
+
+function stApi(path, options){ return rnpApi(path, options); }
+
+function stRenderWarehouses(){
+  var sel = document.getElementById('stWarehouse');
+  sel.innerHTML = (ST.warehouses || []).map(function(w){
+    return '<option value="' + w.id + '"' + (w.id === ST.warehouseId ? ' selected' : '') + '>' + shopEsc(stWarehouseName(w)) + '</option>';
+  }).join('');
+  document.getElementById('stCopyBtn').hidden = (ST.warehouses || []).length < 2;
+}
+
+async function stLoad(fresh, seqIn){
+  if(!ST.warehouses || !ST.warehouseId) return stInit(fresh);
+  if(!seqIn && stDirtyCount() && !confirm('Несохранённые изменения пропадут. Загрузить остатки из WB заново?')) return;
+  var seq = seqIn || ++ST.seq;
+  var btn = document.getElementById('stRefreshBtn');
+  btn.disabled = true;
+  if(!ST.items.length || seqIn) stShow('stLoading');
+  else document.getElementById('stSummary').textContent = 'Загружаем остатки из WB…';
+  var d = await stApi('/api/stocks?warehouseId=' + ST.warehouseId + (fresh ? '&fresh=1' : ''));
+  btn.disabled = false;
+  if(seq !== ST.seq) return;
+  if(!d.__ok){ stShowError(d); return; }
+  ST.items = d.items || [];
+  ST.byChrt = {};
+  ST.items.forEach(function(item){ ST.byChrt[item.chrtId] = item; });
+  ST.edits = {}; ST.failed = {}; ST.selected = {}; ST.source = 'manual';
+  // «Изменённые» и «С ошибкой» после загрузки пусты — показываем всё.
+  var filter = document.getElementById('stFilter');
+  if(filter.value === 'changed' || filter.value === 'failed') filter.value = 'all';
+  stShow('stMain');
+  stOnFilter();
+}
+
+function stChangeWarehouse(){
+  var sel = document.getElementById('stWarehouse');
+  var id = Number(sel.value);
+  if(id === ST.warehouseId) return;
+  if(stDirtyCount() && !confirm('Несохранённые изменения остатков пропадут. Перейти на другой склад?')){ sel.value = String(ST.warehouseId); return; }
+  ST.warehouseId = id;
+  try{ localStorage.setItem(ST_WH_KEY + ':' + WB_SHOP.current, String(id)); }catch(e){}
+  ST.edits = {};
+  document.getElementById('stResult').hidden = true;
+  stLoad(false, ++ST.seq);
+}
+
+// ── Таблица ─────────────────────────────────────────
+function stOnFilter(){
+  var q = document.getElementById('stSearch').value.trim().toLowerCase();
+  var f = document.getElementById('stFilter').value;
+  ST.filtered = ST.items.filter(function(item){
+    if(q){
+      var hay = [item.vendorCode, item.title, item.brand, item.subject, item.nmId, item.size].concat(item.skus || []).join(' ').toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
+    var v = stValue(item);
+    if(f === 'zero' && v !== 0) return false;
+    if(f === 'instock' && v <= 0) return false;
+    if(f === 'changed' && !stIsChanged(item)) return false;
+    if(f === 'failed' && !ST.failed[item.chrtId]) return false;
+    return true;
+  });
+  stRender(true);
+}
+
+function stRowHtml(item){
+  var changed = stIsChanged(item), val = stValue(item), fail = ST.failed[item.chrtId];
+  var diff = val - item.amount;
+  var label = shopEsc(stLabel(item));
+  return '<tr data-chrt="' + item.chrtId + '" class="' + (fail ? 'is-failed' : changed ? 'is-changed' : '') + '">' +
+    '<td class="st-check" data-view-hide><input type="checkbox" data-sel' + (ST.selected[item.chrtId] ? ' checked' : '') + ' aria-label="Выбрать ' + label + '"></td>' +
+    '<td><div class="st-prod">' + (item.photo ? '<img src="' + shopEsc(item.photo) + '" alt="" loading="lazy" width="36" height="48">' : '<span class="st-noimg"></span>') +
+      '<div style="min-width:0"><div class="st-prod-code">' + shopEsc(item.vendorCode || item.nmId) + '</div><div class="st-prod-title" title="' + shopEsc(item.title) + '">' + shopEsc(item.title || '') + (item.title ? ' · ' : '') + item.nmId + '</div></div></div></td>' +
+    '<td>' + shopEsc(item.size && item.size !== '0' ? item.size : '—') + '</td>' +
+    '<td class="st-sku">' + shopEsc(item.sku || '—') + '</td>' +
+    '<td class="st-r st-cur">' + (item.wbStock == null ? '—' : stFmt(item.wbStock)) + '</td>' +
+    '<td class="st-r">' + stFmt(item.amount) + '</td>' +
+    '<td class="st-r"><input class="rnp-input st-new" type="number" min="0" max="100000" step="1" inputmode="numeric" value="' + val + '" data-new aria-label="Новый остаток ' + label + '"' + (WB_VIEW ? ' readonly' : '') + '>' +
+      (changed ? '<span class="st-diff ' + (diff > 0 ? 'is-up' : 'is-down') + '">' + (diff > 0 ? '+' : '') + stFmt(diff) + '</span>' : '') +
+      (fail ? '<span class="st-err">' + shopEsc(fail) + '</span>' : '') + '</td>' +
+  '</tr>';
+}
+
+function stRender(reset){
+  var body = document.getElementById('stBody');
+  if(reset){ ST.shown = 0; body.innerHTML = ''; }
+  if(!ST.filtered.length){
+    body.innerHTML = '<tr><td colspan="7" class="st-empty">' + (ST.items.length ? 'Ничего не нашли — измените поиск или фильтр.' : 'В карточках магазина нет товаров.') + '</td></tr>';
+  } else {
+    var next = ST.filtered.slice(ST.shown, ST.shown + ST_PAGE);
+    body.insertAdjacentHTML('beforeend', next.map(stRowHtml).join(''));
+    ST.shown += next.length;
+  }
+  var more = document.getElementById('stMore');
+  more.hidden = ST.shown >= ST.filtered.length;
+  more.textContent = 'Показать ещё (' + stFmt(ST.filtered.length - ST.shown) + ')';
+  stUpdateSelection();
+  stUpdateSummary();
+}
+
+// Обновляем строку на месте, не пересоздавая: фокус и Tab по полям не сбиваются.
+function stRefreshRow(item){
+  var tr = document.querySelector('#stBody tr[data-chrt="' + item.chrtId + '"]');
+  if(!tr) return;
+  var changed = stIsChanged(item), fail = ST.failed[item.chrtId], diff = stValue(item) - item.amount;
+  tr.className = fail ? 'is-failed' : changed ? 'is-changed' : '';
+  var cell = tr.querySelector('[data-new]').parentNode;
+  cell.querySelectorAll('.st-diff,.st-err').forEach(function(el){ el.remove(); });
+  if(changed) cell.insertAdjacentHTML('beforeend', '<span class="st-diff ' + (diff > 0 ? 'is-up' : 'is-down') + '">' + (diff > 0 ? '+' : '') + stFmt(diff) + '</span>');
+  if(fail) cell.insertAdjacentHTML('beforeend', '<span class="st-err">' + shopEsc(fail) + '</span>');
+}
+
+function stSetEdit(chrtId, amount){
+  var item = ST.byChrt[chrtId];
+  if(!item) return;
+  if(amount === item.amount) delete ST.edits[chrtId];
+  else ST.edits[chrtId] = amount;
+  delete ST.failed[chrtId];
+}
+
+function stUpdateSummary(){
+  var total = 0, zero = 0;
+  ST.items.forEach(function(item){ var v = stValue(item); total += v; if(v === 0) zero++; });
+  var dirty = stDirtyCount();
+  document.getElementById('stSummary').innerHTML =
+    '<span>Размеров <b>' + stFmt(ST.items.length) + '</b></span>' +
+    '<span>На складе <b>' + stFmt(total) + ' шт</b></span>' +
+    '<span>Нулевых <b>' + stFmt(zero) + '</b></span>' +
+    (ST.filtered.length !== ST.items.length ? '<span>Показано по фильтру <b>' + stFmt(ST.filtered.length) + '</b></span>' : '');
+  var bar = document.getElementById('stSavebar');
+  bar.hidden = !dirty || !!WB_VIEW;
+  if(dirty){
+    var before = 0, after = 0;
+    Object.keys(ST.edits).forEach(function(k){ var item = ST.byChrt[k]; if(item){ before += item.amount; after += ST.edits[k]; } });
+    var delta = after - before;
+    document.getElementById('stSaveText').innerHTML = 'Изменено <b>' + stFmt(dirty) + '</b> ' + rnpPlural(dirty, 'позиция', 'позиции', 'позиций') + ': было ' + stFmt(before) + ' → станет <b>' + stFmt(after) + ' шт</b> (' + (delta > 0 ? '+' : '') + stFmt(delta) + ')';
+  }
+}
+
+function stSelectedIds(){ return Object.keys(ST.selected).filter(function(k){ return ST.selected[k]; }).map(Number); }
+
+function stUpdateSelection(){
+  var count = stSelectedIds().length;
+  var bulk = document.getElementById('stBulk');
+  bulk.hidden = !count || !!WB_VIEW;
+  document.getElementById('stBulkCount').textContent = 'Выбрано ' + stFmt(count);
+  var all = document.getElementById('stSelectAll');
+  var inFilter = ST.filtered.filter(function(item){ return ST.selected[item.chrtId]; }).length;
+  all.checked = !!ST.filtered.length && inFilter === ST.filtered.length;
+  all.indeterminate = inFilter > 0 && inFilter < ST.filtered.length;
+}
+
+function stSelectAllToggle(on){
+  ST.filtered.forEach(function(item){ if(on) ST.selected[item.chrtId] = true; else delete ST.selected[item.chrtId]; });
+  document.querySelectorAll('#stBody [data-sel]').forEach(function(box){ box.checked = on; });
+  stUpdateSelection();
+}
+
+function stSelectNone(){ ST.selected = {}; document.querySelectorAll('#stBody [data-sel]').forEach(function(box){ box.checked = false; }); stUpdateSelection(); }
+
+function stApplyBulk(opOverride){
+  var op = opOverride || ST.op;
+  var ids = stSelectedIds();
+  if(!ids.length) return;
+  var input = document.getElementById('stBulkValue');
+  var value = 0;
+  if(op !== 'zero'){
+    value = WbaiStocks.parseAmount(input.value);
+    if(value === null || Number.isNaN(value)){ input.focus(); alert('Введите целое число от 0 до 100 000.'); return; }
+  }
+  ids.forEach(function(id){ var item = ST.byChrt[id]; if(item) stSetEdit(id, WbaiStocks.applyBulk(op, value, stValue(item))); });
+  if(ST.source === 'manual') ST.source = 'bulk';
+  stOnFilter();
+}
+
+function stDiscard(){
+  var n = stDirtyCount();
+  if(n && !confirm('Отменить ' + n + ' ' + rnpPlural(n, 'изменение', 'изменения', 'изменений') + '? В WB ничего не сохранится.')) return;
+  ST.edits = {}; ST.failed = {}; ST.source = 'manual';
+  stOnFilter();
+}
+
+function stShowResult(kind, html){
+  var box = document.getElementById('stResult');
+  box.className = 'st-result' + (kind === 'ok' ? ' is-ok' : kind === 'warn' ? ' is-warn' : '');
+  box.innerHTML = '<button class="rnp-btn st-link st-result-close" type="button" aria-label="Скрыть" onclick="this.parentNode.hidden=true"><span data-icon="x" aria-hidden="true"></span></button>' + html;
+  box.hidden = false;
+  window.wbaiInjectIcons && window.wbaiInjectIcons();
+}
+
+async function stSave(){
+  var items = Object.keys(ST.edits).map(function(k){ return { chrtId: Number(k), amount: ST.edits[k] }; });
+  if(!items.length) return;
+  var btn = document.getElementById('stSaveBtn');
+  if(btn.disabled) return;
+  var html = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Сохраняем в WB…';
+  var seq = ST.seq, warehouseId = ST.warehouseId;
+  var d = await stApi('/api/stocks', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ warehouseId: warehouseId, items: items, source: ST.source }) });
+  btn.disabled = false; btn.innerHTML = html; window.wbaiInjectIcons && window.wbaiInjectIcons();
+  if(seq !== ST.seq) return;
+  if(!d.__ok){ stShowResult('warn', '<b>Не сохранено.</b> ' + shopEsc(d.error || ('Ошибка ' + d.__status))); return; }
+  var failedIds = {};
+  (d.failed || []).forEach(function(f){ if(f.chrtId){ failedIds[f.chrtId] = true; ST.failed[f.chrtId] = f.message || 'WB отклонил'; } });
+  // Сохранённые и те, что в WB уже были такими, — больше не изменения.
+  items.forEach(function(it){
+    if(failedIds[it.chrtId]) return;
+    var item = ST.byChrt[it.chrtId];
+    if(item) item.amount = it.amount;
+    delete ST.edits[it.chrtId];
+  });
+  if(!stDirtyCount()){
+    ST.source = 'manual';
+    if(document.getElementById('stFilter').value === 'changed') document.getElementById('stFilter').value = 'all';
+  }
+  var parts = [];
+  if(d.saved) parts.push('<b>Сохранено в WB: ' + stFmt(d.saved) + ' ' + rnpPlural(d.saved, 'позиция', 'позиции', 'позиций') + '.</b> Отменить можно в «Истории».');
+  if(d.unchanged) parts.push('В WB уже было так: ' + stFmt(d.unchanged) + '.');
+  var failed = d.failed || [];
+  if(failed.length){
+    parts.push('<b>Не сохранено: ' + stFmt(failed.length) + '</b> — исправьте и сохраните ещё раз (фильтр «С ошибкой»):<ul>' + failed.slice(0, 50).map(function(f){
+      return '<li>' + shopEsc((f.vendorCode || f.sku || f.chrtId) + (f.size && f.size !== '0' ? ' · ' + f.size : '')) + ' — ' + shopEsc(f.message) + '</li>';
+    }).join('') + (failed.length > 50 ? '<li>…и ещё ' + (failed.length - 50) + '</li>' : '') + '</ul>');
+  }
+  stShowResult(failed.length ? 'warn' : 'ok', parts.join(' ') || 'Изменений нет.');
+  stOnFilter();
+}
+
+// ── Excel ───────────────────────────────────────────
+function stDownload(bytes, name, type){
+  var url = URL.createObjectURL(new Blob([bytes], { type: type }));
+  var a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+
+function stExport(){
+  if(!window.WbaiXlsx) return;
+  var list = ST.filtered.length ? ST.filtered : ST.items;
+  var rows = [['Баркод', 'Артикул продавца', 'Размер', 'Название', 'Артикул WB', 'Остаток']].concat(list.map(function(item){
+    return [item.sku || '', item.vendorCode || '', item.size && item.size !== '0' ? item.size : '', item.title || '', item.nmId, stValue(item)];
+  }));
+  var w = stWarehouse(ST.warehouseId);
+  var date = new Date().toISOString().slice(0, 10);
+  var name = ('Остатки ' + (w ? w.name : '') + ' ' + date).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + '.xlsx';
+  stDownload(WbaiXlsx.writeXlsx(rows, { widths: [17, 20, 9, 44, 13, 10], sheetName: 'Остатки' }), name, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+async function stImportFile(input){
+  var file = input.files && input.files[0];
+  input.value = '';
+  if(!file) return;
+  var dialog = document.getElementById('stImportDialog');
+  var body = document.getElementById('stImportBody');
+  var apply = document.getElementById('stImportApplyBtn');
+  document.getElementById('stImportSub').textContent = file.name + ' → ' + stWarehouseName(stWarehouse(ST.warehouseId));
+  apply.disabled = true; apply.textContent = 'Подставить в таблицу';
+  body.innerHTML = '<p class="rnp-box-sub">Читаем файл…</p>';
+  ST.importMatch = null;
+  if(!dialog.open) dialog.showModal();
+  var rows;
+  try{
+    if(file.size > 15 * 1024 * 1024) throw new Error('Файл больше 15 МБ — оставьте в нём только нужные колонки.');
+    rows = await WbaiXlsx.readTable(file);
+  }catch(e){
+    body.innerHTML = '<div class="rnp-note rnp-is-error">' + shopEsc(e.message || 'Не удалось прочитать файл') + '</div>' + stImportHint();
+    return;
+  }
+  var m = WbaiStocks.matchImport(rows, ST.items);
+  if(m.error){ body.innerHTML = '<div class="rnp-note rnp-is-error">' + shopEsc(m.error) + '</div>' + stImportHint(); return; }
+  var changes = m.matched.filter(function(x){ var item = ST.byChrt[x.chrtId]; return item && stValue(item) !== x.amount; });
+  ST.importMatch = changes;
+  var list = function(title, rowsList, render){
+    if(!rowsList.length) return '';
+    return '<p class="st-label">' + title + '</p><ul class="st-list">' + rowsList.slice(0, 100).map(render).join('') + (rowsList.length > 100 ? '<li>…и ещё ' + (rowsList.length - 100) + '</li>' : '') + '</ul>';
+  };
+  body.innerHTML =
+    '<dl class="st-stats">' +
+      '<div><dt>Найдено</dt><dd>' + stFmt(m.matched.length) + '</dd></div>' +
+      '<div><dt>Изменится</dt><dd>' + stFmt(changes.length) + '</dd></div>' +
+      '<div><dt>Не найдено</dt><dd>' + stFmt(m.notFound.length) + '</dd></div>' +
+      '<div><dt>С ошибкой</dt><dd>' + stFmt(m.invalid.length) + '</dd></div>' +
+    '</dl>' +
+    list('Что изменится', changes, function(x){ var item = ST.byChrt[x.chrtId]; return '<li>' + shopEsc(stLabel(item)) + ': ' + stFmt(stValue(item)) + ' → <b>' + stFmt(x.amount) + '</b></li>'; }) +
+    list('Не нашли в карточках магазина', m.notFound, function(x){ return '<li>Строка ' + x.line + ': ' + shopEsc(x.label) + '</li>'; }) +
+    list('Строки с ошибкой', m.invalid, function(x){ return '<li>Строка ' + x.line + ': ' + shopEsc(x.label) + ' — ' + shopEsc(x.reason) + '</li>'; }) +
+    (m.duplicates ? '<p class="rnp-box-sub">Повторы одного размера: ' + m.duplicates + ' — взято значение из последней строки.</p>' : '') +
+    (m.empty ? '<p class="rnp-box-sub">Строк без количества: ' + m.empty + ' — их пропускаем.</p>' : '') +
+    '<p class="rnp-box-sub">Позиции, которых нет в файле, не меняются. Изменения сначала появятся в таблице — сохраните их кнопкой «Сохранить в WB».</p>';
+  apply.disabled = !changes.length;
+  apply.textContent = changes.length ? 'Подставить ' + stFmt(changes.length) + ' ' + rnpPlural(changes.length, 'изменение', 'изменения', 'изменений') : 'Нечего менять';
+}
+
+function stImportHint(){
+  return '<p class="rnp-box-sub" style="margin-top:12px">Подходят .xlsx и .csv. Нужны колонки «Баркод» (или «Артикул продавца» и «Размер») и «Количество» / «Остаток». Проще всего скачать файл кнопкой «Скачать Excel», поправить колонку «Остаток» и загрузить обратно.</p>';
+}
+
+function stImportApply(){
+  var changes = ST.importMatch || [];
+  changes.forEach(function(x){ stSetEdit(x.chrtId, x.amount); });
+  if(changes.length) ST.source = 'import';
+  document.getElementById('stImportDialog').close();
+  document.getElementById('stFilter').value = 'changed';
+  document.getElementById('stSearch').value = '';
+  stOnFilter();
+  stShowResult('', 'Из файла подставлено <b>' + stFmt(changes.length) + '</b> ' + rnpPlural(changes.length, 'изменение', 'изменения', 'изменений') + '. Проверьте и нажмите «Сохранить в WB».');
+}
+
+// ── Копия с другого склада ──────────────────────────
+function stOpenCopy(){
+  var sel = document.getElementById('stCopyFrom');
+  sel.innerHTML = (ST.warehouses || []).filter(function(w){ return w.id !== ST.warehouseId; }).map(function(w){
+    return '<option value="' + w.id + '">' + shopEsc(stWarehouseName(w)) + '</option>';
+  }).join('');
+  document.getElementById('stCopyError').hidden = true;
+  document.getElementById('stCopyDialog').showModal();
+}
+
+async function stCopyApply(){
+  var from = Number(document.getElementById('stCopyFrom').value);
+  var btn = document.getElementById('stCopyApplyBtn'), err = document.getElementById('stCopyError');
+  if(!from) return;
+  btn.disabled = true; err.hidden = true;
+  var seq = ST.seq;
+  var d = await stApi('/api/stocks?warehouseId=' + from);
+  btn.disabled = false;
+  if(seq !== ST.seq) return;
+  if(!d.__ok){ err.textContent = d.error || ('Ошибка ' + d.__status); err.hidden = false; return; }
+  var onlyStock = document.getElementById('stCopyOnlyStock').checked, count = 0;
+  (d.items || []).forEach(function(src){
+    var item = ST.byChrt[src.chrtId];
+    if(!item || (onlyStock && src.amount <= 0)) return;
+    if(stValue(item) !== src.amount){ stSetEdit(src.chrtId, src.amount); count++; }
+  });
+  if(count) ST.source = 'copy';
+  document.getElementById('stCopyDialog').close();
+  document.getElementById('stFilter').value = 'changed';
+  stOnFilter();
+  stShowResult('', 'Со склада «' + shopEsc(stWarehouseName(stWarehouse(from))) + '» подставлено <b>' + stFmt(count) + '</b> ' + rnpPlural(count, 'изменение', 'изменения', 'изменений') + '. Проверьте и нажмите «Сохранить в WB».');
+}
+
+// ── История и отмена ────────────────────────────────
+async function stOpenHistory(){
+  var dialog = document.getElementById('stHistoryDialog');
+  var body = document.getElementById('stHistoryBody');
+  body.innerHTML = '<p class="rnp-box-sub">Загружаем…</p>';
+  if(!dialog.open) dialog.showModal();
+  var d = await stApi('/api/stocks/history');
+  if(!d.__ok){ body.innerHTML = '<div class="rnp-note rnp-is-error">' + shopEsc(d.error || 'Не удалось загрузить историю') + '</div>'; return; }
+  var batches = d.batches || [];
+  if(!batches.length){ body.innerHTML = '<p class="rnp-box-sub">Сохранений ещё не было.</p>'; return; }
+  var latest = {};
+  batches.forEach(function(b){ if(!latest[b.warehouseId]) latest[b.warehouseId] = b.id; });
+  body.innerHTML = '<ul class="st-hist">' + batches.map(function(b){
+    var canUndo = !WB_VIEW && latest[b.warehouseId] === b.id && !b.undoneAt && !b.undoOf && b.saved > 0;
+    return '<li data-batch="' + b.id + '">' +
+      '<time>' + new Date(b.createdAt).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) + '</time>' +
+      '<div class="st-hist-main"><b>' + shopEsc(b.warehouseName || ('Склад ' + b.warehouseId)) + '</b><span class="st-hist-tag">' + shopEsc(ST_SOURCES[b.source] || b.source) + '</span>' +
+        (b.undoneAt ? '<span class="st-hist-tag">отменено</span>' : '') +
+        '<div class="rnp-box-sub">Сохранено ' + stFmt(b.saved) + (b.failed ? ' · не сохранено ' + stFmt(b.failed) : '') + '</div></div>' +
+      (b.saved ? '<button class="rnp-btn" type="button" onclick="stHistoryItems(' + b.id + ', this)">Подробнее</button>' : '') +
+      (canUndo ? '<button class="rnp-btn" type="button" onclick="stUndo(' + b.id + ', this)">Отменить</button>' : '') +
+      '<div class="st-hist-items" hidden></div>' +
+    '</li>';
+  }).join('') + '</ul>';
+}
+
+async function stHistoryItems(id, btn){
+  var box = btn.parentNode.querySelector('.st-hist-items');
+  if(!box.hidden){ box.hidden = true; btn.textContent = 'Подробнее'; return; }
+  btn.disabled = true;
+  var d = await stApi('/api/stocks/history/' + id);
+  btn.disabled = false;
+  if(!d.__ok){ box.innerHTML = '<div class="rnp-note rnp-is-error">' + shopEsc(d.error || 'Ошибка') + '</div>'; box.hidden = false; return; }
+  box.innerHTML = '<table><tbody>' + (d.items || []).map(function(it){
+    return '<tr><td>' + shopEsc(it.vendorCode || it.sku || it.chrtId) + (it.size && it.size !== '0' ? ' · ' + shopEsc(it.size) : '') + '</td><td class="st-r">' + stFmt(it.before) + ' → <b>' + stFmt(it.after) + '</b></td></tr>';
+  }).join('') + '</tbody></table>';
+  box.hidden = false; btn.textContent = 'Скрыть';
+}
+
+async function stUndo(id, btn){
+  if(!confirm('Вернуть остатки, какими они были до этого сохранения? Позиции, которые после него меняли в WB, не трогаем.')) return;
+  btn.disabled = true;
+  var d = await stApi('/api/stocks/history/' + id + '/undo', { method:'POST' });
+  if(!d.__ok){ btn.disabled = false; alert(d.error || 'Не удалось отменить'); return; }
+  (d.stocks || []).forEach(function(s){ var item = ST.byChrt[s.chrtId]; if(item && !stIsChanged(item)) item.amount = s.amount; });
+  var msg = 'Отмена сохранена в WB: возвращено ' + stFmt(d.saved) + '.' + (d.skipped ? ' Не тронули ' + stFmt(d.skipped) + ' — их уже меняли после сохранения.' : '') + ((d.failed || []).length ? ' Не удалось: ' + d.failed.length + '.' : '');
+  stShowResult((d.failed || []).length ? 'warn' : 'ok', shopEsc(msg));
+  stOnFilter();
+  stOpenHistory();
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var body = document.getElementById('stBody');
+  if(!body) return;
+  body.addEventListener('change', function(e){
+    var t = e.target, tr = t.closest('tr[data-chrt]');
+    if(!tr) return;
+    var chrtId = Number(tr.dataset.chrt), item = ST.byChrt[chrtId];
+    if(!item) return;
+    if(t.matches('[data-sel]')){
+      if(t.checked) ST.selected[chrtId] = true; else delete ST.selected[chrtId];
+      stUpdateSelection();
+      return;
+    }
+    if(t.matches('[data-new]')){
+      var amount = WbaiStocks.parseAmount(t.value);
+      if(amount === null) amount = 0;
+      if(Number.isNaN(amount)){ t.value = stValue(item); alert('Остаток — целое число от 0 до 100 000.'); return; }
+      stSetEdit(chrtId, amount);
+      stRefreshRow(item);
+      stUpdateSummary();
+    }
+  });
+  // Enter — к следующей строке, как в таблице.
+  body.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || !e.target.matches('[data-new]')) return;
+    e.preventDefault();
+    var inputs = Array.prototype.slice.call(body.querySelectorAll('[data-new]'));
+    var next = inputs[inputs.indexOf(e.target) + (e.shiftKey ? -1 : 1)];
+    if(next){ next.focus(); next.select(); } else e.target.blur();
+  });
+  document.querySelectorAll('#stBulk [data-op]').forEach(function(b){
+    b.addEventListener('click', function(){
+      ST.op = b.dataset.op;
+      document.querySelectorAll('#stBulk [data-op]').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+    });
+  });
+  document.getElementById('stBulkValue').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); stApplyBulk(); } });
+});
+
+window.addEventListener('beforeunload', function(e){
+  if(stDirtyCount()){ e.preventDefault(); e.returnValue = ''; }
+});
+
 function wbHideToast(){ document.getElementById('wbToast').hidden = true; }
 async function wbSyncWatch(){
   clearTimeout(WB_SYNC.timer); WB_SYNC.timer = null;

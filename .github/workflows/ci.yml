@@ -40,6 +40,8 @@ jobs:
           find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           node --check public/wbai-icons.js
           node --check public/wbai-theme.js
+          node --check public/wbai-xlsx.js
+          node --check public/wbai-stocks.js
 
       - name: Check dashboard inline scripts
         run: |

@@ -2,7 +2,7 @@
 const SHOP_DATA_TABLES = [
   'product_costs', 'manager_campaigns', 'wb_analytics_source_cache', 'wb_analytics_snapshots',
   'wb_orders', 'wb_sales', 'wb_ad_spend_daily', 'wb_rnp_sync', 'rnp_plans', 'wb_products',
-  'rnp_labels', 'wb_finance_rows', 'wb_storage_daily'
+  'rnp_labels', 'wb_finance_rows', 'wb_storage_daily', 'stock_change_batches'
 ];
 const SHOP_COLUMNS = 'id, user_id, name, seller_id, token, tax_rate, created_at';
 

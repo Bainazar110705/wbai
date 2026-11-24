@@ -14,6 +14,12 @@ const errorHandler = require('../middleware/error-handler');
 const { wrapAsyncRoutes } = require('../middleware/async-routes');
 const { createAuthMiddleware, createViewToken } = require('../middleware/auth');
 const { createAdminRepository } = require('../repositories/admin.repository');
+const { createStocksRepository } = require('../repositories/stocks.repository');
+const { createStocksService } = require('../services/stocks.service');
+const { createMarketplaceService } = require('../services/wb-marketplace.service');
+const { createContentService } = require('../services/wb-content.service');
+const { createStocksController } = require('../controllers/stocks.controller');
+const { registerStocksRoutes } = require('../routes/stocks.routes');
 const { createAdminUsersService } = require('../services/admin-users.service');
 const { createUsersRepository } = require('../repositories/users.repository');
 const { createCreditsService } = require('../services/credits.service');
@@ -234,6 +240,18 @@ registerRnpRoutes(app, {
   auth: authMiddleware,
   shop: resolveShop,
   access: analyticsAccess
+});
+// «Остатки» на складах продавца: любой тариф с активной подпиской;
+// админ в режиме просмотра — только чтение (запись блокирует auth).
+registerStocksRoutes(app, {
+  controller: createStocksController(createStocksService({
+    repository: createStocksRepository(db),
+    marketplace: createMarketplaceService(),
+    content: createContentService()
+  })),
+  auth: authMiddleware,
+  access: (req, res, next) => (req.user?.view ? next() : checkSubscription(req, res, next)),
+  shop: resolveShop
 });
 registerAnalyticsProductsRoutes(app, {
   controller: createAnalyticsProductsController({
