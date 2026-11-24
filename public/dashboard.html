@@ -1326,6 +1326,19 @@ canvas.an-canvas{width:100%;height:200px;display:block}
   .rnp-plan-table .rnp-input{min-width:76px}
   .rnp-dialog-head,.rnp-dialog-body,.rnp-dialog-foot{padding-left:14px;padding-right:14px}
 }
+/* Режим просмотра админа: кабинет пользователя только для чтения. */
+.wb-view-mode [data-view-hide]{display:none!important}
+.wb-view-mode{padding-bottom:64px}
+.view-bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:300;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:8px 8px 8px 14px;border-radius:12px;background:var(--ink,#17141d);color:var(--bg,#fff);font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.view-bar b{font-weight:800}
+.view-bar > span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.view-bar-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.3)}
+.view-bar-exit{flex:none;min-height:36px;padding:0 12px;border-radius:8px;border:0;background:var(--bg,#fff);color:var(--ink,#17141d);font-weight:700;font-size:12px;cursor:pointer}
+.view-expired{max-width:460px;margin:15vh auto;padding:32px 16px;text-align:center}
+.view-expired h1{font-size:22px;margin:0 0 8px;color:var(--ink)}
+.view-expired p{color:var(--muted);margin:0 0 20px}
+.view-expired a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:9px;background:var(--p);color:#fff;font-weight:700;text-decoration:none}
+@media (max-width:600px){.view-bar{left:8px;right:8px;bottom:8px;transform:none;max-width:none}}
 </style>
 <link rel="stylesheet" href="/wbai-design.css">
 <script src="/wbai-theme.js"></script>
@@ -1382,14 +1395,14 @@ canvas.an-canvas{width:100%;height:200px;display:block}
     <button class="nav-item active" type="button" onclick="showPage('home');closeSidebar()" aria-current="page"><span class="nav-icon" data-icon="home" aria-hidden="true"></span>Главная</button>
     <button class="nav-item" type="button" onclick="showPage('subscription');closeSidebar()"><span class="nav-icon" data-icon="credit-card" aria-hidden="true"></span>Подписка</button>
     <button class="nav-item" type="button" onclick="showPage('templates');closeSidebar()"><span class="nav-icon" data-icon="box" aria-hidden="true"></span>Шаблоны товаров</button>
-    <button class="nav-item" type="button" onclick="showPage('videos');closeSidebar()"><span class="nav-icon" data-icon="play" aria-hidden="true"></span>Видео обзор</button>
+    <button class="nav-item" type="button" data-view-hide onclick="showPage('videos');closeSidebar()"><span class="nav-icon" data-icon="play" aria-hidden="true"></span>Видео обзор</button>
     <button class="nav-item" type="button" onclick="showPage('history');closeSidebar()"><span class="nav-icon" data-icon="clipboard" aria-hidden="true"></span>История запросов</button>
     <button class="nav-item" type="button" onclick="showPage('analytics');closeSidebar()"><span class="nav-icon" data-icon="chart" aria-hidden="true"></span>Аналитика WB</button>
     <button class="nav-item" type="button" onclick="showPage('rnp');closeSidebar()"><span class="nav-icon" data-icon="activity" aria-hidden="true"></span>РНП · Рука на пульсе</button>
     <button class="nav-item" type="button" onclick="showPage('settings');closeSidebar()"><span class="nav-icon" data-icon="settings" aria-hidden="true"></span>Настройки</button>
-    <button class="nav-item" type="button" onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="image" aria-hidden="true"></span>Студия инфографики</button>
-    <button class="nav-item" type="button" onclick="showPage('install');closeSidebar()"><span class="nav-icon" data-icon="download" aria-hidden="true"></span>Установка расширения</button>
-    <button class="nav-item" type="button" onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon" data-icon="message" aria-hidden="true"></span>Поддержка</button>
+    <button class="nav-item" type="button" data-view-hide onclick="showPage('infographic');closeSidebar()"><span class="nav-icon" data-icon="image" aria-hidden="true"></span>Студия инфографики</button>
+    <button class="nav-item" type="button" data-view-hide onclick="showPage('install');closeSidebar()"><span class="nav-icon" data-icon="download" aria-hidden="true"></span>Установка расширения</button>
+    <button class="nav-item" type="button" data-view-hide onclick="window.open('https://t.me/WBAI_SUPPORT','_blank')"><span class="nav-icon" data-icon="message" aria-hidden="true"></span>Поддержка</button>
   </div>
 </aside>
 
@@ -2304,15 +2317,65 @@ canvas.an-canvas{width:100%;height:200px;display:block}
 
 </main>
 <script>
-const token = localStorage.getItem('wbai_token');
+// Режим просмотра для админа: пропуск «только чтение» приходит в #view=…
+// и живёт только в этой вкладке (sessionStorage), личный вход не трогаем.
+var WB_VIEW = (function(){
+  var KEY = 'wbai_view_session';
+  try{
+    var hash = new URLSearchParams(location.hash.slice(1));
+    if(hash.get('view')){
+      var fresh = { token: hash.get('view'), shop: Number(hash.get('shop')) || null, email: hash.get('email') || '' };
+      sessionStorage.setItem(KEY, JSON.stringify(fresh));
+      history.replaceState(null, '', location.pathname + location.search);
+      return fresh;
+    }
+    var saved = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    return saved && saved.token ? saved : null;
+  }catch(e){ return null; }
+})();
+function wbViewExit(){
+  try{ sessionStorage.removeItem('wbai_view_session'); }catch(e){}
+  window.close();
+  setTimeout(function(){ location.href = '/admin'; }, 150);
+}
+function wbViewExpired(){
+  try{ sessionStorage.removeItem('wbai_view_session'); }catch(e){}
+  document.body.innerHTML = '<main class="view-expired"><h1>Сессия просмотра закончилась</h1><p>Пропуск действует 1 час. Откройте аналитику магазина заново из админки.</p><a href="/admin">В админку</a></main>';
+}
+const token = WB_VIEW ? WB_VIEW.token : localStorage.getItem('wbai_token');
 if(!token) location.href = '/login';
+if(WB_VIEW){
+  // Пропуск истёк посреди работы — экран «сессия закончилась». Смотрим именно ответ
+  // нашей авторизации: 401 от самого WB (недействительный токен магазина) — не то.
+  var wbViewFetch = window.fetch.bind(window);
+  window.fetch = function(){
+    return wbViewFetch.apply(null, arguments).then(function(r){
+      if(r.status === 401){
+        r.clone().json().then(function(d){
+          if(d && (d.error === 'Недействительный токен' || d.error === 'Нет токена')) wbViewExpired();
+        }).catch(function(){});
+      }
+      return r;
+    });
+  };
+  document.body.classList.add('wb-view-mode');
+  var wbViewBar = document.createElement('div');
+  wbViewBar.className = 'view-bar';
+  wbViewBar.setAttribute('role', 'status');
+  wbViewBar.innerHTML = '<span class="view-bar-dot" aria-hidden="true"></span><span><b>Режим просмотра</b> · <span id="viewBarEmail"></span> · только чтение</span><button type="button" class="view-bar-exit" onclick="wbViewExit()">Выйти из просмотра</button>';
+  document.body.insertBefore(wbViewBar, document.body.firstChild);
+  document.getElementById('viewBarEmail').textContent = WB_VIEW.email || 'пользователь';
+}
 
 let currentUser = null;
 
 async function init() {
   try {
     const r = await fetch('/api/me', {headers:{'Authorization':'Bearer '+token}});
-    if(!r.ok){localStorage.removeItem('wbai_token');location.href='/login';return;}
+    if(!r.ok){
+      if(WB_VIEW){ wbViewExpired(); return; }
+      localStorage.removeItem('wbai_token');location.href='/login';return;
+    }
     const d = await r.json();
     currentUser = d.user;
     setUser(d.user, d.subscription);
@@ -2321,6 +2384,7 @@ async function init() {
     if(d.subscription?.active) loadTemplates();
     else { document.getElementById('templatesContent').innerHTML='<div class="empty-state"><span data-icon="box" aria-hidden="true"></span> Шаблоны доступны после активации подписки.</div>'; window.wbaiInjectIcons?.(); }
     // Восстанавливаем последнюю открытую страницу
+    if(WB_VIEW){ showPage('analytics'); return; }
     const lastPage = localStorage.getItem('wbai_last_page');
     if(lastPage && lastPage !== 'home' && document.getElementById('page-'+lastPage)) {
       showPage(lastPage);
@@ -2423,7 +2487,7 @@ function showPage(name) {
     n.classList.toggle('active',active);
     if(active) n.setAttribute('aria-current','page'); else n.removeAttribute('aria-current');
   });
-  localStorage.setItem('wbai_last_page', name);
+  if(!WB_VIEW) localStorage.setItem('wbai_last_page', name);
   if(name==='history') loadHistory();
   if(name==='analytics') anInit();
   if(name==='rnp') rnpInit();
@@ -2512,6 +2576,7 @@ document.addEventListener('keydown',event=>{
   }
 });
 async function logout(){
+  if(WB_VIEW) return wbViewExit();
   localStorage.removeItem('wbai_token');
   localStorage.removeItem('wbai_user');
   location.href='/';
@@ -3275,7 +3340,7 @@ async function loadShops(){
     WB_SHOP.planName = d.planName || '';
     WB_SHOP.loaded = true;
     var saved = null;
-    try{ saved = Number(localStorage.getItem(WB_SHOP_KEY)) || null; }catch(e){}
+    try{ saved = WB_VIEW ? WB_VIEW.shop : (Number(localStorage.getItem(WB_SHOP_KEY)) || null); }catch(e){}
     var ids = WB_SHOP.list.map(function(x){ return x.id; });
     WB_SHOP.current = ids.indexOf(WB_SHOP.current) >= 0 ? WB_SHOP.current : (ids.indexOf(saved) >= 0 ? saved : (ids[0] || null));
     renderShopTabs();
@@ -3288,7 +3353,7 @@ function renderShopTabs(){
     var box = document.getElementById(id);
     if(!box) return;
     if(!WB_SHOP.list.length){ box.innerHTML=''; return; }
-    var canAdd = WB_SHOP.list.length < WB_SHOP.limit;
+    var canAdd = !WB_VIEW && WB_SHOP.list.length < WB_SHOP.limit;
     box.innerHTML = '<div class="shop-tabs" role="tablist" aria-label="Магазины">'+WB_SHOP.list.map(function(x){
       var on = x.id===WB_SHOP.current;
       return '<button type="button" role="tab" class="shop-tab" aria-selected="'+on+'"'+(on?'':' tabindex="-1"')+' title="'+shopEsc(x.name)+'" onclick="setShop('+x.id+')">'+shopEsc(x.name)+'</button>';
@@ -3306,7 +3371,7 @@ function openShopSettings(){
 function setShop(id){
   if(id===WB_SHOP.current) return;
   WB_SHOP.current = id;
-  try{ localStorage.setItem(WB_SHOP_KEY, String(id)); }catch(e){}
+  try{ if(!WB_VIEW) localStorage.setItem(WB_SHOP_KEY, String(id)); }catch(e){}
   renderShopTabs();
   renderShopSettings();
   resetShopState();

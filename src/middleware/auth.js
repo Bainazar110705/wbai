@@ -8,16 +8,40 @@ function safeEqual(value, expected) {
   return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
+// Пропуск админа «только чтение»: смотреть кабинет пользователя можно, менять — нет.
+// Разрешено только чтение и обновление данных WB (это не меняет настройки пользователя).
+const VIEW_SESSION_TTL_SECONDS = 60 * 60;
+const VIEW_READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const VIEW_ALLOWED_WRITES = new Set(['POST /api/rnp/refresh']);
+
+function viewRequestAllowed(method, path) {
+  const verb = String(method || '').toUpperCase();
+  if (VIEW_READ_METHODS.has(verb)) return true;
+  const cleanPath = String(path || '').split('?')[0].replace(/\/+$/, '');
+  return VIEW_ALLOWED_WRITES.has(`${verb} ${cleanPath}`);
+}
+
+function createViewToken({ jwt: signer = jwt, jwtSecret, user, shopId = null }) {
+  return signer.sign(
+    { id: user.id, email: user.email, view: true, shopId: shopId || null },
+    jwtSecret,
+    { expiresIn: VIEW_SESSION_TTL_SECONDS }
+  );
+}
+
 function createAuthMiddleware({ usersRepository, jwtSecret, adminKey }) {
   function auth(req, res, next) {
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Нет токена' });
     try {
       req.user = jwt.verify(token, jwtSecret);
-      next();
     } catch (error) {
-      res.status(401).json({ error: 'Недействительный токен' });
+      return res.status(401).json({ error: 'Недействительный токен' });
     }
+    if (req.user?.view && !viewRequestAllowed(req.method, req.originalUrl || req.url)) {
+      return res.status(403).json({ error: 'Режим просмотра: изменения недоступны.', readOnly: true });
+    }
+    next();
   }
 
   async function subscription(req, res, next) {
@@ -57,4 +81,4 @@ function createAuthMiddleware({ usersRepository, jwtSecret, adminKey }) {
   return { auth, subscription, requirePlan, admin };
 }
 
-module.exports = { createAuthMiddleware };
+module.exports = { createAuthMiddleware, createViewToken, viewRequestAllowed, VIEW_SESSION_TTL_SECONDS };

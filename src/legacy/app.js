@@ -12,7 +12,9 @@ const logger = require('../platform/logger');
 const requestContext = require('../middleware/request-context');
 const errorHandler = require('../middleware/error-handler');
 const { wrapAsyncRoutes } = require('../middleware/async-routes');
-const { createAuthMiddleware } = require('../middleware/auth');
+const { createAuthMiddleware, createViewToken } = require('../middleware/auth');
+const { createAdminRepository } = require('../repositories/admin.repository');
+const { createAdminUsersService } = require('../services/admin-users.service');
 const { createUsersRepository } = require('../repositories/users.repository');
 const { createCreditsService } = require('../services/credits.service');
 const { createPhotoCreditsService } = require('../services/photo-credits.service');
@@ -87,6 +89,11 @@ const templatesController = createTemplatesController(templatesService);
 const shopsRepository = createShopsRepository(db);
 const resolveShop = createShopMiddleware({ repository: shopsRepository });
 const analyticsAccess = createAnalyticsAccess({ usersRepository });
+const adminUsersService = createAdminUsersService({
+  repository: createAdminRepository(db),
+  creditsSummary: userId => photoCreditsService.summary(userId),
+  createViewToken: ({ user, shopId }) => createViewToken({ jwt, jwtSecret: JWT_SECRET, user, shopId })
+});
 const shopsService = createShopsService({
   repository: shopsRepository,
   usersRepository,
@@ -178,9 +185,12 @@ const imageLimiter = rateLimit({
   max: 6,
   message: { error: 'Максимум 3 генерации в минуту.' }
 });
+// Считаем только неудачные запросы (неверный ключ и т. п.): подбор ключа
+// по-прежнему ограничен, а обычная работа в админке не упирается в лимит.
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Слишком много административных запросов. Попробуйте позже.' }
@@ -1039,14 +1049,24 @@ app.get('/api/history', authMiddleware, checkSubscription, async (req, res) => {
 
 // === АДМИНКА ===
 app.post('/api/admin/activate', adminLimiter, requireAdmin, async (req, res) => {
-  const { email, months, plan } = req.body;
+  const { email, months, days, plan } = req.body;
   const user = await db.getAsync('SELECT * FROM users WHERE email = ?', [email?.toLowerCase()]);
   if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+  // Срок: целые месяцы или своё число дней (дробные месяцы setMonth молча отбрасывал).
+  const dayCount = days === undefined || days === null || days === '' ? null : Number(days);
+  if (dayCount !== null && !(Number.isInteger(dayCount) && dayCount >= 1 && dayCount <= 3650)) {
+    return res.status(400).json({ error: 'Срок — целое число дней от 1 до 3650.' });
+  }
+  const monthCount = Number(months) || 1;
+  if (dayCount === null && !(Number.isInteger(monthCount) && monthCount >= 1 && monthCount <= 120)) {
+    return res.status(400).json({ error: 'Срок — целое число месяцев от 1 до 120.' });
+  }
   const now = new Date();
   const current = user.subscription_end ? new Date(user.subscription_end) : now;
   const start = current > now ? current : now;
   const end = new Date(start);
-  end.setMonth(end.getMonth() + (months || 1));
+  if (dayCount !== null) end.setDate(end.getDate() + dayCount);
+  else end.setMonth(end.getMonth() + monthCount);
   const userPlan = ['start', 'pro', 'max'].includes(plan) ? plan : 'start';
   const wasActive = !!(user.subscription_end && new Date(user.subscription_end) > now);
   await db.runAsync(
@@ -1104,15 +1124,20 @@ app.get('/api/admin/templates', adminLimiter, requireAdmin, async (req, res) => 
 });
 
 app.get('/api/admin/users', adminLimiter, requireAdmin, async (req, res) => {
-  // Баланс без сгоревших пачек — даже у тех, кто давно не заходил.
-  const users = await db.allAsync(
-    `SELECT u.id, u.email, u.name, u.subscription_end, u.created_at, u.plan,
-            (SELECT COALESCE(SUM(b.remaining), 0)::int FROM photo_credit_batches b
-             WHERE b.user_id = u.id AND b.remaining > 0 AND (b.expires_at IS NULL OR b.expires_at > NOW())) AS photo_credits
-     FROM users u ORDER BY u.id DESC`,
-    []
-  );
-  res.json({ users });
+  // Баланс без сгоревших пачек — даже у тех, кто давно не заходил; плюс число магазинов.
+  res.json({ users: await adminUsersService.listUsers() });
+});
+
+// Карточка пользователя: подписка, фото, история операций и магазины WB.
+app.get('/api/admin/users/:id', adminLimiter, requireAdmin, async (req, res) => {
+  res.json(await adminUsersService.details(req.params.id));
+});
+
+// Пропуск «только чтение» на час: открыть кабинет пользователя и смотреть аналитику магазина.
+app.post('/api/admin/users/:id/view-session', adminLimiter, requireAdmin, async (req, res) => {
+  const session = await adminUsersService.viewSession(req.params.id, req.body?.shopId);
+  logger.info('admin_view_session', { userId: session.userId, shopId: session.shopId });
+  res.json({ ok: true, ...session });
 });
 
 // ═══════════════════════════════════════════════════

@@ -13,6 +13,8 @@ function hasAnalyticsAccess(user, now = new Date()) {
 function createAnalyticsAccess({ usersRepository, now = () => new Date() }) {
   return async function requireAnalyticsPlan(req, res, next) {
     try {
+      // Админ в режиме просмотра видит аналитику при любом тарифе пользователя.
+      if (req.user?.view) return next();
       const user = await usersRepository.findById(req.user.id);
       if (hasAnalyticsAccess(user, now())) return next();
       res.status(403).json({
